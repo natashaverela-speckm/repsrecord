@@ -163,9 +163,18 @@ sb.auth.getSession().then(({ data: { session } }) => {
   if (session) window.location.href = 'app.html';
 });
 
+// ── ADMIN BYPASS LIST ──
+const ADMIN_EMAILS = ['admin@repsrecord.com', 'support@repsrecord.com'];
+
 // ── AUTH STATE CHANGE ──
 sb.auth.onAuthStateChange((event, session) => {
   if (session) {
+    const email = session.user?.email || '';
+    // Admin accounts skip Stripe entirely
+    if (ADMIN_EMAILS.includes(email.toLowerCase())) {
+      window.location.href = 'app.html';
+      return;
+    }
     // Check if coming from a plan selection
     const plan = params.get('plan');
     if (plan === 'annual') {
