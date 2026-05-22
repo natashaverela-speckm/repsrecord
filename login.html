@@ -95,7 +95,7 @@ nav{padding:0 5%;height:60px;display:flex;align-items:center;justify-content:spa
     <!-- Trial badge (signup only) -->
     <div class="trial-badge" id="trial-badge" style="display:none;">
       <div class="trial-badge-ic">🎉</div>
-      <div class="trial-badge-text"><strong>7-day free trial</strong> — no credit card required. Full access to every feature. Cancel anytime.</div>
+      <div class="trial-badge-text"><strong>7-day free trial</strong> — credit card required. Full access to every feature. Cancel anytime.</div>
     </div>
 
     <!-- Messages -->
@@ -186,7 +186,7 @@ function switchTab(tab) {
   document.getElementById('tab-signup').classList.toggle('active', isSignup);
   document.getElementById('card-title').textContent = isSignup ? 'Start your free trial' : 'Welcome back';
   document.getElementById('card-sub').textContent = isSignup
-    ? 'Create your account — no credit card required.'
+    ? 'Create your account — credit card required to start trial.'
     : 'Sign in to your RepsRecord account.';
   document.getElementById('trial-badge').style.display = isSignup ? 'flex' : 'none';
   document.getElementById('confirm-field').style.display = isSignup ? 'block' : 'none';
