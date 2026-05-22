@@ -211,7 +211,7 @@ footer{background:#0A1628;padding:60px 5% 32px;color:rgba(255,255,255,.5);}
   </div>
   <div class="nav-cta">
     <a class="btn btn-ghost" href="login.html">Log in</a>
-    <a class="btn btn-teal" href="login.html?signup=1">Start free trial</a>
+    <a class="btn btn-teal pricing-cta" href="https://buy.stripe.com/bJedR19mL8bK7rY3nuebu00">Start free trial</a>
   </div>
 </nav>
 
@@ -221,7 +221,7 @@ footer{background:#0A1628;padding:60px 5% 32px;color:rgba(255,255,255,.5);}
   <h1>Track REPS & STR Hours.<br><em>Protect Every Deduction.</em></h1>
   <p>The only hour tracker built specifically for Real Estate Professional Status and the Short-Term Rental loophole — with IRS-audit-ready logs, automatic qualification tracking, and all 7 material participation tests built in.</p>
   <div class="hero-btns">
-    <a class="btn btn-teal-lg" href="login.html?signup=1">Start 7-Day Free Trial</a>
+    <a class="btn btn-teal-lg" href="https://buy.stripe.com/bJedR19mL8bK7rY3nuebu00">Start 7-Day Free Trial</a>
     <a class="btn btn-outline-lg" href="#features">See how it works</a>
   </div>
   <div class="hero-trust">
@@ -460,7 +460,7 @@ footer{background:#0A1628;padding:60px 5% 32px;color:rgba(255,255,255,.5);}
           <li><span class="check">✓</span>LTR & STR rules reference</li>
           <li><span class="check">✓</span>Email support</li>
         </ul>
-        <a class="btn btn-teal" href="login.html?signup=1&plan=monthly" style="width:100%;padding:13px;font-size:14px;border-radius:10px;">Start 7-Day Free Trial</a>
+        <a class="btn btn-teal pricing-cta" href="https://buy.stripe.com/bJedR19mL8bK7rY3nuebu00" style="width:100%;padding:13px;font-size:14px;border-radius:10px;">Start 7-Day Free Trial</a>
       </div>
       <div class="pricing-card featured" id="annual-card">
         <div class="pc-name">Annual</div>
@@ -477,7 +477,7 @@ footer{background:#0A1628;padding:60px 5% 32px;color:rgba(255,255,255,.5);}
           <li><span class="check">✓</span>LTR & STR rules reference</li>
           <li><span class="check">✓</span>Priority email support</li>
         </ul>
-        <a class="btn btn-teal" href="login.html?signup=1&plan=annual" style="width:100%;padding:13px;font-size:14px;border-radius:10px;">Start 7-Day Free Trial</a>
+        <a class="btn btn-teal pricing-cta" href="https://buy.stripe.com/aFadR17eD9fOfYubU0ebu01" style="width:100%;padding:13px;font-size:14px;border-radius:10px;">Start 7-Day Free Trial</a>
       </div>
     </div>
     <div class="trial-note">🎉 <strong>7-day free trial</strong> — no credit card required to start. Cancel before day 7 and you'll never be charged.</div>
@@ -559,7 +559,7 @@ footer{background:#0A1628;padding:60px 5% 32px;color:rgba(255,255,255,.5);}
   <h2>Stop reconstructing hours<br>in <em>April.</em> Start now.</h2>
   <p>The IRS expects contemporaneous records. Give them exactly that — starting today.</p>
   <div class="cta-btns">
-    <a class="btn btn-teal-lg" href="login.html?signup=1">Start 7-Day Free Trial</a>
+    <a class="btn btn-teal-lg" href="https://buy.stripe.com/bJedR19mL8bK7rY3nuebu00">Start 7-Day Free Trial</a>
     <a class="btn btn-outline-lg" href="#pricing">View pricing</a>
   </div>
 </section>
@@ -576,7 +576,7 @@ footer{background:#0A1628;padding:60px 5% 32px;color:rgba(255,255,255,.5);}
         <h4>Product</h4>
         <a href="#features">Features</a>
         <a href="#pricing">Pricing</a>
-        <a href="login.html?signup=1">Sign up</a>
+        <a href="https://buy.stripe.com/bJedR19mL8bK7rY3nuebu00">Sign up</a>
         <a href="login.html">Log in</a>
       </div>
       <div class="footer-col">
@@ -602,13 +602,17 @@ footer{background:#0A1628;padding:60px 5% 32px;color:rgba(255,255,255,.5);}
 
 <script>
 function toggleFaq(el){el.classList.toggle('open');}
+const MONTHLY_LINK = 'https://buy.stripe.com/bJedR19mL8bK7rY3nuebu00';
+const ANNUAL_LINK = 'https://buy.stripe.com/aFadR17eD9fOfYubU0ebu01';
 function showMonthly(){
   document.getElementById('monthly-btn').classList.add('active');
   document.getElementById('annual-btn').classList.remove('active');
+  document.querySelectorAll('.pricing-cta').forEach(b=>b.href=MONTHLY_LINK);
 }
 function showAnnual(){
   document.getElementById('annual-btn').classList.add('active');
   document.getElementById('monthly-btn').classList.remove('active');
+  document.querySelectorAll('.pricing-cta').forEach(b=>b.href=ANNUAL_LINK);
 }
 // Sticky nav shadow on scroll
 window.addEventListener('scroll',()=>{
