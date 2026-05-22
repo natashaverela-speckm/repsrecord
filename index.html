@@ -210,6 +210,14 @@ footer{background:#0A1628;padding:60px 5% 32px;color:rgba(255,255,255,.5);}
   .preview-sb{display:none;}
 }
 </style>
+<link rel="manifest" href="manifest.json"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="RepsRecord"/>
+<meta name="theme-color" content="#14B8A6"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png"/>
 </head>
 <body>
 
@@ -741,5 +749,6 @@ window.addEventListener('scroll',()=>{
   document.querySelector('nav').style.boxShadow=window.scrollY>10?'0 2px 20px rgba(0,0,0,.3)':'none';
 });
 </script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").then(r=>console.log("SW registered")).catch(e=>console.log("SW failed",e)));}</script>
 </body>
 </html>

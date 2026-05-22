@@ -186,6 +186,14 @@ tr:last-child td{border-bottom:none;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:#CCFBF1;border-radius:3px;}
 </style>
+<link rel="manifest" href="manifest.json"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="RepsRecord"/>
+<meta name="theme-color" content="#14B8A6"/>
+<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png"/>
 </head>
 <body>
 <div class="app">
@@ -982,5 +990,6 @@ setTimeout(showWalkthrough,800);
     </div>
   </div>
 </div>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").then(r=>console.log("SW registered")).catch(e=>console.log("SW failed",e)));}</script>
 </body>
 </html>
