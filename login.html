@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RepsRecord — Sign In</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;background:#0D1F3C;min-height:100vh;display:flex;flex-direction:column;}
+a{text-decoration:none;}
+
+/* ── NAV ── */
+nav{padding:0 5%;height:60px;display:flex;align-items:center;justify-content:space-between;}
+.nav-logo{font-size:17px;font-weight:900;color:#fff;letter-spacing:-0.04em;}
+.nav-logo span{color:#14B8A6;}
+.nav-back{font-size:13px;color:rgba(255,255,255,.5);display:flex;align-items:center;gap:6px;transition:color .15s;}
+.nav-back:hover{color:#fff;}
+
+/* ── LAYOUT ── */
+.page{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 20px;}
+.card{background:#fff;border-radius:20px;padding:40px;width:100%;max-width:420px;box-shadow:0 24px 64px rgba(0,0,0,.3);}
+.card-title{font-size:22px;font-weight:900;color:#0D1F3C;letter-spacing:-0.03em;margin-bottom:6px;}
+.card-sub{font-size:13px;color:#64748B;margin-bottom:28px;line-height:1.5;}
+
+/* ── TABS ── */
+.tabs{display:flex;background:#F0FDFA;border-radius:10px;padding:4px;margin-bottom:24px;}
+.tab{flex:1;text-align:center;padding:8px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;color:#64748B;transition:all .15s;border:none;background:transparent;font-family:inherit;}
+.tab.active{background:#fff;color:#0D1F3C;box-shadow:0 2px 8px rgba(0,0,0,.08);}
+
+/* ── GOOGLE BTN ── */
+.btn-google{width:100%;display:flex;align-items:center;justify-content:center;gap:10px;padding:12px;border-radius:10px;border:1.5px solid #E2E8F0;background:#fff;font-size:14px;font-weight:600;color:#0D1F3C;cursor:pointer;transition:all .15s;font-family:inherit;margin-bottom:20px;}
+.btn-google:hover{border-color:#CBD5E1;background:#F8FAFC;}
+.google-icon{width:20px;height:20px;}
+
+/* ── DIVIDER ── */
+.divider{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:#E2E8F0;}
+.divider span{font-size:12px;color:#94A3B8;font-weight:500;}
+
+/* ── FORM ── */
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748B;margin-bottom:6px;}
+.field input{width:100%;padding:10px 13px;border-radius:9px;border:1.5px solid #E2E8F0;font-size:14px;font-family:inherit;color:#0D1F3C;outline:none;transition:border-color .15s,box-shadow .15s;}
+.field input:focus{border-color:#14B8A6;box-shadow:0 0 0 3px rgba(20,184,166,.15);}
+.btn-submit{width:100%;padding:13px;border-radius:10px;border:none;background:#14B8A6;color:#fff;font-size:14px;font-weight:800;cursor:pointer;transition:all .15s;font-family:inherit;margin-top:4px;}
+.btn-submit:hover{background:#0D9488;}
+.btn-submit:disabled{opacity:.6;cursor:not-allowed;}
+
+/* ── TRIAL BADGE ── */
+.trial-badge{background:#F0FDFA;border:1px solid #99F6E4;border-radius:10px;padding:12px 14px;margin-bottom:20px;display:flex;align-items:flex-start;gap:10px;}
+.trial-badge-ic{font-size:18px;flex-shrink:0;}
+.trial-badge-text{font-size:12px;color:#0F766E;line-height:1.5;}
+.trial-badge-text strong{font-weight:700;}
+
+/* ── MESSAGES ── */
+.msg{padding:10px 14px;border-radius:9px;font-size:13px;margin-bottom:14px;display:none;}
+.msg-error{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;}
+.msg-success{background:#ECFDF5;border:1px solid #6EE7B7;color:#065F46;}
+.msg.show{display:block;}
+
+/* ── FOOTER TEXT ── */
+.card-footer{text-align:center;margin-top:20px;font-size:12px;color:#94A3B8;line-height:1.6;}
+.card-footer a{color:#14B8A6;font-weight:600;}
+
+/* ── FORGOT ── */
+.forgot{text-align:right;margin-top:-8px;margin-bottom:14px;}
+.forgot a{font-size:12px;color:#14B8A6;}
+
+/* ── LOADING ── */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="index.html">REPS<span>Record</span></a>
+  <a class="nav-back" href="index.html">← Back to home</a>
+</nav>
+
+<div class="page">
+  <div class="card">
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab active" id="tab-signin" onclick="switchTab('signin')">Sign in</button>
+      <button class="tab" id="tab-signup" onclick="switchTab('signup')">Create account</button>
+    </div>
+
+    <!-- Dynamic title -->
+    <div class="card-title" id="card-title">Welcome back</div>
+    <div class="card-sub" id="card-sub">Sign in to your RepsRecord account.</div>
+
+    <!-- Trial badge (signup only) -->
+    <div class="trial-badge" id="trial-badge" style="display:none;">
+      <div class="trial-badge-ic">🎉</div>
+      <div class="trial-badge-text"><strong>7-day free trial</strong> — no credit card required. Full access to every feature. Cancel anytime.</div>
+    </div>
+
+    <!-- Messages -->
+    <div class="msg msg-error" id="msg-error"></div>
+    <div class="msg msg-success" id="msg-success"></div>
+
+    <!-- Google -->
+    <button class="btn-google" onclick="signInWithGoogle()">
+      <svg class="google-icon" viewBox="0 0 48 48">
+        <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/>
+        <path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/>
+        <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/>
+        <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/>
+      </svg>
+      <span id="google-btn-text">Continue with Google</span>
+    </button>
+
+    <div class="divider"><span>or</span></div>
+
+    <!-- Email form -->
+    <form onsubmit="handleEmailAuth(event)">
+      <div class="field">
+        <label>Email address</label>
+        <input type="email" id="email" placeholder="you@example.com" required autocomplete="email"/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password" minlength="8"/>
+      </div>
+      <div class="forgot" id="forgot-wrap">
+        <a href="#" onclick="forgotPassword()">Forgot password?</a>
+      </div>
+      <div class="field" id="confirm-field" style="display:none;">
+        <label>Confirm password</label>
+        <input type="password" id="confirm-password" placeholder="••••••••" autocomplete="new-password" minlength="8"/>
+      </div>
+      <button class="btn-submit" type="submit" id="submit-btn">Sign in</button>
+    </form>
+
+    <div class="card-footer" id="card-footer">
+      Don't have an account? <a href="#" onclick="switchTab('signup')">Start your free trial →</a>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ── CONFIG ── Replace these with your Supabase project values
+const SUPABASE_URL = 'https://ehuttijifubonhhgnvzx.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodXR0aWppZnVib25oaGdudnp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NjU2MTgsImV4cCI6MjA5NTA0MTYxOH0.-uYE8sxRDXdZXt00CH10d7tLYaJl03hFYfDH5tPjTKM';
+const APP_URL = window.location.origin;
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ── STATE ──
+let currentTab = 'signin';
+
+// ── READ URL PARAMS ──
+const params = new URLSearchParams(window.location.search);
+if (params.get('signup') === '1') switchTab('signup');
+
+// ── CHECK IF ALREADY LOGGED IN ──
+sb.auth.getSession().then(({ data: { session } }) => {
+  if (session) window.location.href = 'app.html';
+});
+
+// ── AUTH STATE CHANGE ──
+sb.auth.onAuthStateChange((event, session) => {
+  if (session) window.location.href = 'app.html';
+});
+
+// ── TAB SWITCH ──
+function switchTab(tab) {
+  currentTab = tab;
+  const isSignup = tab === 'signup';
+  document.getElementById('tab-signin').classList.toggle('active', !isSignup);
+  document.getElementById('tab-signup').classList.toggle('active', isSignup);
+  document.getElementById('card-title').textContent = isSignup ? 'Start your free trial' : 'Welcome back';
+  document.getElementById('card-sub').textContent = isSignup
+    ? 'Create your account — no credit card required.'
+    : 'Sign in to your RepsRecord account.';
+  document.getElementById('trial-badge').style.display = isSignup ? 'flex' : 'none';
+  document.getElementById('confirm-field').style.display = isSignup ? 'block' : 'none';
+  document.getElementById('forgot-wrap').style.display = isSignup ? 'none' : 'block';
+  document.getElementById('confirm-field').querySelector('input').required = isSignup;
+  document.getElementById('submit-btn').textContent = isSignup ? 'Create Account — Start Free Trial' : 'Sign in';
+  document.getElementById('google-btn-text').textContent = isSignup ? 'Sign up with Google' : 'Continue with Google';
+  document.getElementById('card-footer').innerHTML = isSignup
+    ? 'Already have an account? <a href="#" onclick="switchTab(\'signin\')">Sign in →</a>'
+    : 'Don\'t have an account? <a href="#" onclick="switchTab(\'signup\')">Start your free trial →</a>';
+  clearMessages();
+}
+
+// ── GOOGLE AUTH ──
+async function signInWithGoogle() {
+  clearMessages();
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: `${APP_URL}/app.html` }
+  });
+  if (error) showError(error.message);
+}
+
+// ── EMAIL AUTH ──
+async function handleEmailAuth(e) {
+  e.preventDefault();
+  clearMessages();
+  const email = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>' + (currentTab === 'signup' ? 'Creating account...' : 'Signing in...');
+
+  if (currentTab === 'signup') {
+    const confirm = document.getElementById('confirm-password').value;
+    if (password !== confirm) {
+      showError('Passwords do not match.');
+      btn.disabled = false;
+      btn.textContent = 'Create Account — Start Free Trial';
+      return;
+    }
+    const { error } = await sb.auth.signUp({
+      email, password,
+      options: { emailRedirectTo: `${APP_URL}/app.html` }
+    });
+    if (error) { showError(error.message); }
+    else { showSuccess('Check your email to confirm your account, then come back to sign in!'); }
+  } else {
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) { showError('Invalid email or password. Please try again.'); }
+  }
+  btn.disabled = false;
+  btn.textContent = currentTab === 'signup' ? 'Create Account — Start Free Trial' : 'Sign in';
+}
+
+// ── FORGOT PASSWORD ──
+async function forgotPassword() {
+  const email = document.getElementById('email').value.trim();
+  if (!email) { showError('Enter your email address first.'); return; }
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: `${APP_URL}/reset-password.html`
+  });
+  if (error) showError(error.message);
+  else showSuccess('Password reset email sent — check your inbox.');
+}
+
+// ── MESSAGES ──
+function showError(msg) {
+  const el = document.getElementById('msg-error');
+  el.textContent = msg; el.classList.add('show');
+}
+function showSuccess(msg) {
+  const el = document.getElementById('msg-success');
+  el.textContent = msg; el.classList.add('show');
+}
+function clearMessages() {
+  document.getElementById('msg-error').classList.remove('show');
+  document.getElementById('msg-success').classList.remove('show');
+}
+</script>
+</body>
+</html>
