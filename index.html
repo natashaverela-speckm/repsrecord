@@ -166,6 +166,19 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:0 5%;display:flex;al
 .faq-item.open .faq-a{display:block;}
 .faq-item.open .faq-icon{transform:rotate(45deg);}
 
+/* ── CONTACT ── */
+.contact{padding:100px 5%;background:#fff;}
+.contact-inner{max-width:720px;margin:0 auto;}
+.contact-form{background:var(--off);border-radius:20px;padding:40px;border:1px solid var(--border);}
+.cf-field{margin-bottom:18px;}
+.cf-field label{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:7px;}
+.cf-field input,.cf-field textarea{width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid #E2E8F0;font-size:14px;font-family:inherit;color:var(--navy);outline:none;transition:border-color .15s,box-shadow .15s;background:#fff;}
+.cf-field input:focus,.cf-field textarea:focus{border-color:var(--teal);box-shadow:0 0 0 3px rgba(20,184,166,.12);}
+.cf-field textarea{min-height:140px;resize:vertical;line-height:1.6;}
+.cf-submit{width:100%;padding:14px;border-radius:11px;border:none;background:var(--teal);color:#fff;font-size:15px;font-weight:800;cursor:pointer;font-family:inherit;transition:all .15s;margin-top:4px;}
+.cf-submit:hover{background:var(--teal2);transform:translateY(-1px);}
+.cf-success{display:none;text-align:center;padding:28px;background:#ECFDF5;border-radius:12px;border:1px solid #6EE7B7;}
+
 /* ── CTA ── */
 .cta{padding:120px 5%;background:var(--navy);text-align:center;position:relative;overflow:hidden;}
 .cta::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 70% 80% at 50% 100%,rgba(20,184,166,.15) 0%,transparent 70%);}
@@ -208,6 +221,7 @@ footer{background:#0A1628;padding:60px 5% 32px;color:rgba(255,255,255,.5);}
     <a href="#how">How it works</a>
     <a href="#why">Why us</a>
     <a href="#pricing">Pricing</a>
+    <a href="#contact">Contact</a>
     <a href="#faq">FAQ</a>
   </div>
   <div class="nav-cta">
@@ -613,6 +627,42 @@ footer{background:#0A1628;padding:60px 5% 32px;color:rgba(255,255,255,.5);}
   </div>
 </section>
 
+<!-- CONTACT -->
+<section class="contact" id="contact">
+  <div class="contact-inner">
+    <div style="text-align:center;margin-bottom:48px;">
+      <div class="section-tag">Get in touch</div>
+      <h2 class="section-title">Have a question?</h2>
+      <p style="font-size:15px;color:var(--muted);margin-top:12px;line-height:1.7;">Whether you're not sure if RepsRecord is right for you, have a question about REPS or STR rules, or need help with your account — we're here. You'll hear back from a real person who actually knows IRC §469.</p>
+    </div>
+    <div class="contact-form">
+      <div class="cf-success" id="cf-success">
+        <div style="font-size:36px;margin-bottom:12px;">✅</div>
+        <div style="font-size:20px;font-weight:800;color:var(--navy);margin-bottom:8px;">Message sent!</div>
+        <div style="font-size:14px;color:var(--muted);">We'll get back to you at your email address within 1 business day.</div>
+      </div>
+      <form id="contact-form" onsubmit="submitContact(event)" style="display:block;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+          <div class="cf-field">
+            <label>Your name</label>
+            <input type="text" id="cf-name" placeholder="Jane Smith" required/>
+          </div>
+          <div class="cf-field">
+            <label>Email address</label>
+            <input type="email" id="cf-email" placeholder="you@example.com" required/>
+          </div>
+        </div>
+        <div class="cf-field">
+          <label>Message</label>
+          <textarea id="cf-message" placeholder="Tell us what's on your mind — a question about REPS, a feature request, or just saying hi..." required></textarea>
+        </div>
+        <button type="submit" class="cf-submit" id="cf-btn">Send message →</button>
+        <p style="font-size:12px;color:var(--muted);text-align:center;margin-top:14px;">We respond to all messages within 1 business day. You can also reach us at <a href="mailto:support@repsrecord.com" style="color:var(--teal);">support@repsrecord.com</a></p>
+      </form>
+    </div>
+  </div>
+</section>
+
 <!-- CTA -->
 <section class="cta">
   <h2>Stop reconstructing hours<br>in <em>April.</em> Start now.</h2>
@@ -672,6 +722,19 @@ function showAnnual(){
   document.getElementById('annual-btn').classList.add('active');
   document.getElementById('monthly-btn').classList.remove('active');
   document.querySelectorAll('.pricing-cta').forEach(b=>b.href=ANNUAL_LINK);
+}
+async function submitContact(e){
+  e.preventDefault();
+  const btn=document.getElementById('cf-btn');
+  btn.textContent='Sending…';btn.disabled=true;
+  const data={name:document.getElementById('cf-name').value,email:document.getElementById('cf-email').value,message:document.getElementById('cf-message').value};
+  try{
+    const res=await fetch('https://formspree.io/f/YOUR_FORM_ID',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(data)});
+    if(res.ok){
+      document.getElementById('contact-form').style.display='none';
+      document.getElementById('cf-success').style.display='block';
+    }else{btn.textContent='Send message →';btn.disabled=false;alert('Something went wrong. Please email support@repsrecord.com directly.');}
+  }catch(err){btn.textContent='Send message →';btn.disabled=false;alert('Something went wrong. Please email support@repsrecord.com directly.');}
 }
 // Sticky nav shadow on scroll
 window.addEventListener('scroll',()=>{
