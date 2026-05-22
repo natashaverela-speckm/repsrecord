@@ -835,6 +835,152 @@ function renderView(){
 }
 
 load();renderView();
+
+// ── FIRST-TIME WALKTHROUGH ──
+const WALK_KEY='repsrecord_walked_v1';
+const steps=[
+  {
+    icon:'👋',
+    title:'Welcome to RepsRecord!',
+    body:`<p>RepsRecord helps you track your real estate hours so you can <strong>qualify for REPS status</strong> and the <strong>STR tax loophole</strong> — and survive an IRS audit if it ever comes.</p>
+    <p style="margin-top:12px;">This quick 5-step walkthrough will show you exactly how to use it. Takes about 2 minutes.</p>`,
+    tip:null
+  },
+  {
+    icon:'🏡',
+    title:'REPS or STR — which do I pick?',
+    body:`<p><strong style="color:#14B8A6;">REPS (Long-Term Rental)</strong> — Choose this when logging hours for long-term rentals (tenants staying more than 7 days). These hours count toward your 750-hour qualification.</p>
+    <p style="margin-top:10px;"><strong style="color:#38BDF8;">STR (Short-Term Rental)</strong> — Choose this for Airbnb, VRBO, or any property where guests typically stay 7 days or less.</p>`,
+    tip:'💡 Not sure? If your tenant has a monthly lease, pick REPS. If it\'s a vacation rental, pick STR.'
+  },
+  {
+    icon:'📋',
+    title:'What counts as a qualifying activity?',
+    body:`<p>When you log an entry, you pick an <strong>Activity Category</strong>. Here are examples of what counts:</p>
+    <ul style="margin-top:10px;list-style:none;display:flex;flex-direction:column;gap:7px;">
+      <li>✅ <strong>Property Management</strong> — managing tenants, handling issues, inspections</li>
+      <li>✅ <strong>Maintenance &amp; Repairs</strong> — fixing things yourself or coordinating repairs</li>
+      <li>✅ <strong>Guest Communication</strong> — messaging guests, answering questions (STR)</li>
+      <li>✅ <strong>Financial &amp; Accounting</strong> — reviewing income, expenses, bookkeeping</li>
+      <li>✅ <strong>Travel</strong> — driving to and from your property for a qualifying purpose</li>
+      <li>❌ <strong>Personal use</strong> of the property does NOT count</li>
+    </ul>`,
+    tip:'💡 When in doubt, log it and add a good description. Your tax professional can review.'
+  },
+  {
+    icon:'⏱',
+    title:'How to log an entry',
+    body:`<p>Logging an entry takes about <strong>60 seconds</strong>. Here's all you do:</p>
+    <ol style="margin-top:10px;list-style:none;display:flex;flex-direction:column;gap:8px;">
+      <li><strong>1.</strong> Go to <strong>Log Time</strong> in the left menu</li>
+      <li><strong>2.</strong> Toggle REPS or STR at the top</li>
+      <li><strong>3.</strong> Pick the date and your property</li>
+      <li><strong>4.</strong> Select the activity category</li>
+      <li><strong>5.</strong> Enter hours and minutes</li>
+      <li><strong>6.</strong> Add a description (very important!)</li>
+      <li><strong>7.</strong> Optionally attach a receipt or photo</li>
+      <li><strong>8.</strong> Hit <strong>Log Entry</strong> ✓</li>
+    </ol>`,
+    tip:'💡 Log your hours the same day you do the work. The IRS calls this "contemporaneous" records — and it\'s much stronger evidence than reconstructed logs.'
+  },
+  {
+    icon:'✍️',
+    title:'What to write in the description',
+    body:`<p>The description is your most important field. The IRS wants to see <strong>specific details</strong> — not vague labels.</p>
+    <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px;">
+      <div style="background:#FEF2F2;border-radius:8px;padding:12px;">
+        <div style="font-size:11px;font-weight:700;color:#991B1B;margin-bottom:4px;">❌ TOO VAGUE</div>
+        <div style="font-size:13px;color:#7F1D1D;">"Property management"</div>
+      </div>
+      <div style="background:#ECFDF5;border-radius:8px;padding:12px;">
+        <div style="font-size:11px;font-weight:700;color:#065F46;margin-bottom:4px;">✅ MUCH BETTER</div>
+        <div style="font-size:13px;color:#064E3B;">"Called plumber re: unit 3 leak. Scheduled repair for Friday. Contacted tenant to arrange access."</div>
+      </div>
+    </div>
+    <p style="margin-top:12px;font-size:13px;color:#64748B;">Who you talked to, what property, what decision was made, what was the outcome.</p>`,
+    tip:'💡 Think of it like a work journal. If an IRS agent read it 3 years from now, would they understand exactly what you did?'
+  },
+  {
+    icon:'🎉',
+    title:'You\'re ready to go!',
+    body:`<p>That's it! Here's a quick summary:</p>
+    <ul style="margin-top:10px;list-style:none;display:flex;flex-direction:column;gap:8px;">
+      <li>📊 <strong>Dashboard</strong> — tracks your progress toward 750 hrs and MP tests</li>
+      <li>⏱ <strong>Log Time</strong> — add entries as you do the work</li>
+      <li>🏠 <strong>Properties</strong> — add your rental properties here first</li>
+      <li>✅ <strong>MP Tests</strong> — see if each STR property qualifies</li>
+      <li>📋 <strong>Audit Report</strong> — one click to generate your IRS-ready report</li>
+      <li>🏡 <strong>LTR / STR Rules</strong> — reference guides whenever you need them</li>
+    </ul>
+    <p style="margin-top:12px;color:#14B8A6;font-weight:700;">Start by adding your properties, then log your first entry today!</p>`,
+    tip:null
+  }
+];
+
+let walkStep=0;
+
+function showWalkthrough(){
+  if(localStorage.getItem(WALK_KEY))return;
+  const el=document.getElementById('walk-overlay');
+  if(el){el.style.display='flex';renderWalkStep();}
+}
+
+function renderWalkStep(){
+  const s=steps[walkStep];
+  const total=steps.length;
+  document.getElementById('walk-icon').textContent=s.icon;
+  document.getElementById('walk-title').textContent=s.title;
+  document.getElementById('walk-body').innerHTML=s.body;
+  const tipEl=document.getElementById('walk-tip');
+  if(s.tip){tipEl.style.display='block';tipEl.textContent=s.tip;}
+  else{tipEl.style.display='none';}
+  document.getElementById('walk-back').style.display=walkStep===0?'none':'inline-flex';
+  const nextBtn=document.getElementById('walk-next');
+  nextBtn.textContent=walkStep===total-1?'Start tracking →':'Next →';
+  // dots
+  const dots=document.getElementById('walk-dots');
+  dots.innerHTML=steps.map((_,i)=>`<div style="width:8px;height:8px;border-radius:50%;background:${i===walkStep?'#14B8A6':'#1E4A6E'};transition:background .2s;"></div>`).join('');
+}
+
+function walkNext(){
+  if(walkStep<steps.length-1){walkStep++;renderWalkStep();}
+  else{closeWalkthrough();}
+}
+function walkBack(){if(walkStep>0){walkStep--;renderWalkStep();}}
+function closeWalkthrough(){
+  localStorage.setItem(WALK_KEY,'1');
+  const el=document.getElementById('walk-overlay');
+  if(el)el.style.display='none';
+}
+
+// Show after a short delay so the app loads first
+setTimeout(showWalkthrough,800);
 </script>
+
+<!-- ── WALKTHROUGH OVERLAY ── -->
+<div id="walk-overlay" style="display:none;position:fixed;inset:0;background:rgba(8,21,38,.85);z-index:1000;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);">
+  <div style="background:#fff;border-radius:20px;max-width:520px;width:100%;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.4);">
+    <!-- Header -->
+    <div style="background:#0D1F3C;padding:28px 28px 20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+        <div style="display:flex;gap:6px;align-items:center;" id="walk-dots"></div>
+        <button onclick="closeWalkthrough()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:20px;cursor:pointer;padding:0;line-height:1;">×</button>
+      </div>
+      <div id="walk-icon" style="font-size:40px;margin-bottom:10px;"></div>
+      <div id="walk-title" style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-0.03em;line-height:1.2;"></div>
+    </div>
+    <!-- Body -->
+    <div style="padding:24px 28px 8px;">
+      <div id="walk-body" style="font-size:14px;color:#334155;line-height:1.75;"></div>
+      <div id="walk-tip" style="margin-top:16px;background:#F0FDFA;border-radius:10px;padding:12px 14px;font-size:13px;color:#0E7490;line-height:1.6;"></div>
+    </div>
+    <!-- Footer -->
+    <div style="padding:16px 28px 24px;display:flex;align-items:center;justify-content:space-between;">
+      <button id="walk-back" onclick="walkBack()" style="display:none;background:none;border:1px solid #E2E8F0;color:#64748B;padding:10px 18px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">← Back</button>
+      <div></div>
+      <button id="walk-next" onclick="walkNext()" style="background:#14B8A6;color:#fff;border:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;">Next →</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
