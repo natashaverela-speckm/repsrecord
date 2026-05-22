@@ -4,17 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RepsRecord — REPS & STR Hour Tracker</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-// Auth guard — redirect to login if not signed in
-const SUPABASE_URL = 'https://ehuttijifubonhhgnvzx.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodXR0aWppZnVib25oaGdudnp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NjU2MTgsImV4cCI6MjA5NTA0MTYxOH0.-uYE8sxRDXdZXt00CH10d7tLYaJl03hFYfDH5tPjTKM';
-const { createClient } = supabase;
-const _sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-_sb.auth.getSession().then(({ data: { session } }) => {
-  if (!session) window.location.href = 'login.html';
-});
-</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
@@ -138,6 +127,16 @@ body{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,sans-s
 .ei-hrs{font-size:13px;font-weight:800;color:#0D1F3C;margin-left:auto;flex-shrink:0;padding-top:2px;}
 .ei-del{background:none;border:none;cursor:pointer;color:#CBD5E1;font-size:16px;padding:2px 6px;border-radius:6px;flex-shrink:0;transition:all .1s;}
 .ei-del:hover{color:#EF4444;background:#FEF2F2;}
+.upload-zone{border:1.5px dashed #CCFBF1;border-radius:8px;padding:12px;text-align:center;cursor:pointer;transition:all .15s;background:#F0FDFA;margin-bottom:12px;}
+.upload-zone:hover{border-color:#14B8A6;background:#CFFAFE;}
+.upload-zone input[type=file]{display:none;}
+.upload-zone-label{font-size:12px;color:#0E7490;font-weight:600;cursor:pointer;}
+.attach-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.attach-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:99px;background:#F0FDFA;border:1px solid #99F6E4;font-size:11px;color:#0E7490;font-weight:600;}
+.attach-chip a{color:#0E7490;text-decoration:none;}
+.attach-chip button{background:none;border:none;cursor:pointer;color:#94A3B8;font-size:12px;line-height:1;padding:0;}
+.attach-chip button:hover{color:#EF4444;}
+.attach-badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;padding:1px 6px;border-radius:99px;background:#CFFAFE;color:#0E7490;margin-left:6px;}
 .tb{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;margin-left:5px;vertical-align:middle;}
 .tb-r{background:#F0FDFA;color:#0E7490;}
 .tb-s{background:#E0F7FA;color:#0369A1;}
@@ -422,6 +421,14 @@ function vLog(){
   <div class="field"><label class="fl">Notes / Description <span style="font-weight:400;text-transform:none;color:#94A3B8;">— recommended for audit substantiation</span></label>
     <textarea id="f-notes" placeholder="Describe the activity, who you contacted, decisions made, outcome..."></textarea>
   </div>
+  <div class="field">
+    <label class="fl">Evidence / Attachments <span style="font-weight:400;text-transform:none;color:#94A3B8;">— receipts, photos, invoices, contracts</span></label>
+    <div class="upload-zone" onclick="document.getElementById('f-files').click()">
+      <input type="file" id="f-files" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onchange="previewFiles(this)"/>
+      <div class="upload-zone-label">📎 Click to attach files — images, PDFs, docs</div>
+      <div id="f-file-preview" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:5px;justify-content:center;"></div>
+    </div>
+  </div>
   ${state.settings.spouseEnabled?`<label class="tog-row"><input type="checkbox" id="f-spouse"/><span class="tog-lbl">Log as ${state.settings.spouseName||'Spouse'}'s hours (tracked separately)</span></label>`:''}
   <button class="btn btn-block" id="sub-btn" onclick="submitEntry()" style="background:${trackType==='STR'?'#38BDF8':'#14B8A6'};color:#fff;">+ Log ${trackType} Entry</button>
 </div>
@@ -432,9 +439,10 @@ ${all.map(e=>{const pr=state.properties.find(p=>p.id===e.propertyId);return`
 <div class="ei">
   <div class="ei-ic" style="background:${e.trackType==='STR'?'#E0F7FA':'#F0FDFA'};">${e.trackType==='STR'?'🏖':'🏡'}</div>
   <div style="flex:1;min-width:0;">
-    <div class="ei-cat">${e.category}<span class="tb tb-${e.trackType==='STR'?'s':'r'}">${e.trackType}</span>${e.isSpouse?'<span class="tb tb-sp">SPOUSE</span>':''}</div>
+    <div class="ei-cat">${e.category}<span class="tb tb-${e.trackType==='STR'?'s':'r'}">${e.trackType}</span>${e.isSpouse?'<span class="tb tb-sp">SPOUSE</span>':''}${e.attachments&&e.attachments.length?`<span class="attach-badge">📎 ${e.attachments.length}</span>`:''}</div>
     <div class="ei-meta">${e.date} · ${pr?.name||'General RE'} · ${fmtH(e.hours)}</div>
     ${e.notes?`<div class="ei-note">"${e.notes}"</div>`:''}
+    ${e.attachments&&e.attachments.length?`<div class="attach-list">${e.attachments.map(a=>`<span class="attach-chip"><a href="${a.url}" target="_blank" title="${a.name}">📄 ${a.name.length>20?a.name.slice(0,20)+'…':a.name}</a><button onclick="delAttachment('${e.id}','${a.name}')" title="Remove">×</button></span>`).join('')}</div>`:''}
   </div>
   <div class="ei-hrs">${fmtH(e.hours)}</div>
   <button class="ei-del" onclick="delEntry('${e.id}')" title="Delete">🗑</button>
@@ -444,18 +452,64 @@ ${all.map(e=>{const pr=state.properties.find(p=>p.id===e.propertyId);return`
 
 function setTT(t){trackType=t;renderView();}
 
-function submitEntry(){
+// ── FILE PREVIEW ──
+let pendingFiles=[];
+function previewFiles(input){
+  pendingFiles=Array.from(input.files);
+  const prev=document.getElementById('f-file-preview');
+  if(!prev)return;
+  prev.innerHTML=pendingFiles.map(f=>`<span style="font-size:11px;padding:2px 8px;background:#CFFAFE;border-radius:99px;color:#0E7490;font-weight:600;">📄 ${f.name.length>20?f.name.slice(0,20)+'…':f.name}</span>`).join('');
+  const lbl=document.querySelector('.upload-zone-label');
+  if(lbl)lbl.textContent=`📎 ${pendingFiles.length} file${pendingFiles.length>1?'s':''} selected — click to change`;
+}
+
+// ── UPLOAD TO SUPABASE STORAGE ──
+async function uploadFiles(entryId,files){
+  const SUPABASE_URL='https://ehuttijifubonhhgnvzx.supabase.co';
+  const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodXR0aWppZnVib25oaGdudnp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NjU2MTgsImV4cCI6MjA5NTA0MTYxOH0.-uYE8sxRDXdZXt00CH10d7tLYaJl03hFYfDH5tPjTKM';
+  const attachments=[];
+  for(const file of files){
+    const path=`${entryId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+    const res=await fetch(`${SUPABASE_URL}/storage/v1/object/evidence/${path}`,{
+      method:'POST',
+      headers:{'Authorization':`Bearer ${SUPABASE_ANON_KEY}`,'Content-Type':file.type||'application/octet-stream','x-upsert':'true'},
+      body:file
+    });
+    if(res.ok){
+      const url=`${SUPABASE_URL}/storage/v1/object/public/evidence/${path}`;
+      attachments.push({name:file.name,url,path});
+    }
+  }
+  return attachments;
+}
+
+async function submitEntry(){
   const h=(parseFloat(document.getElementById('f-hrs')?.value)||0)+(parseInt(document.getElementById('f-mins')?.value)||0)/60;
   if(h<=0){alert('Please enter a time greater than 0.');return;}
-  const cat=document.getElementById('f-cat')?.value||(trackType==='STR'?STR_CATS[0]:REPS_CATS[0]);
-  state.entries.push({id:uid(),date:document.getElementById('f-date')?.value||todayStr(),propertyId:document.getElementById('f-prop')?.value||'',trackType,type:trackType,category:cat,hours:Math.round(h*100)/100,notes:document.getElementById('f-notes')?.value||'',isSpouse:!!document.getElementById('f-spouse')?.checked});
-  save();
   const btn=document.getElementById('sub-btn');
+  if(btn){btn.disabled=true;btn.textContent=pendingFiles.length?'⬆ Uploading files…':'Saving…';}
+  const cat=document.getElementById('f-cat')?.value||(trackType==='STR'?STR_CATS[0]:REPS_CATS[0]);
+  const entryId=uid();
+  let attachments=[];
+  if(pendingFiles.length>0){
+    try{attachments=await uploadFiles(entryId,pendingFiles);}
+    catch(err){console.error('Upload error:',err);}
+  }
+  state.entries.push({id:entryId,date:document.getElementById('f-date')?.value||todayStr(),propertyId:document.getElementById('f-prop')?.value||'',trackType,type:trackType,category:cat,hours:Math.round(h*100)/100,notes:document.getElementById('f-notes')?.value||'',isSpouse:!!document.getElementById('f-spouse')?.checked,attachments});
+  save();
+  pendingFiles=[];
   if(btn){btn.textContent='✓ Saved!';btn.style.background='#10B981';}
   setTimeout(()=>renderView(),1200);
 }
 
 function delEntry(id){if(!confirm('Delete this entry?'))return;state.entries=state.entries.filter(e=>e.id!==id);save();renderView();}
+
+function delAttachment(entryId,name){
+  const entry=state.entries.find(e=>e.id===entryId);
+  if(!entry)return;
+  entry.attachments=(entry.attachments||[]).filter(a=>a.name!==name);
+  save();renderView();
+}
 
 // ── PROPERTIES ──
 function vProps(){
