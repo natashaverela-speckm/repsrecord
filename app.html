@@ -883,6 +883,27 @@ function vMP(){
   const sps=state.properties.filter(p=>p.type==='STR');
   return`
 <div class="ph"><div class="pg-title">Material Participation Tests</div><div class="pg-sub">All 7 tests under Temp. Reg. §1.469-5T evaluated per STR property. Passing any one test qualifies you.</div></div>
+
+<div style="background:#F0FDFA;border:1px solid #CCFBF1;border-left:4px solid #14B8A6;border-radius:12px;padding:20px 22px;margin-bottom:20px;">
+  <div style="font-size:13px;font-weight:800;color:#0D1F3C;margin-bottom:10px;">📊 How this page works</div>
+  <div style="font-size:13px;color:#334155;line-height:1.8;">
+    The results on this page are calculated automatically from two sources:
+    <br><strong>1. Your logged hours</strong> — every time entry you log for an STR property counts toward your participation hours for that property.
+    <br><strong>2. "Other Participants' Hours"</strong> — the number you entered on each property card for your cleaner, co-host, or property manager. This is used for Tests 3 and 7.
+  </div>
+  <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
+    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 1</span> <span style="color:#64748B;">Your hours ≥ 500</span></div>
+    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 2</span> <span style="color:#64748B;">You = only participant</span></div>
+    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 3</span> <span style="color:#64748B;">Your hours ≥ 100 AND > others' hours</span></div>
+    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 4</span> <span style="color:#64748B;">Part of group with 500+ hrs total</span></div>
+    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 5</span> <span style="color:#64748B;">Qualified in 5 of last 10 years</span></div>
+    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 6</span> <span style="color:#64748B;">Qualified 3 prior years (PSA)</span></div>
+    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;grid-column:1/-1;"><span style="font-weight:700;color:#0D1F3C;">Test 7</span> <span style="color:#64748B;">Regular, continuous & substantial basis (facts & circumstances)</span></div>
+  </div>
+  <div style="margin-top:12px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E;">
+    ⚠️ <strong>Tests 5, 6, and 7</strong> require historical data across multiple tax years. RepsRecord evaluates these based only on data logged within the app. You may manually override test results below if you have prior year documentation. Always consult your tax professional for final determination.
+  </div>
+</div>
 ${sps.length===0?`<div class="empty"><div class="empty-ic">✅</div><div class="empty-tx">Add STR properties first to evaluate material participation.</div></div>`:''}
 ${sps.map(p=>{
   const ph=pH(p.id),ts=mpT(p.id),any=ts.some(t=>t.met);
