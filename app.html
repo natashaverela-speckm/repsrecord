@@ -617,8 +617,11 @@ ${state.properties.length===0?`<div class="empty"><div class="empty-ic">🏠</di
 ${state.properties.map(p=>{
   const hrs=state.entries.filter(e=>e.propertyId===p.id&&!e.isSpouse).reduce((s,e)=>s+e.hours,0);
   const propEntries=yearEntries().filter(e=>e.propertyId===p.id).sort((a,b)=>new Date(b.date)-new Date(a.date));
-  return`<div class="prop-c ${p.type==='LTR'?'ltr':''}" style="flex-direction:column;gap:0;">
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+  return`<div class="prop-c ${p.type==='LTR'?'ltr':''}" style="flex-direction:column;gap:0;position:relative;">
+  <div style="position:absolute;top:0;right:0;">
+    <button onclick="openQuickLog('${p.id}')" style="background:#14B8A6;color:#fff;border:none;font-size:12px;font-weight:700;padding:7px 14px;border-radius:0 10px 0 10px;cursor:pointer;letter-spacing:.01em;">⏱ Log Time</button>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-right:90px;">
     <div>
       <div class="prop-nm">${p.name}</div>${p.address?`<div class="prop-addr">${p.address}</div>`:''}
       <div class="prop-tags">
@@ -628,9 +631,8 @@ ${state.properties.map(p=>{
       </div>
     </div>
     <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
-      <div style="font-size:26px;font-weight:900;color:#0D1F3C;">${Math.round(hrs)}<span style="font-size:13px;font-weight:400;color:#64748B;"> hrs</span></div>
+      <div style="font-size:26px;font-weight:900;color:#0D1F3C;margin-top:28px;">${Math.round(hrs)}<span style="font-size:13px;font-weight:400;color:#64748B;"> hrs</span></div>
       <div style="display:flex;gap:6px;">
-        <button class="btn btn-sm" style="background:#14B8A6;color:#fff;border:none;font-size:11px;font-weight:700;" onclick="openQuickLog('${p.id}')">⏱ Log Time</button>⏱ Log Time</button>
         <button class="btn btn-sm" style="background:#F0FDFA;border:1px solid #CCFBF1;color:#0E7490;font-size:11px;" onclick="togglePropEntries('${p.id}')">📋 View Entries (${propEntries.length})</button>
         <button class="btn btn-sm" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;font-size:11px;" onclick="toggleEditProp('${p.id}')">✏️ Edit</button>
         <button class="btn btn-sm btn-danger" style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="rmProp('${p.id}')">🗑 Delete</button>
