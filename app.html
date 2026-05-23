@@ -607,8 +607,36 @@ ${state.properties.map(p=>{
       <div style="font-size:26px;font-weight:900;color:#0D1F3C;">${Math.round(hrs)}<span style="font-size:13px;font-weight:400;color:#64748B;"> hrs</span></div>
       <div style="display:flex;gap:6px;">
         <button class="btn btn-sm" style="background:#F0FDFA;border:1px solid #CCFBF1;color:#0E7490;font-size:11px;" onclick="togglePropEntries('${p.id}')">📋 View Entries (${propEntries.length})</button>
-        <button class="btn btn-sm btn-danger" style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="rmProp('${p.id}')">🗑 Delete Property</button>
+        <button class="btn btn-sm" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;font-size:11px;" onclick="toggleEditProp('${p.id}')">✏️ Edit</button>
+        <button class="btn btn-sm btn-danger" style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="rmProp('${p.id}')">🗑 Delete</button>
       </div>
+    </div>
+  </div>
+  <div id="edit-prop-${p.id}" style="display:none;margin-top:14px;border-top:1px solid #CBD5E1;padding-top:14px;">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div class="field"><label class="fl">Property Name</label><input id="ep-nm-${p.id}" value="${p.name.replace(/"/g,'&quot;')}"/></div>
+      <div class="field"><label class="fl">Type</label>
+        <select id="ep-tp-${p.id}" onchange="toggleEditPropType('${p.id}')">
+          <option value="STR" ${p.type==='STR'?'selected':''}>STR — Short-Term Rental</option>
+          <option value="LTR" ${p.type==='LTR'?'selected':''}>LTR — Long-Term Rental</option>
+        </select>
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:12px;"><label class="fl">Street Address</label><input id="ep-street-${p.id}" value="${(p.street||p.address||'').replace(/"/g,'&quot;')}"/></div>
+    <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;margin-bottom:12px;">
+      <div class="field"><label class="fl">City</label><input id="ep-city-${p.id}" value="${(p.city||'').replace(/"/g,'&quot;')}"/></div>
+      <div class="field"><label class="fl">State</label><input id="ep-state-${p.id}" value="${(p.state||'').replace(/"/g,'&quot;')}" maxlength="2" style="text-transform:uppercase;"/></div>
+      <div class="field"><label class="fl">ZIP</label><input id="ep-zip-${p.id}" value="${(p.zip||'').replace(/"/g,'&quot;')}" maxlength="5"/></div>
+    </div>
+    <div id="ep-str-fields-${p.id}" style="${p.type==='LTR'?'display:none':''}">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div class="field"><label class="fl">Avg Rental Period (days)</label><input type="number" id="ep-dy-${p.id}" value="${p.avgRentalDays||''}" min="0.5" step="0.5" placeholder="e.g. 4.5"/><div class="hint">≤7 days for STR loophole</div></div>
+        <div class="field"><label class="fl">Other Participants' Annual Hours</label><input type="number" id="ep-ot-${p.id}" value="${p.otherHours||0}" min="0" step="1"/><div class="hint">Cleaner, co-host, PM</div></div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="savePropEdit('${p.id}')" style="background:#14B8A6;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Save changes</button>
+      <button onclick="toggleEditProp('${p.id}')" style="background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0;padding:9px 14px;border-radius:8px;font-size:13px;cursor:pointer;">Cancel</button>
     </div>
   </div>
   <div id="prop-entries-${p.id}" style="display:none;margin-top:14px;border-top:1px solid #F0FDFA;padding-top:12px;">
@@ -683,6 +711,34 @@ document.addEventListener('click',e=>{
     const b=document.getElementById('p-addr-suggestions');if(b)b.style.display='none';
   }
 });
+
+function toggleEditProp(id){
+  const el=document.getElementById('edit-prop-'+id);
+  if(!el)return;
+  el.style.display=el.style.display==='none'?'block':'none';
+}
+
+function toggleEditPropType(id){
+  const tp=document.getElementById('ep-tp-'+id)?.value;
+  const sf=document.getElementById('ep-str-fields-'+id);
+  if(sf)sf.style.display=tp==='LTR'?'none':'block';
+}
+
+function savePropEdit(id){
+  const prop=state.properties.find(p=>p.id===id);
+  if(!prop)return;
+  const street=document.getElementById('ep-street-'+id)?.value?.trim()||'';
+  const city=document.getElementById('ep-city-'+id)?.value?.trim()||'';
+  const st=document.getElementById('ep-state-'+id)?.value?.trim().toUpperCase()||'';
+  const zip=document.getElementById('ep-zip-'+id)?.value?.trim()||'';
+  prop.name=document.getElementById('ep-nm-'+id)?.value?.trim()||prop.name;
+  prop.type=document.getElementById('ep-tp-'+id)?.value||prop.type;
+  prop.street=street;prop.city=city;prop.state=st;prop.zip=zip;
+  prop.address=[street,city,st,zip].filter(Boolean).join(', ');
+  prop.avgRentalDays=parseFloat(document.getElementById('ep-dy-'+id)?.value)||null;
+  prop.otherHours=parseFloat(document.getElementById('ep-ot-'+id)?.value)||0;
+  save();renderView();
+}
 
 function togglePropEntries(id){
   const el=document.getElementById('prop-entries-'+id);
