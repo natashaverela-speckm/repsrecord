@@ -13,10 +13,10 @@ body{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,sans-s
 
 /* ── Sidebar ── */
 .sb{width:204px;flex-shrink:0;background:#0D1F3C;display:flex;flex-direction:column;}
-.sb-head{padding:18px 18px 14px;display:flex;align-items:center;justify-content:space-between;}
+.sb-head{padding:18px 18px 10px;}
 .sb-logo{font-size:20px;font-weight:900;color:#fff;letter-spacing:-0.04em;}
 .sb-logo span{color:#14B8A6;}
-.sb-signout{background:none;border:1px solid #1E4A6E;color:#64748B;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;padding:5px 10px;border-radius:7px;transition:all .15s;}
+.sb-signout{width:100%;margin-top:8px;padding:8px 12px;background:none;border:1px solid #1E4A6E;color:#64748B;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;border-radius:7px;transition:all .15s;text-align:left;}
 .sb-signout:hover{color:#fff;background:#0F2D4A;border-color:#38BDF8;}
 .sb-yr{font-size:10px;color:#7DD3FC;margin-top:3px;letter-spacing:.03em;}
 .sb-nav{padding:0 8px;flex:1;}
@@ -194,12 +194,10 @@ tr:last-child td{border-bottom:none;}
   <div class="sb">
     <div class="sb-head">
       <div class="sb-logo">REPS<span>Record</span></div>
-      <button class="sb-signout" onclick="signOut()">Sign out</button>
+      <div class="sb-yr">Tax Year 2026</div>
     </div>
     <div class="sb-nav" id="sb-nav"></div>
     <div class="sb-foot">
-      <div style="height:.5px;background:#1E4A6E;margin-bottom:10px;"></div>
-      <button onclick="signOut()" style="width:100%;padding:9px;border-radius:8px;border:1px solid #1E4A6E;background:transparent;color:#94A3B8;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;margin-bottom:12px;" onmouseover="this.style.background='#EF4444';this.style.color='#fff';this.style.borderColor='#EF4444'" onmouseout="this.style.background='transparent';this.style.color='#94A3B8';this.style.borderColor='#1E4A6E'">🚪 Sign out</button>
       <div class="sf-lbl">REPS Status</div>
       <div class="sf-val" id="sb-val">0 / 750 hrs</div>
       <div class="sf-track"><div class="sf-fill" id="sb-fill" style="width:0%"></div></div>
@@ -207,7 +205,8 @@ tr:last-child td{border-bottom:none;}
       <div class="sf-lbl">STR Hours</div>
       <div class="sf-val" id="sb-str-val">0 hrs logged</div>
       <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;" id="sb-str-props"></div>
-    </div>
+      <div style="height:.5px;background:#1E4A6E;margin:10px 0;"></div>
+      <button onclick="signOut()" class="sb-signout">🚪 Sign out</button>
     </div>
   </div>
   <div class="main"><div class="content" id="content"></div></div>
