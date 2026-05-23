@@ -1,18 +1,8 @@
-const CACHE='repsrecord-v1';
-const ASSETS=[
-  '/',
-  '/index.html',
-  '/app.html',
-  '/login.html',
-  '/manifest.json',
-  '/icon-192x192.png',
-  '/icon-512x512.png',
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
-  'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js'
-];
+const CACHE='repsrecord-v2';
+const STATIC=['icon-192x192.png','icon-512x512.png','apple-touch-icon.png','manifest.json'];
 
 self.addEventListener('install',e=>{
-  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c=>c.addAll(STATIC)).then(()=>self.skipWaiting()));
 });
 
 self.addEventListener('activate',e=>{
@@ -20,19 +10,32 @@ self.addEventListener('activate',e=>{
 });
 
 self.addEventListener('fetch',e=>{
-  // Network first for API calls, cache first for assets
-  if(e.request.url.includes('supabase.co')||e.request.url.includes('stripe.com')){
-    e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)));
-  } else {
-    e.respondWith(caches.match(e.request).then(cached=>{
-      const network=fetch(e.request).then(res=>{
-        if(res&&res.status===200){
-          const clone=res.clone();
-          caches.open(CACHE).then(c=>c.put(e.request,clone));
-        }
-        return res;
-      }).catch(()=>cached);
-      return cached||network;
-    }));
+  const url=new URL(e.request.url);
+
+  // Auth & API calls — always network, never cache
+  if(url.hostname.includes('supabase')||url.hostname.includes('stripe')||url.hostname.includes('formspree')){
+    e.respondWith(fetch(e.request));
+    return;
   }
+
+  // HTML pages — network first, fall back to cache
+  if(e.request.destination==='document'||url.pathname.endsWith('.html')||url.pathname==='/'){
+    e.respondWith(
+      fetch(e.request).then(res=>{
+        const clone=res.clone();
+        caches.open(CACHE).then(c=>c.put(e.request,clone));
+        return res;
+      }).catch(()=>caches.match(e.request))
+    );
+    return;
+  }
+
+  // Static icons & manifest — cache first
+  if(STATIC.some(s=>url.pathname.includes(s))){
+    e.respondWith(caches.match(e.request).then(cached=>cached||fetch(e.request)));
+    return;
+  }
+
+  // Everything else — network first
+  e.respondWith(fetch(e.request).catch(()=>caches.match(e.request)));
 });
