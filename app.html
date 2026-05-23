@@ -454,8 +454,8 @@ function vLog(){
 ${all.length?`
 <div class="sec-lbl" style="margin-bottom:8px;">All entries (${all.length})</div>
 <div class="card">
-${all.map(e=>{const pr=state.properties.find(p=>p.id===e.propertyId);return`
-<div class="ei">
+${all.map(e=>{const pr=state.properties.find(p=>p.id===e.propertyId);const cats=e.trackType==='STR'?STR_CATS:REPS_CATS;return`
+<div class="ei" style="flex-wrap:wrap;">
   <div class="ei-ic" style="background:${e.trackType==='STR'?'#E0F7FA':'#F0FDFA'};">${e.trackType==='STR'?'🏖':'🏡'}</div>
   <div style="flex:1;min-width:0;">
     <div class="ei-cat">${e.category}<span class="tb tb-${e.trackType==='STR'?'s':'r'}">${e.trackType}</span>${e.isSpouse?'<span class="tb tb-sp">SPOUSE</span>':''}${e.attachments&&e.attachments.length?`<span class="attach-badge">📎 ${e.attachments.length}</span>`:''}</div>
@@ -463,8 +463,29 @@ ${all.map(e=>{const pr=state.properties.find(p=>p.id===e.propertyId);return`
     ${e.notes?`<div class="ei-note">"${e.notes}"</div>`:''}
     ${e.attachments&&e.attachments.length?`<div class="attach-list">${e.attachments.map(a=>`<span class="attach-chip"><a href="${a.url}" target="_blank" title="${a.name}">📄 ${a.name.length>20?a.name.slice(0,20)+'…':a.name}</a><button onclick="delAttachment('${e.id}','${a.name}')" title="Remove">×</button></span>`).join('')}</div>`:''}
   </div>
-  <div class="ei-hrs">${fmtH(e.hours)}</div>
-  <button class="ei-del" onclick="delEntry('${e.id}')" title="Delete">🗑</button>
+  <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+    <div class="ei-hrs">${fmtH(e.hours)}</div>
+    <button onclick="showEditEntry('${e.id}')" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;font-weight:600;">✏️ Edit</button>
+    <button class="ei-del" onclick="delEntry('${e.id}')" title="Delete entry">🗑</button>
+  </div>
+  <div id="edit-entry-${e.id}" style="display:none;width:100%;margin-top:12px;background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:10px;padding:14px;">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#14B8A6;margin-bottom:12px;">Edit Entry</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div class="field"><label class="fl">Date</label><input type="date" id="ee-date-${e.id}" value="${e.date}"/></div>
+      <div class="field"><label class="fl">Hours</label><input type="number" id="ee-hrs-${e.id}" value="${Math.floor(e.hours)}" min="0" max="24" step="1"/></div>
+      <div class="field"><label class="fl">Minutes</label><input type="number" id="ee-min-${e.id}" value="${Math.round((e.hours%1)*60)}" min="0" max="59" step="15"/></div>
+    </div>
+    <div class="field" style="margin-bottom:10px;"><label class="fl">Category</label>
+      <select id="ee-cat-${e.id}">${cats.map(c=>`<option value="${c}" ${c===e.category?'selected':''}>${c}</option>`).join('')}</select>
+    </div>
+    <div class="field" style="margin-bottom:12px;"><label class="fl">Notes / Description</label>
+      <textarea id="ee-note-${e.id}" rows="2" placeholder="Describe what you did...">${e.notes||''}</textarea>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="saveEditEntry('${e.id}')" style="background:#14B8A6;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Save changes</button>
+      <button onclick="document.getElementById('edit-entry-${e.id}').style.display='none'" style="background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0;padding:9px 14px;border-radius:8px;font-size:13px;cursor:pointer;">Cancel</button>
+    </div>
+  </div>
 </div>`;}).join('')}
 </div>`:`<div class="empty"><div class="empty-ic">⏱</div><div class="empty-tx">No entries yet — log your first hours above.</div></div>`}`;
 }
