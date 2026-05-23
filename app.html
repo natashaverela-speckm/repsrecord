@@ -194,7 +194,7 @@ tr:last-child td{border-bottom:none;}
   <div class="sb">
     <div class="sb-head">
       <div class="sb-logo">REPS<span>Record</span></div>
-      <div class="sb-yr">Tax Year 2026</div>
+      <select id="year-sel" onchange="activeYear=parseInt(this.value);renderView()" style="font-size:10px;color:#7DD3FC;background:transparent;border:none;outline:none;cursor:pointer;font-family:inherit;font-weight:700;letter-spacing:.03em;margin-top:3px;">${YEARS.map(y=>`<option value="${y}" style="background:#0D1F3C;" ${y===activeYear?'selected':''}>${y} Tax Year</option>`).join('')}</select>
     </div>
     <div class="sb-nav" id="sb-nav"></div>
     <div class="sb-foot">
@@ -213,13 +213,16 @@ tr:last-child td{border-bottom:none;}
 </div>
 
 <script>
-const YEAR=2026,SK='repsrecord_v1';
+const SK='repsrecord_v1';
+const CUR_YEAR=new Date().getFullYear();
+const YEARS=[CUR_YEAR-3,CUR_YEAR-2,CUR_YEAR-1,CUR_YEAR];
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const REPS_CATS=['Acquisition & Due Diligence','Property Management','Leasing & Marketing','Maintenance & Repairs','Construction & Development','Financial & Accounting','Legal & Compliance','Tenant Communication','Contractor Coordination','Education & Research (RE-related)','Travel (property-related)','Property Selling','Other Qualifying Activity'];
 const STR_CATS=['Guest Communication','Booking & Reservation Management','Check-in / Check-out','Cleaning Coordination','Maintenance & Repairs','Marketing & Listing Management','Financial & Accounting','Furnishing & Setup','Travel (STR property)','Guest Services & Concierge','Other STR Activity'];
 const NAV=[{id:'dashboard',ic:'📊',label:'Dashboard'},{id:'log',ic:'⏱',label:'Log Time'},{id:'properties',ic:'🏠',label:'Properties'},{id:'mp',ic:'✅',label:'MP Tests'},{id:'reports',ic:'📋',label:'Audit Report'},{id:'divider'},{id:'ltr',ic:'🏡',label:'LTR Rules'},{id:'str',ic:'🏖',label:'STR Rules'},{id:'settings',ic:'⚙️',label:'Settings'}];
 
 let state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:true},properties:[],entries:[],manualMP:{}};
+let activeYear=CUR_YEAR;
 let view='dashboard',chartInst=null,showPropForm=false,trackType='REPS';
 
 function uid(){return Math.random().toString(36).slice(2,9);}
@@ -236,9 +239,12 @@ async function signOut(){
 function load(){try{const s=localStorage.getItem(SK);if(s)state=JSON.parse(s);}catch(e){}}
 function save(){try{localStorage.setItem(SK,JSON.stringify(state));}catch(e){}}
 
+function yearEntries(){return state.entries.filter(e=>e.date&&e.date.startsWith(String(activeYear)));}
+
 function calcREPS(){
   const inc=state.settings.includeSTRinREPS!==false;
-  const rh=state.entries.filter(e=>!e.isSpouse&&(e.trackType==='REPS'||(inc&&e.trackType==='STR'))).reduce((s,e)=>s+(e.hours||0),0);
+  const ye=yearEntries();
+  const rh=ye.filter(e=>!e.isSpouse&&(e.trackType==='REPS'||(inc&&e.trackType==='STR'))).reduce((s,e)=>s+(e.hours||0),0);
   const th=rh+(state.settings.nonREPSHours||0);
   const pct=th>0?rh/th*100:0;
   return{rh,pct,m750:rh>=750,m50:pct>50,ok:rh>=750&&pct>50};
@@ -300,14 +306,14 @@ function svgRing(val,max,color,bg,sz=110,sw=10){
 function vDashboard(){
   const r=calcREPS(),{rh,pct,m750,m50,ok}=r,tot=rh+(state.settings.nonREPSHours||0);
   const strPs=state.properties.filter(p=>p.type==='STR');
-  const rec=[...state.entries].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  const rec=[...yearEntries()].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
   const strHrs=state.entries.filter(e=>!e.isSpouse&&e.trackType==='STR').reduce((s,e)=>s+(e.hours||0),0);
   const repsOnlyHrs=state.entries.filter(e=>!e.isSpouse&&e.trackType==='REPS').reduce((s,e)=>s+(e.hours||0),0);
   const totalLogged=state.entries.filter(e=>!e.isSpouse).reduce((s,e)=>s+(e.hours||0),0);
   return`
 <div class="ph">
   <div class="ph-row">
-    <div><div class="pg-title">${YEAR} Tax Year Overview</div><div class="pg-sub">Real Estate Professional Status (IRC §469(c)(7)) · STR Loophole (Temp. Reg. §1.469-5T)</div></div>
+    <div><div class="pg-title">${activeYear} Tax Year Overview</div><div class="pg-sub">Real Estate Professional Status (IRC §469(c)(7)) · STR Loophole (Temp. Reg. §1.469-5T)</div></div>
     <div style="display:flex;gap:8px;" class="top-acts">
       <button class="btn btn-outline btn-sm" onclick="go('reports')">📋 Report</button>
       <button class="btn btn-teal btn-sm" onclick="go('log')">+ Log Time</button>
@@ -358,7 +364,7 @@ ${strPs.length?`
   <div class="card" style="text-align:center;padding:16px 12px;">
     <div style="font-size:30px;font-weight:900;color:#0D1F3C;letter-spacing:-0.03em;">${Math.round(totalLogged)}</div>
     <div style="font-size:12px;font-weight:600;color:#0D1F3C;margin-top:2px;">Total Hours Logged</div>
-    <div style="font-size:11px;color:#64748B;margin-top:2px;">${YEAR} year-to-date</div>
+    <div style="font-size:11px;color:#64748B;margin-top:2px;">${activeYear} year-to-date</div>
   </div>
 </div>
 <div class="sec-lbl">STR Properties — Material Participation Status</div>`:`<div class="sec-lbl" style="margin-top:4px;">STR Loophole — Material Participation (Temp. Reg. §1.469-5T)</div>`}
@@ -377,7 +383,7 @@ ${strPs.map(p=>{const ph=pH(p.id),ts=mpT(p.id),any=ts.some(t=>t.met),best=ts.fin
 </div>
 ${!strPs.length?`<div style="margin-bottom:14px;padding:20px;background:#fff;border:.5px solid #CCFBF1;border-radius:12px;text-align:center;color:#94A3B8;font-size:13px;">No STR properties added yet. <a href="#" onclick="go('properties');return false;" style="color:#14B8A6;text-decoration:none;font-weight:600;">Add a property →</a></div>`:''}
 <div class="card card-mb">
-  <div class="sec-lbl" style="margin-bottom:10px;">Monthly hours — ${YEAR}</div>
+  <div class="sec-lbl" style="margin-bottom:10px;">Monthly hours — ${activeYear}</div>
   <div style="display:flex;gap:16px;margin-bottom:10px;">
     <span style="font-size:12px;color:#64748B;display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:#14B8A6;border-radius:2px;display:inline-block;"></span>REPS / LTR</span>
     <span style="font-size:12px;color:#64748B;display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:#38BDF8;border-radius:2px;display:inline-block;"></span>STR</span>
@@ -403,7 +409,7 @@ ${rec.length?`
 // ── LOG TIME ──
 function vLog(){
   const cats=trackType==='STR'?STR_CATS:REPS_CATS;
-  const all=[...state.entries].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const all=[...yearEntries()].sort((a,b)=>new Date(b.date)-new Date(a.date));
   return`
 <div class="ph"><div class="pg-title">Log Time</div><div class="pg-sub">Record qualifying hours for REPS (§469(c)(7)) and STR material participation (Temp. Reg. §1.469-5T)</div></div>
 <div class="card card-mb">
@@ -611,7 +617,7 @@ ${sps.map(p=>{
           ${t.met?'<span style="font-size:11px;font-weight:700;color:#10B981;">✓ Met</span>':''}
         </div>
         <div class="mp-desc">${t.desc}</div>
-        ${!t.auto?`<label class="mp-man"><input type="checkbox" ${t.met?'checked':''} onchange="togMP('${p.id}',${t.id},this.checked)"/><span>Mark as met for ${YEAR} — requires supporting documentation</span></label>`:''}
+        ${!t.auto?`<label class="mp-man"><input type="checkbox" ${t.met?'checked':''} onchange="togMP('${p.id}',${t.id},this.checked)"/><span>Mark as met for ${activeYear} — requires supporting documentation</span></label>`:''}
         ${t.auto&&!t.met&&t.id===3?`<div style="font-size:11px;color:#14B8A6;margin-top:6px;">Need ${Math.max(0,100-Math.round(ph.owner))} more hours & must exceed all other participants (${Math.round(Math.max(ph.spouse||0,p.otherHours||0))} hrs)</div>`:''}
         ${t.auto&&!t.met&&t.id===1?`<div style="font-size:11px;color:#14B8A6;margin-top:6px;">Need ${Math.max(0,500-Math.round(ph.owner))} more hours for this property</div>`:''}
       </div>
@@ -627,12 +633,12 @@ function vReports(){
   const byCat={};
   state.entries.forEach(e=>{const k=`${e.trackType}|${e.category}`;if(!byCat[k])byCat[k]={trackType:e.trackType,category:e.category,hours:0,count:0};byCat[k].hours+=e.hours||0;byCat[k].count++;});
   const cats=Object.values(byCat).sort((a,b)=>b.hours-a.hours);
-  const sorted=[...state.entries].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const sorted=[...yearEntries()].sort((a,b)=>new Date(b.date)-new Date(a.date));
   const sps=state.properties.filter(p=>p.type==='STR');
   return`
 <div class="ph">
   <div class="ph-row">
-    <div><div class="pg-title">Audit Report</div><div class="pg-sub">IRC §469(c)(7) — Tax Year ${YEAR} — Prepared for IRS substantiation</div></div>
+    <div><div class="pg-title">Audit Report</div><div class="pg-sub">IRC §469(c)(7) — Tax Year ${activeYear} — Prepared for IRS substantiation</div></div>
     <button class="btn btn-outline top-acts" onclick="window.print()">🖨 Print / Export</button>
   </div>
 </div>
@@ -699,7 +705,7 @@ function vSettings(){
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">§469(c)(7)(A) Grouping Election</div>
   <div style="font-size:12px;color:#64748B;margin-bottom:12px;line-height:1.6;">All rental real estate activities treated as a single activity for material participation. Cannot be easily revoked once filed.</div>
-  <label class="tog-row"><input type="checkbox" ${s.groupingElection?'checked':''} onchange="setSetting('groupingElection',this.checked)"/><span class="tog-lbl">Grouping election filed for ${YEAR}</span></label>
+  <label class="tog-row"><input type="checkbox" ${s.groupingElection?'checked':''} onchange="setSetting('groupingElection',this.checked)"/><span class="tog-lbl">Grouping election filed for ${activeYear}</span></label>
 </div>
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">Count STR Hours Toward REPS 750-Hr Test</div>
