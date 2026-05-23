@@ -95,7 +95,8 @@ body{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,sans-s
 .btn-teal{background:#14B8A6;color:#fff;}
 .btn-blue{background:#38BDF8;color:#fff;}
 .btn-outline{background:#fff;color:#0D1F3C;border:.5px solid #CCFBF1;}
-.btn-danger{background:#FEE2E2;color:#991B1B;border:none;}
+.btn-danger{background:#FEE2E2;color:#991B1B;border:1px solid #FECACA;}
+.btn-danger:hover{background:#EF4444;color:#fff;border-color:#EF4444;}
 .btn-sm{padding:5px 12px;font-size:12px;border-radius:8px;}
 .btn-block{width:100%;padding:12px;border-radius:10px;font-size:14px;}
 
@@ -583,7 +584,7 @@ ${state.properties.map(p=>{
     </div>
     <div style="text-align:right;">
       <div style="font-size:26px;font-weight:900;color:#0D1F3C;">${Math.round(hrs)}<span style="font-size:13px;font-weight:400;color:#64748B;"> hrs</span></div>
-      <button class="btn btn-sm btn-danger" style="margin-top:8px;" onclick="rmProp('${p.id}')">Remove</button>
+      <button class="btn btn-sm btn-danger" style="margin-top:8px;display:flex;align-items:center;gap:5px;" onclick="rmProp('${p.id}')">🗑 Delete</button>
     </div>
   </div>`;}).join('')}`;
 }
@@ -643,7 +644,7 @@ function addProp(){
   state.properties.push({id:uid(),name:nm,address,street,city,state:state2,zip,type:tp,avgRentalDays:parseFloat(document.getElementById('p-dy')?.value)||null,otherHours:parseFloat(document.getElementById('p-ot')?.value)||0});
   save();showPropForm=false;renderView();
 }
-function rmProp(id){if(!confirm('Remove this property?'))return;state.properties=state.properties.filter(p=>p.id!==id);state.entries=state.entries.filter(e=>e.propertyId!==id);save();renderView();}
+function rmProp(id){if(!confirm('Delete this property? All time entries logged for this property will also be deleted. This cannot be undone.'))return;state.properties=state.properties.filter(p=>p.id!==id);state.entries=state.entries.filter(e=>e.propertyId!==id);save();renderView();}
 
 // ── MP TESTS ──
 function vMP(){
