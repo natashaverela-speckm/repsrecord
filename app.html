@@ -129,8 +129,8 @@ body{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,sans-s
 .ei-meta{font-size:11px;color:#64748B;margin-top:2px;}
 .ei-note{font-size:11px;color:#94A3B8;margin-top:3px;font-style:italic;}
 .ei-hrs{font-size:13px;font-weight:800;color:#0D1F3C;margin-left:auto;flex-shrink:0;padding-top:2px;}
-.ei-del{background:none;border:none;cursor:pointer;color:#CBD5E1;font-size:16px;padding:2px 6px;border-radius:6px;flex-shrink:0;transition:all .1s;}
-.ei-del:hover{color:#EF4444;background:#FEF2F2;}
+.ei-del{background:#FEE2E2;border:1px solid #FECACA;cursor:pointer;color:#DC2626;font-size:14px;padding:4px 8px;border-radius:6px;flex-shrink:0;transition:all .1s;}
+.ei-del:hover{color:#fff;background:#EF4444;border-color:#EF4444;}
 .upload-zone{border:1.5px dashed #CCFBF1;border-radius:8px;padding:12px;text-align:center;cursor:pointer;transition:all .15s;background:#F0FDFA;margin-bottom:12px;}
 .upload-zone:hover{border-color:#14B8A6;background:#CFFAFE;}
 .upload-zone input[type=file]{display:none;}
@@ -573,7 +573,9 @@ ${showPropForm?`
 ${state.properties.length===0?`<div class="empty"><div class="empty-ic">🏠</div><div class="empty-tx">No properties yet — add your first LTR or STR above.</div></div>`:''}
 ${state.properties.map(p=>{
   const hrs=state.entries.filter(e=>e.propertyId===p.id&&!e.isSpouse).reduce((s,e)=>s+e.hours,0);
-  return`<div class="prop-c ${p.type==='LTR'?'ltr':''}">
+  const propEntries=yearEntries().filter(e=>e.propertyId===p.id).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  return`<div class="prop-c ${p.type==='LTR'?'ltr':''}" style="flex-direction:column;gap:0;">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;">
     <div>
       <div class="prop-nm">${p.name}</div>${p.address?`<div class="prop-addr">${p.address}</div>`:''}
       <div class="prop-tags">
@@ -582,11 +584,29 @@ ${state.properties.map(p=>{
         ${p.otherHours>0?`<span style="font-size:11px;color:#64748B;">Others: ${p.otherHours}h/yr</span>`:''}
       </div>
     </div>
-    <div style="text-align:right;">
+    <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
       <div style="font-size:26px;font-weight:900;color:#0D1F3C;">${Math.round(hrs)}<span style="font-size:13px;font-weight:400;color:#64748B;"> hrs</span></div>
-      <button class="btn btn-sm btn-danger" style="margin-top:8px;display:flex;align-items:center;gap:5px;" onclick="rmProp('${p.id}')">🗑 Delete</button>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-sm" style="background:#F0FDFA;border:1px solid #CCFBF1;color:#0E7490;font-size:11px;" onclick="togglePropEntries('${p.id}')">📋 View Entries (${propEntries.length})</button>
+        <button class="btn btn-sm btn-danger" style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="rmProp('${p.id}')">🗑 Delete Property</button>
+      </div>
     </div>
-  </div>`;}).join('')}`;
+  </div>
+  <div id="prop-entries-${p.id}" style="display:none;margin-top:14px;border-top:1px solid #F0FDFA;padding-top:12px;">
+    ${propEntries.length===0
+      ? `<div style="text-align:center;padding:16px;color:#94A3B8;font-size:13px;">No entries for this property yet.</div>`
+      : propEntries.map(e=>`
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:.5px solid #F0FDFA;">
+      <div style="font-size:18px;">${e.trackType==='STR'?'🏖':'🏡'}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:12px;font-weight:700;color:#0D1F3C;">${e.category}<span style="font-size:10px;font-weight:400;color:#64748B;margin-left:6px;">${e.date} · ${fmtH(e.hours)}</span></div>
+        ${e.notes?`<div style="font-size:12px;color:#64748B;margin-top:2px;font-style:italic;">"${e.notes}"</div>`:''}
+        ${e.attachments&&e.attachments.length?`<div style="font-size:11px;color:#14B8A6;margin-top:2px;">📎 ${e.attachments.length} attachment${e.attachments.length>1?'s':''}</div>`:''}
+      </div>
+      <button onclick="delEntry('${e.id}')" style="background:#FEE2E2;border:1px solid #FECACA;color:#DC2626;font-size:11px;padding:4px 8px;border-radius:6px;cursor:pointer;flex-shrink:0;">🗑 Delete</button>
+    </div>`).join('')}
+  </div>
+</div>`;}).join('')}`;
 }
 
 // ── ADDRESS AUTOCOMPLETE (OpenStreetMap Nominatim - free, no key) ──
@@ -625,6 +645,13 @@ document.addEventListener('click',e=>{
   }
 });
 
+function togglePropEntries(id){
+  const el=document.getElementById('prop-entries-'+id);
+  if(!el)return;
+  const isOpen=el.style.display!=='none';
+  el.style.display=isOpen?'none':'block';
+}
+
 function togglePropType(){
   const tp=document.getElementById('p-tp')?.value;
   const strFields=document.getElementById('str-fields');
@@ -644,7 +671,21 @@ function addProp(){
   state.properties.push({id:uid(),name:nm,address,street,city,state:state2,zip,type:tp,avgRentalDays:parseFloat(document.getElementById('p-dy')?.value)||null,otherHours:parseFloat(document.getElementById('p-ot')?.value)||0});
   save();showPropForm=false;renderView();
 }
-function rmProp(id){if(!confirm('Delete this property? All time entries logged for this property will also be deleted. This cannot be undone.'))return;state.properties=state.properties.filter(p=>p.id!==id);state.entries=state.entries.filter(e=>e.propertyId!==id);save();renderView();}
+function rmProp(id){
+  const prop=state.properties.find(p=>p.id===id);
+  const entryCount=state.entries.filter(e=>e.propertyId===id).length;
+  if(!confirm(`Delete property "${prop?.name}"?\n\nThis cannot be undone.`))return;
+  state.properties=state.properties.filter(p=>p.id!==id);
+  if(entryCount>0){
+    const keepEntries=confirm(`This property has ${entryCount} time ${entryCount===1?'entry':'entries'}.\n\nClick OK to keep the entries (they will become "General RE").\nClick Cancel to permanently delete all ${entryCount} ${entryCount===1?'entry':'entries'}.`);
+    if(!keepEntries){
+      state.entries=state.entries.filter(e=>e.propertyId!==id);
+    } else {
+      state.entries=state.entries.map(e=>e.propertyId===id?{...e,propertyId:null}:e);
+    }
+  }
+  save();renderView();
+}
 
 // ── MP TESTS ──
 function vMP(){
