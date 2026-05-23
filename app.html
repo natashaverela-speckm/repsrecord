@@ -544,7 +544,19 @@ ${showPropForm?`
     <div class="field"><label class="fl">Nickname / Name</label><input id="p-nm" placeholder="e.g. Kissimmee STR, Blue Ridge Cabin"/></div>
     <div class="field"><label class="fl">Type</label><select id="p-tp" onchange="togglePropType()"><option value="STR">STR — Short-Term Rental</option><option value="LTR">LTR — Long-Term Rental</option></select></div>
   </div>
-  <div class="field"><label class="fl">Address</label><input id="p-ad" placeholder="Full property address"/></div>
+  <div class="field">
+    <label class="fl">Address Search <span style="font-weight:400;text-transform:none;color:#94A3B8;">— type to search and autofill</span></label>
+    <input id="p-addr-search" placeholder="Start typing the property address..." autocomplete="off" oninput="addrSearch(this.value)" style="position:relative;"/>
+    <div id="p-addr-suggestions" style="display:none;position:absolute;z-index:100;background:#fff;border:1.5px solid #CCFBF1;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:200px;overflow-y:auto;margin-top:2px;min-width:340px;"></div>
+  </div>
+  <div class="g2">
+    <div class="field" style="grid-column:1/-1"><label class="fl">Street Address</label><input id="p-street" placeholder="123 Main Street" autocomplete="street-address"/></div>
+  </div>
+  <div class="g3" style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:12px;">
+    <div class="field"><label class="fl">City</label><input id="p-city" placeholder="Orlando" autocomplete="address-level2"/></div>
+    <div class="field"><label class="fl">State</label><input id="p-state" placeholder="FL" maxlength="2" autocomplete="address-level1" style="text-transform:uppercase;"/></div>
+    <div class="field"><label class="fl">ZIP</label><input id="p-zip" placeholder="32801" maxlength="5" autocomplete="postal-code"/></div>
+  </div>
   <div id="str-fields">
   <div class="g2">
     <div class="field"><label class="fl">Avg Rental Period (days)</label><input type="number" id="p-dy" min="0.5" step="0.5" placeholder="e.g. 4.5"/><div class="hint">Must be ≤7 days for STR loophole eligibility</div></div>
@@ -575,6 +587,42 @@ ${state.properties.map(p=>{
   </div>`;}).join('')}`;
 }
 
+// ── ADDRESS AUTOCOMPLETE (OpenStreetMap Nominatim - free, no key) ──
+let addrTimer=null;
+function addrSearch(q){
+  clearTimeout(addrTimer);
+  const box=document.getElementById('p-addr-suggestions');
+  if(!q||q.length<4){if(box)box.style.display='none';return;}
+  addrTimer=setTimeout(async()=>{
+    try{
+      const res=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&countrycodes=us&format=json&addressdetails=1&limit=5`,{headers:{'Accept-Language':'en'}});
+      const data=await res.json();
+      if(!box)return;
+      if(!data.length){box.style.display='none';return;}
+      box.innerHTML=data.map((r,i)=>`<div onclick="fillAddr(${i})" data-addr='${JSON.stringify({street:(r.address.house_number?r.address.house_number+' ':'')+( r.address.road||r.address.pedestrian||''),city:r.address.city||r.address.town||r.address.village||r.address.county||'',state:r.address.state||'',zip:r.address.postcode||''}).replace(/'/g,"&apos;")}' style="padding:10px 14px;cursor:pointer;font-size:13px;color:#0D1F3C;border-bottom:1px solid #F0FDFA;" onmouseover="this.style.background='#F0FDFA'" onmouseout="this.style.background=''">${r.display_name}</div>`).join('');
+      box.style.display='block';
+    }catch(e){if(box)box.style.display='none';}
+  },400);
+}
+function fillAddr(i){
+  const box=document.getElementById('p-addr-suggestions');
+  const items=box?.querySelectorAll('[data-addr]');
+  if(!items||!items[i])return;
+  const a=JSON.parse(items[i].getAttribute('data-addr').replace(/&apos;/g,"'"));
+  const set=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val;};
+  set('p-street',a.street);
+  set('p-city',a.city);
+  set('p-state',a.state.length>2?a.state.substring(0,2).toUpperCase():a.state.toUpperCase());
+  set('p-zip',a.zip);
+  set('p-addr-search',a.street+(a.city?', '+a.city:'')+(a.state?', '+a.state:''));
+  box.style.display='none';
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#p-addr-search')&&!e.target.closest('#p-addr-suggestions')){
+    const b=document.getElementById('p-addr-suggestions');if(b)b.style.display='none';
+  }
+});
+
 function togglePropType(){
   const tp=document.getElementById('p-tp')?.value;
   const strFields=document.getElementById('str-fields');
@@ -586,7 +634,12 @@ function addProp(){
   const nm=document.getElementById('p-nm')?.value?.trim();
   if(!nm){alert('Please enter a property name.');return;}
   const tp=document.getElementById('p-tp')?.value||'STR';
-  state.properties.push({id:uid(),name:nm,address:document.getElementById('p-ad')?.value||'',type:tp,avgRentalDays:parseFloat(document.getElementById('p-dy')?.value)||null,otherHours:parseFloat(document.getElementById('p-ot')?.value)||0});
+  const street=document.getElementById('p-street')?.value?.trim()||'';
+  const city=document.getElementById('p-city')?.value?.trim()||'';
+  const state2=document.getElementById('p-state')?.value?.trim().toUpperCase()||'';
+  const zip=document.getElementById('p-zip')?.value?.trim()||'';
+  const address=[street,city,state2,zip].filter(Boolean).join(', ');
+  state.properties.push({id:uid(),name:nm,address,street,city,state:state2,zip,type:tp,avgRentalDays:parseFloat(document.getElementById('p-dy')?.value)||null,otherHours:parseFloat(document.getElementById('p-ot')?.value)||0});
   save();showPropForm=false;renderView();
 }
 function rmProp(id){if(!confirm('Remove this property?'))return;state.properties=state.properties.filter(p=>p.id!==id);state.entries=state.entries.filter(e=>e.propertyId!==id);save();renderView();}
