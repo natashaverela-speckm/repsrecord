@@ -630,10 +630,39 @@ ${state.properties.map(p=>{
     <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
       <div style="font-size:26px;font-weight:900;color:#0D1F3C;">${Math.round(hrs)}<span style="font-size:13px;font-weight:400;color:#64748B;"> hrs</span></div>
       <div style="display:flex;gap:6px;">
+        <button class="btn btn-sm" style="background:#14B8A6;color:#fff;border:none;font-size:11px;font-weight:700;" onclick="openQuickLog('${p.id}','${p.type}','${p.name.replace(/'/g,"\\'").replace(/"/g,\'&quot;\')}')">⏱ Log Time</button>
         <button class="btn btn-sm" style="background:#F0FDFA;border:1px solid #CCFBF1;color:#0E7490;font-size:11px;" onclick="togglePropEntries('${p.id}')">📋 View Entries (${propEntries.length})</button>
         <button class="btn btn-sm" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;font-size:11px;" onclick="toggleEditProp('${p.id}')">✏️ Edit</button>
         <button class="btn btn-sm btn-danger" style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="rmProp('${p.id}')">🗑 Delete</button>
       </div>
+    </div>
+  </div>
+  <div id="quick-log-${p.id}" style="display:none;margin-top:14px;border-top:1px solid #14B8A6;padding-top:14px;">
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#14B8A6;margin-bottom:12px;">⏱ Log Time — ${p.name}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div class="field"><label class="fl">Date</label><input type="date" id="ql-date-${p.id}" value="${todayStr()}"/></div>
+      <div class="field"><label class="fl">Track Type</label>
+        <select id="ql-tt-${p.id}" onchange="updateQLCats('${p.id}')">
+          <option value="${p.type}" selected>${p.type} — ${p.type==='STR'?'Short-Term Rental':'Long-Term Rental'}</option>
+          ${p.type==='STR'?'<option value="REPS">REPS — Real Estate Professional</option>':'<option value="STR">STR — Short-Term Rental</option>'}
+        </select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+      <div class="field"><label class="fl">Hours</label><input type="number" id="ql-hrs-${p.id}" min="0" max="24" step="1" placeholder="0"/></div>
+      <div class="field"><label class="fl">Minutes</label><select id="ql-min-${p.id}"><option value="0">0 min</option><option value="15">15 min</option><option value="30">30 min</option><option value="45">45 min</option></select></div>
+    </div>
+    <div class="field" style="margin-bottom:10px;"><label class="fl">Activity Category</label>
+      <select id="ql-cat-${p.id}">
+        ${(p.type==='STR'?STR_CATS:REPS_CATS).map(c=>`<option value="${c}">${c}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field" style="margin-bottom:12px;"><label class="fl">Notes / Description</label>
+      <textarea id="ql-note-${p.id}" rows="2" placeholder="What did you do? Be specific — this is your audit record."></textarea>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button onclick="saveQuickLog('${p.id}')" style="background:#14B8A6;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Save Entry</button>
+      <button onclick="document.getElementById('quick-log-${p.id}').style.display='none'" style="background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0;padding:9px 14px;border-radius:8px;font-size:13px;cursor:pointer;">Cancel</button>
     </div>
   </div>
   <div id="edit-prop-${p.id}" style="display:none;margin-top:14px;border-top:1px solid #CBD5E1;padding-top:14px;">
@@ -735,6 +764,45 @@ document.addEventListener('click',e=>{
     const b=document.getElementById('p-addr-suggestions');if(b)b.style.display='none';
   }
 });
+
+function openQuickLog(propId, propType, propName){
+  // Close any other open quick logs
+  document.querySelectorAll('[id^="quick-log-"]').forEach(el=>el.style.display='none');
+  const el=document.getElementById('quick-log-'+propId);
+  if(!el)return;
+  el.style.display=el.style.display==='none'?'block':'none';
+  // Set today's date
+  const d=document.getElementById('ql-date-'+propId);
+  if(d&&!d.value)d.value=new Date().toISOString().slice(0,10);
+}
+
+function updateQLCats(propId){
+  const tt=document.getElementById('ql-tt-'+propId)?.value;
+  const cats=tt==='STR'?STR_CATS:REPS_CATS;
+  const sel=document.getElementById('ql-cat-'+propId);
+  if(!sel)return;
+  sel.innerHTML=cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+}
+
+function saveQuickLog(propId){
+  const hrs=parseFloat(document.getElementById('ql-hrs-'+propId)?.value)||0;
+  const mins=parseFloat(document.getElementById('ql-min-'+propId)?.value)||0;
+  if(hrs+mins<=0){alert('Please enter a time greater than 0.');return;}
+  const tt=document.getElementById('ql-tt-'+propId)?.value||'REPS';
+  state.entries.push({
+    id:uid(),
+    date:document.getElementById('ql-date-'+propId)?.value||todayStr(),
+    propertyId:propId,
+    trackType:tt,
+    type:tt,
+    category:document.getElementById('ql-cat-'+propId)?.value||REPS_CATS[0],
+    hours:Math.round((hrs+mins/60)*100)/100,
+    notes:document.getElementById('ql-note-'+propId)?.value||'',
+    isSpouse:false,
+    attachments:[]
+  });
+  save();renderView();
+}
 
 function toggleEditProp(id){
   const el=document.getElementById('edit-prop-'+id);
