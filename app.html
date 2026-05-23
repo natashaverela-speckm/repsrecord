@@ -881,6 +881,7 @@ function rmProp(id){
 // ── MP TESTS ──
 function vMP(){
   const sps=state.properties.filter(p=>p.type==='STR');
+  const ltrs=state.properties.filter(p=>p.type==='LTR');
   return`
 <div class="ph"><div class="pg-title">Material Participation Tests</div><div class="pg-sub">All 7 tests under Temp. Reg. §1.469-5T evaluated per STR property. Passing any one test qualifies you.</div></div>
 
@@ -904,7 +905,9 @@ function vMP(){
     ⚠️ <strong>Tests 5, 6, and 7</strong> require historical data across multiple tax years. RepsRecord evaluates these based only on data logged within the app. You may manually override test results below if you have prior year documentation. Always consult your tax professional for final determination.
   </div>
 </div>
-${sps.length===0?`<div class="empty"><div class="empty-ic">✅</div><div class="empty-tx">Add STR properties first to evaluate material participation.</div></div>`:''}
+
+${sps.length>0?`
+<div class="sec-lbl" style="margin-bottom:12px;">🏖 Short-Term Rental Properties — Material Participation Tests</div>
 ${sps.map(p=>{
   const ph=pH(p.id),ts=mpT(p.id),any=ts.some(t=>t.met);
   return`<div class="card card-mb">
@@ -913,7 +916,7 @@ ${sps.map(p=>{
         <div style="font-size:16px;font-weight:800;color:#0D1F3C;">${p.name}</div>
         <div style="font-size:12px;color:#64748B;margin-top:2px;">Your hours: <strong>${Math.round(ph.owner)}</strong>${state.settings.spouseEnabled?` · ${state.settings.spouseName||'Spouse'}: <strong>${Math.round(ph.spouse)}</strong>`:''}${p.otherHours>0?` · Others: <strong>${p.otherHours}</strong>`:''}</div>
       </div>
-      <span class="badge ${any?'b-met':'b-no'}" style="font-size:12px;padding:5px 13px;">${any?'Materially Participates':'Does Not Currently Qualify'}</span>
+      <span class="badge ${any?'b-met':'b-no'}" style="font-size:12px;padding:5px 13px;">${any?'✅ Materially Participates':'❌ Does Not Currently Qualify'}</span>
     </div>
     ${ts.map(t=>`
     <div class="mp-row">
@@ -930,7 +933,28 @@ ${sps.map(p=>{
         ${t.auto&&!t.met&&t.id===1?`<div style="font-size:11px;color:#14B8A6;margin-top:6px;">Need ${Math.max(0,500-Math.round(ph.owner))} more hours for this property</div>`:''}
       </div>
     </div>`).join('')}
-  </div>`;}).join('')}`;
+  </div>`;}).join('')}`:''}
+
+${ltrs.length>0?`
+<div class="sec-lbl" style="margin-bottom:12px;margin-top:24px;">🏡 Long-Term Rental Properties — REPS Portfolio Tracking</div>
+<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-left:4px solid #38BDF8;border-radius:12px;padding:16px 20px;margin-bottom:16px;font-size:13px;color:#1D4ED8;">
+  ℹ️ Long-term rental properties do not use per-property MP tests. Instead, your hours across all LTR properties are pooled toward your <strong>750-hour REPS qualification</strong> and the <strong>50% personal services test</strong>. Track your progress on the Dashboard.
+</div>
+${ltrs.map(p=>{
+  const hrs=yearEntries().filter(e=>e.propertyId===p.id&&!e.isSpouse).reduce((s,e)=>s+(e.hours||0),0);
+  return`<div class="card card-mb" style="display:flex;justify-content:space-between;align-items:center;">
+    <div>
+      <div style="font-size:15px;font-weight:800;color:#0D1F3C;">${p.name}</div>
+      <div style="font-size:12px;color:#64748B;margin-top:3px;">${p.address||'No address'}</div>
+      <span class="badge b-amber" style="margin-top:6px;display:inline-block;">LTR</span>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:28px;font-weight:900;color:#0D1F3C;">${Math.round(hrs)}<span style="font-size:13px;font-weight:400;color:#64748B;"> hrs</span></div>
+      <div style="font-size:11px;color:#64748B;">counts toward REPS 750</div>
+    </div>
+  </div>`;}).join('')}`:''}
+
+${state.properties.length===0?`<div class="empty"><div class="empty-ic">✅</div><div class="empty-tx">Add properties first to evaluate material participation.</div></div>`:''}`;
 }
 
 function togMP(pid,tid,val){if(!state.manualMP)state.manualMP={};if(!state.manualMP[pid])state.manualMP[pid]={};state.manualMP[pid][tid]=val;save();renderView();}
