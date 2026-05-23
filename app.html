@@ -186,14 +186,6 @@ tr:last-child td{border-bottom:none;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:#CCFBF1;border-radius:3px;}
 </style>
-<link rel="manifest" href="manifest.json"/>
-<meta name="mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
-<meta name="apple-mobile-web-app-title" content="RepsRecord"/>
-<meta name="theme-color" content="#14B8A6"/>
-<link rel="apple-touch-icon" href="apple-touch-icon.png"/>
-<link rel="icon" type="image/png" sizes="192x192" href="icon-192x192.png"/>
 </head>
 <body>
 <div class="app">
@@ -533,14 +525,15 @@ ${showPropForm?`
   <div class="sec-lbl" style="margin-bottom:12px;">New Property</div>
   <div class="g2">
     <div class="field"><label class="fl">Nickname / Name</label><input id="p-nm" placeholder="e.g. Kissimmee STR, Blue Ridge Cabin"/></div>
-    <div class="field"><label class="fl">Type</label><select id="p-tp" onchange="renderView()"><option value="STR">STR — Short-Term Rental</option><option value="LTR">LTR — Long-Term Rental</option></select></div>
+    <div class="field"><label class="fl">Type</label><select id="p-tp" onchange="togglePropType()"><option value="STR">STR — Short-Term Rental</option><option value="LTR">LTR — Long-Term Rental</option></select></div>
   </div>
   <div class="field"><label class="fl">Address</label><input id="p-ad" placeholder="Full property address"/></div>
-  ${(document.getElementById('p-tp')?.value||'STR')==='STR'?`
+  <div id="str-fields">
   <div class="g2">
     <div class="field"><label class="fl">Avg Rental Period (days)</label><input type="number" id="p-dy" min="0.5" step="0.5" placeholder="e.g. 4.5"/><div class="hint">Must be ≤7 days for STR loophole eligibility</div></div>
     <div class="field"><label class="fl">Other Participants' Annual Hours</label><input type="number" id="p-ot" min="0" step="1" placeholder="e.g. 50"/><div class="hint">Cleaner, PM, co-host — used for Tests 3 & 7</div></div>
-  </div>`:''}
+  </div>
+  </div>
   <div style="display:flex;gap:8px;">
     <button class="btn btn-teal" onclick="addProp()">Save Property</button>
     <button class="btn btn-outline" onclick="togglePF()">Cancel</button>
@@ -563,6 +556,12 @@ ${state.properties.map(p=>{
       <button class="btn btn-sm btn-danger" style="margin-top:8px;" onclick="rmProp('${p.id}')">Remove</button>
     </div>
   </div>`;}).join('')}`;
+}
+
+function togglePropType(){
+  const tp=document.getElementById('p-tp')?.value;
+  const strFields=document.getElementById('str-fields');
+  if(strFields) strFields.style.display=tp==='LTR'?'none':'block';
 }
 
 function togglePF(){showPropForm=!showPropForm;renderView();}
@@ -990,6 +989,5 @@ setTimeout(showWalkthrough,800);
     </div>
   </div>
 </div>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").then(r=>console.log("SW registered")).catch(e=>console.log("SW failed",e)));}</script>
 </body>
 </html>
