@@ -194,7 +194,7 @@ tr:last-child td{border-bottom:none;}
   <div class="sb">
     <div class="sb-head">
       <div class="sb-logo">REPS<span>Record</span></div>
-      <select id="year-sel" onchange="activeYear=parseInt(this.value);renderView()" style="font-size:10px;color:#7DD3FC;background:transparent;border:none;outline:none;cursor:pointer;font-family:inherit;font-weight:700;letter-spacing:.03em;margin-top:3px;">${YEARS.map(y=>`<option value="${y}" style="background:#0D1F3C;" ${y===activeYear?'selected':''}>${y} Tax Year</option>`).join('')}</select>
+      <select id="year-sel" onchange="activeYear=parseInt(this.value);renderView()" style="font-size:10px;color:#7DD3FC;background:transparent;border:none;outline:none;cursor:pointer;font-family:inherit;font-weight:700;letter-spacing:.03em;margin-top:3px;"></select>
     </div>
     <div class="sb-nav" id="sb-nav"></div>
     <div class="sb-foot">
@@ -911,7 +911,21 @@ function renderView(){
   }
 }
 
-load();renderView();
+load();
+
+// Populate year dropdown
+const yrSel=document.getElementById('year-sel');
+if(yrSel){
+  YEARS.forEach(y=>{
+    const o=document.createElement('option');
+    o.value=y;o.textContent=y+' Tax Year';
+    o.style.background='#0D1F3C';
+    if(y===activeYear)o.selected=true;
+    yrSel.appendChild(o);
+  });
+}
+
+renderView();
 
 // ── FIRST-TIME WALKTHROUGH ──
 const WALK_KEY='repsrecord_walked_v1';
