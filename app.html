@@ -203,6 +203,8 @@ tr:last-child td{border-bottom:none;}
       <div class="sf-lbl">STR Hours</div>
       <div class="sf-val" id="sb-str-val">0 hrs logged</div>
       <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;" id="sb-str-props"></div>
+      <div style="height:.5px;background:#1E4A6E;margin:12px 0;"></div>
+      <button onclick="signOut()" style="width:100%;padding:9px;border-radius:8px;border:1px solid #1E4A6E;background:transparent;color:#94A3B8;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;" onmouseover="this.style.background='#0F2D4A';this.style.color='#fff'" onmouseout="this.style.background='transparent';this.style.color='#94A3B8'">Sign out</button>
     </div>
   </div>
   <div class="main"><div class="content" id="content"></div></div>
@@ -221,6 +223,13 @@ let view='dashboard',chartInst=null,showPropForm=false,trackType='REPS';
 function uid(){return Math.random().toString(36).slice(2,9);}
 function fmtH(h){const a=Math.floor(h),b=Math.round((h-a)*60);return b===0?`${a}h`:`${a}h ${b}m`;}
 function todayStr(){return new Date().toISOString().slice(0,10);}
+
+async function signOut(){
+  const SUPABASE_URL='https://ehuttijifubonhhgnvzx.supabase.co';
+  const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodXR0aWppZnVib25oaGdudnp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NjU2MTgsImV4cCI6MjA5NTA0MTYxOH0.-uYE8sxRDXdZXt00CH10d7tLYaJl03hFYfDH5tPjTKM';
+  await fetch(`${SUPABASE_URL}/auth/v1/logout`,{method:'POST',headers:{'Authorization':`Bearer ${SUPABASE_ANON_KEY}`,'apikey':SUPABASE_ANON_KEY}});
+  window.location.href='login.html';
+}
 
 function load(){try{const s=localStorage.getItem(SK);if(s)state=JSON.parse(s);}catch(e){}}
 function save(){try{localStorage.setItem(SK,JSON.stringify(state));}catch(e){}}
