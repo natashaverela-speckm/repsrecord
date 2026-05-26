@@ -796,15 +796,19 @@ function showAnnual(){
 async function submitContact(e){
   e.preventDefault();
   const btn=document.getElementById('cf-btn');
-  btn.textContent='Sending…';btn.disabled=true;
-  const data={name:document.getElementById('cf-name').value,email:document.getElementById('cf-email').value,message:document.getElementById('cf-message').value};
-  try{
-    const res=await fetch('https://formspree.io/f/YOUR_FORM_ID',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(data)});
-    if(res.ok){
-      document.getElementById('contact-form').style.display='none';
-      document.getElementById('cf-success').style.display='block';
-    }else{btn.textContent='Send message →';btn.disabled=false;alert('Something went wrong. Please email support@repsrecord.com directly.');}
-  }catch(err){btn.textContent='Send message →';btn.disabled=false;alert('Something went wrong. Please email support@repsrecord.com directly.');}
+  const name=document.getElementById('cf-name').value.trim();
+  const email=document.getElementById('cf-email').value.trim();
+  const msg=document.getElementById('cf-message').value.trim();
+  if(!name||!email||!msg){alert('Please fill in all fields.');return;}
+  btn.textContent='Opening email…';btn.disabled=true;
+  const subject=encodeURIComponent('RepsRecord Inquiry from '+name);
+  const body=encodeURIComponent('Name: '+name+'\nEmail: '+email+'\n\nMessage:\n'+msg);
+  window.location.href='mailto:support@repsrecord.com?subject='+subject+'&body='+body;
+  setTimeout(()=>{
+    document.getElementById('contact-form').style.display='none';
+    document.getElementById('cf-success').style.display='block';
+    btn.textContent='Send message →';btn.disabled=false;
+  },1000);
 }
 // Sticky nav shadow on scroll
 window.addEventListener('scroll',()=>{
