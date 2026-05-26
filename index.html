@@ -315,6 +315,17 @@ footer{background:#0A1628;padding:60px 5% 32px;color:rgba(255,255,255,.5);}
   .preview-content{grid-template-columns:1fr;}
   .preview-sb{display:none;}
 }
+
+.hamburger{display:none;flex-direction:column;gap:5px;cursor:pointer;padding:4px;background:none;border:none;}
+.hamburger span{display:block;width:22px;height:2px;background:#fff;border-radius:2px;transition:all .25s;}
+.mobile-nav{display:none;position:fixed;top:60px;left:0;right:0;background:#0D1F3C;padding:16px 5%;border-bottom:2px solid #14B8A6;z-index:999;}
+.mobile-nav a{display:block;padding:12px 0;font-size:15px;color:rgba(255,255,255,.85);text-decoration:none;border-bottom:1px solid rgba(255,255,255,.06);font-weight:600;}
+.mobile-nav a:last-child{border-bottom:none;}
+.mobile-nav.open{display:block;}
+@media(max-width:768px){
+  .hamburger{display:flex;}
+  .nav-links{display:none;}
+}
 </style>
 <link rel="manifest" href="manifest.json"/>
 <meta name="mobile-web-app-capable" content="yes"/>
@@ -340,7 +351,7 @@ footer{background:#0A1628;padding:60px 5% 32px;color:rgba(255,255,255,.5);}
   </div>
   <div class="nav-cta">
     <a class="btn btn-ghost" href="login.html">Log in</a>
-    <a class="btn btn-teal pricing-cta" href="https://buy.stripe.com/bJedR19mL8bK7rY3nuebu00">Start Free 7-Day Trial → (Monthly)</a>
+    <a class="btn btn-teal pricing-cta" href="https://buy.stripe.com/bJedR19mL8bK7rY3nuebu00">Start Free Trial — Monthly →</a>
   </div>
 </nav>
 
@@ -348,7 +359,7 @@ footer{background:#0A1628;padding:60px 5% 32px;color:rgba(255,255,255,.5);}
 <section class="hero" id="demo" style="padding:80px 5% 60px;">
   <div class="hero-badge"><span></span>Built for real estate tax strategy</div>
   <h1>Track REPS & STR Hours.<br><em>Protect Every Deduction.</em></h1>
-  <p>The only hour tracker built specifically for Real Estate Professional Status and the Short-Term Rental material participation exception — with IRS-audit-ready logs, automatic qualification tracking, and all 7 material participation tests built in.</p>
+  <p>The only hour tracker built for Real Estate Professional Status and the Short-Term Rental exception. IRS-audit-ready logs, automatic qualification tracking, all 7 MP tests.</p>
 
   <!-- VIDEO -->
   <div style="width:100%;max-width:860px;margin:0 auto 40px;position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:20px;box-shadow:0 32px 80px rgba(0,0,0,.6);border:1px solid rgba(20,184,166,.3);">
@@ -377,7 +388,7 @@ footer{background:#0A1628;padding:60px 5% 32px;color:rgba(255,255,255,.5);}
 <div class="proof">
   <div class="proof-label">Trusted by real estate investors and their tax professionals</div>
   <div class="proof-items">
-    <div class="proof-stat"><div class="proof-num">$40K+</div><div class="proof-desc">Avg. passive loss offset enabled by REPS documentation</div></div>
+    <div class="proof-stat"><div class="proof-num">$40K+</div><div class="proof-desc">Avg. passive loss offset enabled by REPS status</div></div>
     <div class="proof-stat"><div class="proof-num">750-hr + 50%</div><div class="proof-desc">Both REPS thresholds tracked automatically</div></div>
     <div class="proof-stat"><div class="proof-num">7 tests</div><div class="proof-desc">MP tests evaluated per STR property</div></div>
     <div class="proof-stat"><div class="proof-num">100%</div><div class="proof-desc">Audit-ready documentation</div></div>
@@ -403,12 +414,12 @@ footer{background:#0A1628;padding:60px 5% 32px;color:rgba(255,255,255,.5);}
       </div>
       <div class="problem-card bad">
         <div class="pc-icon">📉</div>
-        <div class="pc-title">STR material participation exception lost</div>
+        <div class="pc-title">STR Exception Lost</div>
         <div class="pc-desc">Not knowing your average rental period. Your cleaner logging more hours than you. Failing Test 3 without realizing it. Passive losses stuck with no offset.</div>
       </div>
       <div class="problem-card good">
         <div class="pc-icon">🔑</div>
-        <div class="pc-title">STR material participation exception locked in</div>
+        <div class="pc-title">STR Exception Locked In</div>
         <div class="pc-desc">Average rental period calculated per property. Spouse hours tracked separately with correct MP test implications. Real-time alerts when you're close to qualifying or at risk of failing.</div>
       </div>
     </div>
@@ -610,7 +621,7 @@ footer{background:#0A1628;padding:60px 5% 32px;color:rgba(255,255,255,.5);}
           <li><span class="check">✓</span>LTR & STR rules reference</li>
           <li><span class="check">✓</span>Priority email support</li>
         </ul>
-        <a class="btn btn-teal pricing-cta" href="https://buy.stripe.com/aFadR17eD9fOfYubU0ebu01" style="width:100%;padding:13px;font-size:14px;border-radius:10px;">Start Free 7-Day Trial →</a>
+        <a class="btn btn-teal pricing-cta" href="https://buy.stripe.com/aFadR17eD9fOfYubU0ebu01" style="width:100%;padding:13px;font-size:14px;border-radius:10px;">Start Free Trial — Annual →</a>
       </div>
     </div>
     <div class="trial-note">🎉 <strong>7-day free trial</strong> — credit card required. Cancel before day 7 and you'll never be charged.</div>
@@ -748,13 +759,11 @@ footer{background:#0A1628;padding:60px 5% 32px;color:rgba(255,255,255,.5);}
       <div class="footer-col">
         <h4>Learn</h4>
         <a href="app.html#ltr">REPS Rules</a>
-        <a href="app.html#str">STR Material Participation Exception Rules</a>
+        <a href="app.html#str">STR Exception Rules</a>
         <a href="#faq">FAQ</a>
       </div>
       <div class="footer-col">
         <h4>Legal</h4>
-        <a href="/terms.html">Terms of Service</a>
-        <a href="/privacy.html">Privacy Policy</a>
         <a href="/privacy.html#cookies">Cookie Policy</a>
       </div>
     </div>
@@ -802,6 +811,21 @@ window.addEventListener('scroll',()=>{
   document.querySelector('nav').style.boxShadow=window.scrollY>10?'0 2px 20px rgba(0,0,0,.3)':'none';
 });
 </script>
-<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").then(r=>console.log("SW registered")).catch(e=>console.log("SW failed",e)));}</script>
+<script>if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").then(r=>console.log("SW registered")).catch(e=>console.log("SW failed",e)));}
+function toggleMobileNav(){
+  const nav=document.getElementById('mobile-nav');
+  nav.classList.toggle('open');
+}
+function closeMobileNav(){
+  document.getElementById('mobile-nav')?.classList.remove('open');
+}
+// Close mobile nav when clicking outside
+document.addEventListener('click',function(e){
+  const nav=document.getElementById('mobile-nav');
+  if(nav?.classList.contains('open') && !e.target.closest('.hamburger') && !e.target.closest('.mobile-nav')){
+    nav.classList.remove('open');
+  }
+});
+</script>
 </body>
 </html>
