@@ -281,8 +281,15 @@ async function load(){
       if(!state.manualMP)state.manualMP={};
     }
   }catch(e){}
-  _syncStatus=_sbUser?'local':'local';
-  updateSyncIndicator();
+  // If authenticated but no cloud data yet, push local data up automatically
+  if(_sbUser&&_sb){
+    _syncStatus='local';
+    updateSyncIndicator();
+    cloudSave();// first-login push — uploads localStorage to cloud
+  } else {
+    _syncStatus='local';
+    updateSyncIndicator();
+  }
 }
 
 function save(){
