@@ -1871,12 +1871,12 @@ async function remySend(){
   if(sendBtn){sendBtn.disabled=true;sendBtn.style.opacity='.5';}
   try{
     const sess=_sb?await _sb.auth.getSession():null;
-    const token=sess?.data?.session?.access_token;
+    const token=sess?.data?.session?.access_token||SUPABASE_ANON_KEY;
     const res=await fetch(REMY_EDGE_URL,{
       method:'POST',
       headers:{
         'Content-Type':'application/json',
-        ...(token?{'Authorization':`Bearer ${token}`}:{})
+        'Authorization':`Bearer ${token}`,
       },
       body:JSON.stringify({
         messages:remyMessages.slice(-20).map(m=>({role:m.role,content:m.content})),
