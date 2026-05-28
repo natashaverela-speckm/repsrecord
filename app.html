@@ -511,9 +511,15 @@ function vLog(){
   </div>
 </div>
 <div class="card card-mb">
-  <div class="track-bar">
-    <button class="track-btn${trackType==='REPS'?' active-reps':''}" onclick="setTT('REPS')">🏡 REPS Hours (RE Activities)</button>
-    <button class="track-btn${trackType==='STR'?' active-str':''}" onclick="setTT('STR')">🏖 STR Hours (MP)</button>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+    <div class="track-bar" style="flex:1;min-width:260px;margin-bottom:0;">
+      <button class="track-btn${trackType==='REPS'?' active-reps':''}" onclick="setTT('REPS')">🏡 REPS Hours (RE Activities)</button>
+      <button class="track-btn${trackType==='STR'?' active-str':''}" onclick="setTT('STR')">🏖 STR Hours (MP)</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+      ${timerStart?`<span id="timer-display" style="font-size:18px;font-weight:900;color:#EF4444;font-family:ui-monospace,monospace;letter-spacing:.05em;"></span>`:''}
+      <button id="timer-btn" onclick="toggleTimer()" style="padding:9px 14px;border-radius:8px;border:1px solid ${timerStart?'#EF4444':'#CCFBF1'};background:${timerStart?'#EF4444':'#fff'};color:${timerStart?'#fff':'#0D1F3C'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">${timerStart?'⏹ Stop & Fill':'⏱ Start Timer'}</button>
+    </div>
   </div>
   <div class="info-box ${trackType==='STR'?'ib-blue':'ib-teal'}">
     ${trackType==='REPS'?'<strong>Qualifying activities</strong> include property management, acquisition, construction, leasing, maintenance, brokerage, and related financial/legal work (IRC §469(c)(7)(C)). General RE hours also cover any real property trade or business — not just rentals.':'<strong>STR hours</strong> count toward material participation for properties with avg rental period ≤7 days (Reg. §1.469-1T(e)(3)(ii)(A)).'}
@@ -561,10 +567,31 @@ function vLog(){
   <button class="btn btn-block" id="sub-btn" onclick="submitEntry()" style="background:${trackType==='STR'?'#38BDF8':'#14B8A6'};color:#fff;">+ Log ${trackType} Entry</button>
 </div>
 ${all.length?`
-<div class="sec-lbl" style="margin-bottom:8px;">All entries (${all.length})</div>
+<!-- Filter bar -->
+<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
+  <div style="display:flex;background:#F0FDFA;border-radius:8px;padding:3px;gap:2px;">
+    ${['all','REPS','STR'].map(t=>`<button onclick="setLogFilter('type','${t}')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;background:${logFilter.type===t?(t==='STR'?'#38BDF8':'#14B8A6'):'transparent'};color:${logFilter.type===t?'#fff':'#64748B'};">${t==='all'?'All':t}</button>`).join('')}
+  </div>
+  <select onchange="setLogFilter('propId',this.value)" style="padding:6px 10px;border-radius:8px;border:1px solid #CBD5E1;font-size:12px;font-family:inherit;color:#0D1F3C;background:#fff;cursor:pointer;">
+    <option value="">All properties</option>
+    ${state.properties.map(p=>`<option value="${p.id}" ${logFilter.propId===p.id?'selected':''}>${p.name}</option>`).join('')}
+  </select>
+  <input value="${logFilter.search}" oninput="setLogFilter('search',this.value)" placeholder="Search notes…" style="flex:1;min-width:140px;padding:6px 10px;border-radius:8px;border:1px solid #CBD5E1;font-size:12px;font-family:inherit;"/>
+  <div id="bulk-bar" style="display:${selEntries.size>0?'flex':'none'};gap:8px;align-items:center;">
+    <button id="bulk-cnt" onclick="bulkDelete()" style="background:#EF4444;color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Delete selected (${selEntries.size})</button>
+  </div>
+</div>
+${(()=>{
+  let filtered=[...all];
+  if(logFilter.type!=='all')filtered=filtered.filter(e=>e.trackType===logFilter.type);
+  if(logFilter.propId)filtered=filtered.filter(e=>e.propertyId===logFilter.propId);
+  if(logFilter.search){const q=logFilter.search.toLowerCase();filtered=filtered.filter(e=>(e.notes||'').toLowerCase().includes(q)||(e.category||'').toLowerCase().includes(q));}
+  if(!filtered.length)return`<div style="text-align:center;padding:32px;color:#94A3B8;font-size:13px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;">No entries match your filter — <a href="#" onclick="logFilter={type:'all',propId:'',search:''};renderView();return false;" style="color:#14B8A6;font-weight:600;">clear filters</a></div>`;
+  return`<div class="sec-lbl" style="margin-bottom:8px;">Entries (${filtered.length}${filtered.length<all.length?' of '+all.length:''})<label style="float:right;font-size:10px;font-weight:700;color:#64748B;cursor:pointer;display:flex;align-items:center;gap:5px;"><input type="checkbox" class="entry-cb" onchange="selectAllEntries(this.checked)" style="accent-color:#14B8A6;"/> Select all</label></div>
 <div class="card">
-${all.map(e=>{const pr=state.properties.find(p=>p.id===e.propertyId);const cats=e.trackType==='STR'?STR_CATS:REPS_CATS;return`
-<div class="ei" style="flex-wrap:wrap;">
+${filtered.map(e=>{const pr=state.properties.find(p=>p.id===e.propertyId);const cats=e.trackType==='STR'?STR_CATS:REPS_CATS;const isSel=selEntries.has(e.id);return`
+<div class="ei" style="flex-wrap:wrap;${isSel?'background:#F0FDFA;border-radius:8px;':''}">
+  <input type="checkbox" class="entry-cb" data-id="${e.id}" ${isSel?'checked':''} onchange="toggleSelEntry('${e.id}',this.checked)" style="accent-color:#14B8A6;width:16px;height:16px;flex-shrink:0;margin-top:11px;"/>
   <div class="ei-ic" style="background:${e.trackType==='STR'?'#E0F7FA':'#F0FDFA'};">${e.trackType==='STR'?'🏖':'🏡'}</div>
   <div style="flex:1;min-width:0;">
     <div class="ei-cat">${e.category}<span class="tb tb-${e.trackType==='STR'?'s':'r'}">${e.trackType}</span>${e.isSpouse?'<span class="tb tb-sp">SPOUSE</span>':''}${e.attachments&&e.attachments.length?`<span class="attach-badge">📎 ${e.attachments.length}</span>`:''}</div>
@@ -574,6 +601,7 @@ ${all.map(e=>{const pr=state.properties.find(p=>p.id===e.propertyId);const cats=
   </div>
   <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
     <div class="ei-hrs">${fmtH(e.hours)}</div>
+    <button onclick="dupeEntry('${e.id}')" title="Copy to new entry" style="background:#F0FDFA;border:1px solid #CCFBF1;color:#0E7490;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;font-weight:600;">📋 Copy</button>
     <button onclick="showEditEntry('${e.id}')" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;font-weight:600;">✏️ Edit</button>
     <button class="ei-del" onclick="delEntry('${e.id}')" title="Delete entry">🗑</button>
   </div>
@@ -596,10 +624,85 @@ ${all.map(e=>{const pr=state.properties.find(p=>p.id===e.propertyId);const cats=
     </div>
   </div>
 </div>`;}).join('')}
-</div>`:`<div class="empty"><div class="empty-ic">⏱</div><div class="empty-tx">No entries yet — log your first hours above.</div></div>`}`;
+</div>`;
+})()}
+`:`<div class="empty"><div class="empty-ic">⏱</div><div class="empty-tx">No entries yet — log your first hours above.</div></div>`}`;
 }
 
 function setTT(t){trackType=t;renderView();}
+
+// ── LIVE TIMER ──
+function toggleTimer(){timerStart?stopTimer():startTimer();}
+function startTimer(){
+  timerStart=Date.now();
+  const btn=document.getElementById('timer-btn');
+  if(btn){btn.textContent='⏹ Stop & Fill';btn.style.background='#EF4444';btn.style.border='none';}
+  const disp=document.getElementById('timer-display');
+  if(disp)disp.style.display='flex';
+  timerTick=setInterval(()=>{
+    const el=document.getElementById('timer-display');
+    if(!el||!timerStart)return;
+    const tot=Math.floor((Date.now()-timerStart)/1000);
+    const h=Math.floor(tot/3600),m=Math.floor((tot%3600)/60),sc=tot%60;
+    el.textContent=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`;
+  },1000);
+}
+function stopTimer(){
+  if(!timerStart)return;
+  clearInterval(timerTick);timerTick=null;
+  const mins=Math.floor((Date.now()-timerStart)/60000);
+  const hrs=Math.floor(mins/60),m=mins%60;
+  timerStart=null;
+  renderView();
+  setTimeout(()=>{
+    const hEl=document.getElementById('f-hrs');
+    const mEl=document.getElementById('f-mins');
+    if(hEl)hEl.value=hrs;
+    if(mEl){const opts=[0,15,30,45];mEl.value=opts.reduce((p,c)=>Math.abs(c-m)<Math.abs(p-m)?c:p);}
+    hEl?.focus();
+  },50);
+}
+
+// ── DUPLICATE ENTRY ──
+function dupeEntry(id){
+  const e=state.entries.find(x=>x.id===id);if(!e)return;
+  trackType=e.trackType==='STR'?'STR':'REPS';
+  renderView();
+  setTimeout(()=>{
+    const set=(elId,val)=>{const el=document.getElementById(elId);if(el)el.value=val;};
+    set('f-date',todayStr());
+    set('f-prop',e.propertyId||'');
+    set('f-cat',e.category||'');
+    set('f-hrs',Math.floor(e.hours));
+    const m=Math.round((e.hours%1)*60);
+    const opts=[0,15,30,45];
+    set('f-mins',opts.reduce((p,c)=>Math.abs(c-m)<Math.abs(p-m)?c:p));
+    set('f-notes',e.notes||'');
+    document.querySelector('.card.card-mb')?.scrollIntoView({behavior:'smooth'});
+  },50);
+}
+
+// ── ENTRY FILTER ──
+function setLogFilter(key,val){logFilter[key]=val;renderView();}
+
+// ── BULK SELECT / DELETE ──
+function toggleSelEntry(id,chk){chk?selEntries.add(id):selEntries.delete(id);refreshBulkBar();}
+function selectAllEntries(chk){
+  document.querySelectorAll('.entry-cb').forEach(b=>{b.checked=chk;chk?selEntries.add(b.dataset.id):selEntries.delete(b.dataset.id);});
+  refreshBulkBar();
+}
+function refreshBulkBar(){
+  const bar=document.getElementById('bulk-bar');
+  if(bar)bar.style.display=selEntries.size>0?'flex':'none';
+  const cnt=document.getElementById('bulk-cnt');
+  if(cnt)cnt.textContent=`Delete selected (${selEntries.size})`;
+}
+function bulkDelete(){
+  if(!selEntries.size)return;
+  if(!confirm(`Delete ${selEntries.size} entr${selEntries.size===1?'y':'ies'}? This cannot be undone.`))return;
+  state.entries=state.entries.filter(e=>!selEntries.has(e.id));
+  selEntries=new Set();save();renderView();
+}
 
 // ── FILE PREVIEW ──
 let pendingFiles=[];
@@ -725,7 +828,7 @@ ${showPropForm?`
     <button class="btn btn-teal" onclick="addProp()">Save Property</button>
     <button class="btn btn-outline" onclick="togglePF()">Cancel</button>
   </div>
-</div>`:''}
+</div></div>`:''}
 ${state.properties.length===0?`<div class="empty"><div class="empty-ic">🏠</div><div class="empty-tx">No properties yet — add your first LTR or STR above.</div></div>`:''}
 ${state.properties.map(p=>{
   const hrs=state.entries.filter(e=>e.propertyId===p.id&&!e.isSpouse).reduce((s,e)=>s+e.hours,0);
@@ -1417,6 +1520,17 @@ function vSettings(){
   <div style="font-size:12px;color:#64748B;margin-bottom:12px;line-height:1.6;">STR hours count toward the 750-hr test only if you materially participate in each STR property as a trade or business (not merely as passive owner). Consult your tax advisor for your specific situation.</div>
   <label class="tog-row"><input type="checkbox" ${s.includeSTRinREPS!==false?'checked':''} onchange="setSetting('includeSTRinREPS',this.checked)"/><span class="tog-lbl">Include STR hours in REPS 750-hr total</span></label>
 </div>
+<div class="card card-mb">
+  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">Suspended Passive Activity Losses (PAL Carryforwards)</div>
+  <div style="font-size:12px;color:#64748B;margin-bottom:10px;line-height:1.7;">RepsRecord tracks your current-year qualification status. It does not track prior-year suspended PAL carryforwards, which are a separate but important consideration.</div>
+  <div style="background:#F0FDFA;border:.5px solid #CCFBF1;border-radius:8px;padding:12px 14px;font-size:12px;color:#0F766E;line-height:1.7;">
+    <strong>What this means for you:</strong> If your rental properties generated passive losses in years when you were not REPS-qualified, those losses are suspended under IRC §469(b). Qualifying as a REPS taxpayer in a <em>later</em> year does not automatically free prior-year suspended PALs — they remain suspended until the activity is disposed of or other triggering events occur. Your tax professional should review your carryforward schedule when you first qualify.
+  </div>
+</div>
+<div class="card card-mb">
+  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">Community Property States</div>
+  <div style="font-size:12px;color:#64748B;line-height:1.7;">If you are married and reside in a community property state — Arizona, California, Idaho, Louisiana, Nevada, New Mexico, Texas, Washington, or Wisconsin — your state's income and property rules may interact with the REPS individual-testing requirements in non-obvious ways. The IRC §469(c)(7) 750-hour and 50% tests are applied per-taxpayer regardless of community property treatment. Consult your tax professional about how your state's rules affect your specific situation before relying on RepsRecord's calculations.</div>
+</div>
 <div class="card" style="background:#FEF2F2;border-color:#FECACA;">
   <div style="font-size:14px;font-weight:800;color:#991B1B;margin-bottom:6px;">Reset All Data</div>
   <div style="font-size:12px;color:#64748B;margin-bottom:12px;">Permanently deletes all entries, properties, and settings.</div>
@@ -1564,6 +1678,17 @@ function renderView(){
   else if(view==='str') el.innerHTML=vSTR();
   else if(view==='settings') el.innerHTML=vSettings();
 
+  // Restart timer display tick if timer is running and we're on the log page
+  if(view==='log'&&timerStart){
+    clearInterval(timerTick);
+    timerTick=setInterval(()=>{
+      const el=document.getElementById('timer-display');
+      if(!el||!timerStart)return;
+      const tot=Math.floor((Date.now()-timerStart)/1000);
+      const h=Math.floor(tot/3600),m=Math.floor((tot%3600)/60),sc=tot%60;
+      el.textContent=`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sc).padStart(2,'0')}`;
+    },1000);
+  }
   if(view==='dashboard'){
     const monthly=Array.from({length:12},()=>({r:0,s:0}));
     state.entries.forEach(e=>{if(!e.date)return;const m=new Date(e.date+'T12:00:00').getMonth();if(e.trackType==='STR')monthly[m].s+=e.hours||0;else monthly[m].r+=e.hours||0;});
