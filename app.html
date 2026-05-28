@@ -246,8 +246,9 @@ function yearEntries(){return state.entries.filter(e=>e.date&&e.date.startsWith(
 function calcREPS(){
   const inc=state.settings.includeSTRinREPS!==false;
   const ye=yearEntries();
-  // LTR entries always count as REPS hours. STR entries count if setting enabled.
-  const rh=ye.filter(e=>!e.isSpouse&&(e.trackType==='REPS'||e.trackType==='LTR'||(inc&&e.trackType==='STR'))).reduce((s,e)=>s+(e.hours||0),0);
+  const propIds=new Set(state.properties.map(p=>p.id));
+  // Count entries where property still exists OR propertyId is null (kept after deletion)
+  const rh=ye.filter(e=>!e.isSpouse&&(propIds.has(e.propertyId)||e.propertyId===null||e.propertyId===undefined||e.propertyId==='')&&(e.trackType==='REPS'||e.trackType==='LTR'||(inc&&e.trackType==='STR'))).reduce((s,e)=>s+(e.hours||0),0);
   const th=rh+(state.settings.nonREPSHours||0);
   const pct=th>0?rh/th*100:0;
   return{rh,pct,m750:rh>=750,m50:pct>50,ok:rh>=750&&pct>50};
@@ -312,7 +313,8 @@ function vDashboard(){
   const strPs=state.properties.filter(p=>p.type==='STR');
   const ltrPs=state.properties.filter(p=>p.type==='LTR');
   const repsHrs=rh; // use calcREPS() result — already handles STR inclusion setting
-  const strHrs=yearEntries().filter(e=>!e.isSpouse&&e.trackType==='STR').reduce((s,e)=>s+(e.hours||0),0);
+  const propIds=new Set(state.properties.map(p=>p.id));
+  const strHrs=yearEntries().filter(e=>!e.isSpouse&&e.trackType==='STR'&&propIds.has(e.propertyId)).reduce((s,e)=>s+(e.hours||0),0);
   const strQual=strPs.filter(p=>mpT(p.id).some(t=>t.met)).length;
   const strTotal=strPs.length;
   const grouped=state.settings.groupingElection;
