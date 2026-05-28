@@ -194,6 +194,10 @@ const NAV=[{id:'dashboard',ic:'ğŸ“Š',label:'Dashboard'},{id:'properties',ic:'ğŸ
 let state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:true},properties:[],entries:[],manualMP:{}};
 let activeYear=CUR_YEAR;
 let view='dashboard',chartInst=null,showPropForm=false,trackType='REPS';
+// Feature state
+let logFilter={type:'all',propId:'',search:''};
+let timerStart=null,timerTick=null;
+let selEntries=new Set();
 
 function uid(){return Math.random().toString(36).slice(2,9);}
 function fmtH(h){const a=Math.floor(h),b=Math.round((h-a)*60);return b===0?`${a}h`:`${a}h ${b}m`;}
