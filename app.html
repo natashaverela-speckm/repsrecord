@@ -1527,7 +1527,10 @@ function vReports(){
 <div class="ph">
   <div class="ph-row">
     <div><div class="pg-title">Audit Report <span style='font-size:13px;font-weight:400;color:#64748B;'>/ Contemporaneous Activity Log</span></div><div class="pg-sub">IRC §469(c)(7) REPS &amp; Temp. Reg. §1.469-5T STR — Tax Year ${activeYear} — Prepared for IRS substantiation</div></div>
-    <button class="btn btn-outline top-acts" onclick="window.print()">🖨 Print / Export</button>
+    <div class="top-acts" style="display:flex;gap:8px;">
+      <button class="btn btn-outline btn-sm" onclick="window.print()">🖨 Print</button>
+      <button class="btn btn-teal btn-sm" onclick="exportXLSX()">📥 Export to Excel</button>
+    </div>
   </div>
 </div>
 <div class="card card-mb" style="background:${r.ok?'#ECFDF5':'#F0FDFA'};border-color:${r.ok?'#6EE7B7':'#99F6E4'};">
@@ -1946,6 +1949,126 @@ function clearRemyHistory(){
   remyMessages=[];
   try{localStorage.removeItem(REMY_SK);}catch(e){}
   renderRemyMessages();
+}
+
+// ── EXCEL EXPORT ──
+async function exportXLSX(){
+  // Load SheetJS if not already present
+  if(!window.XLSX){
+    await new Promise((res,rej)=>{
+      const sc=document.createElement('script');
+      sc.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      sc.onload=res;sc.onerror=rej;
+      document.head.appendChild(sc);
+    });
+  }
+
+  const r=calcREPS();
+  const ye=yearEntries();
+  const sps=state.properties.filter(p=>p.type==='STR');
+  const repsEntries=[...ye].filter(e=>e.trackType!=='STR'||state.settings.includeSTRinREPS!==false).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const strEntries=[...ye].filter(e=>e.trackType==='STR').sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const allEntries=[...ye].sort((a,b)=>new Date(b.date)-new Date(a.date));
+
+  function propName(e){return state.properties.find(p=>p.id===e.propertyId)?.name||'General RE';}
+  function fmtDecHrs(h){return Math.round(h*100)/100;}
+  function fmtHMLabel(h){const a=Math.floor(h),b=Math.round((h-a)*60);return b===0?`${a}h`:`${a}h ${b}m`;}
+  function evidenceLinks(e){return(e.attachments||[]).map(a=>a.url).join(', ')||'';}
+
+  const wb=XLSX.utils.book_new();
+
+  // ─── Sheet 1: Summary ───
+  const repsRows=[
+    ['REPSRECORD — IRS AUDIT DOCUMENTATION','','',''],
+    [`Tax Year: ${activeYear}`,'','',''],
+    ['Generated: '+new Date().toLocaleDateString(),'','',''],
+    ['','','',''],
+    ['REPS QUALIFICATION SUMMARY — IRC §469(c)(7)','','',''],
+    ['Test','Result','Your Value','Required'],
+    ['750-Hour Test', r.m750?'✓ MET':'✗ NOT MET', Math.round(r.rh)+' hrs','> 750 hrs'],
+    ['50% Services Test', r.m50?'✓ MET':'✗ NOT MET', Math.round(r.pct)+'%','> 50%'],
+    ['Overall REPS Status', r.ok?'✓ QUALIFIED':'✗ NOT QUALIFIED','','Both tests required'],
+    ['Non-RE Hours Entered',(state.settings.nonREPSHours||0)>0?'Yes — '+state.settings.nonREPSHours+' hrs':'⚠ Not entered — 50% test unverified','',''],
+    ['Grouping Election',state.settings.groupingElection?'Filed — §469(c)(7)(A)':'Not filed','',''],
+    ['','','',''],
+  ];
+
+  if(sps.length){
+    repsRows.push(['STR MATERIAL PARTICIPATION — TEMP. REG. §1.469-5T','','','']);
+    repsRows.push(['Property','Avg Rental Days','Your Hours','MP Status']);
+    sps.forEach(p=>{
+      const ph=pH(p.id);
+      const ts=mpT(p.id);
+      const any=ts.some(t=>t.met);
+      const best=ts.find(t=>t.met);
+      repsRows.push([p.name, p.avgRentalDays||'Not set', Math.round(ph.owner), any?('✓ '+best.label):'✗ Does Not Qualify']);
+      // Show which tests passed/failed
+      ts.forEach(t=>{
+        repsRows.push(['  '+t.name+' — '+t.label,'','',t.met?'✓ Met':'—']);
+      });
+      repsRows.push(['','','','']);
+    });
+  }
+
+  const wsSummary=XLSX.utils.aoa_to_sheet(repsRows);
+  wsSummary['!cols']=[{wch:40},{wch:28},{wch:16},{wch:22}];
+  XLSX.utils.book_append_sheet(wb,wsSummary,'Summary');
+
+  // ─── Sheet builder helper ───
+  function buildActivitySheet(entries, title){
+    const headers=['Date','Property','Type','Category','Hours (decimal)','Hours (formatted)','Notes','Evidence Links'];
+    const rows=entries.map(e=>[
+      e.date,
+      propName(e),
+      e.trackType+(e.isSpouse?' (Spouse)':''),
+      e.category,
+      fmtDecHrs(e.hours),
+      fmtHMLabel(e.hours),
+      e.notes||'',
+      evidenceLinks(e),
+    ]);
+    const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
+    ws['!cols']=[{wch:13},{wch:22},{wch:10},{wch:38},{wch:14},{wch:12},{wch:48},{wch:60}];
+
+    // Make evidence link cells clickable hyperlinks
+    entries.forEach((e,i)=>{
+      const links=(e.attachments||[]).filter(a=>a.url);
+      if(!links.length)return;
+      const row=i+2;// 1-indexed, row 1 = header
+      const col=7;// column H (0-indexed col 7)
+      const cellRef=XLSX.utils.encode_cell({r:row-1,c:col});
+      if(links.length===1){
+        if(!ws[cellRef])ws[cellRef]={t:'s',v:links[0].url};
+        ws[cellRef].l={Target:links[0].url,Tooltip:links[0].name||'Evidence'};
+      }
+      // Multiple attachments: first link is hyperlinked, rest in cell text
+    });
+
+    return ws;
+  }
+
+  // ─── Sheet 2: REPS Activity Log ───
+  const repsActivity=allEntries.filter(e=>e.trackType!=='STR');
+  if(repsActivity.length){
+    const ws=buildActivitySheet(repsActivity,'REPS Activity Log');
+    XLSX.utils.book_append_sheet(wb,ws,'REPS Activity Log');
+  }
+
+  // ─── Sheet 3: STR Activity Log ───
+  if(strEntries.length){
+    const ws=buildActivitySheet(strEntries,'STR Activity Log');
+    XLSX.utils.book_append_sheet(wb,ws,'STR Activity Log');
+  }
+
+  // ─── Sheet 4: All Entries (combined) ───
+  if(allEntries.length){
+    const ws=buildActivitySheet(allEntries,'All Entries');
+    XLSX.utils.book_append_sheet(wb,ws,'All Entries');
+  }
+
+  // ─── Download ───
+  const filename=`RepsRecord_${activeYear}_AuditLog_${new Date().toISOString().slice(0,10)}.xlsx`;
+  XLSX.writeFile(wb,filename);
 }
 
 // ── App init — async to support cloud-first data load ──
