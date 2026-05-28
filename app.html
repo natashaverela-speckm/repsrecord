@@ -1973,7 +1973,12 @@ async function exportXLSX(){
   function propName(e){return state.properties.find(p=>p.id===e.propertyId)?.name||'General RE';}
   function fmtDecHrs(h){return Math.round(h*100)/100;}
   function fmtHMLabel(h){const a=Math.floor(h),b=Math.round((h-a)*60);return b===0?`${a}h`:`${a}h ${b}m`;}
-  function evidenceLinks(e){return(e.attachments||[]).map(a=>a.url).join(', ')||'';}
+  // ── Evidence helper: returns array of {name, url} for an entry ──
+  function getAttachments(e){
+    return(e.attachments||[])
+      .map(a=>({name:a.name||'Evidence',url:a.url||a.publicUrl||a.href||''}))
+      .filter(a=>a.url);
+  }
 
   const wb=XLSX.utils.book_new();
 
@@ -2015,33 +2020,50 @@ async function exportXLSX(){
   XLSX.utils.book_append_sheet(wb,wsSummary,'Summary');
 
   // ─── Sheet builder helper ───
-  function buildActivitySheet(entries, title){
-    const headers=['Date','Property','Type','Category','Hours (decimal)','Hours (formatted)','Notes','Evidence Links'];
-    const rows=entries.map(e=>[
-      e.date,
-      propName(e),
-      e.trackType+(e.isSpouse?' (Spouse)':''),
-      e.category,
-      fmtDecHrs(e.hours),
-      fmtHMLabel(e.hours),
-      e.notes||'',
-      evidenceLinks(e),
-    ]);
-    const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
-    ws['!cols']=[{wch:13},{wch:22},{wch:10},{wch:38},{wch:14},{wch:12},{wch:48},{wch:60}];
+  function buildActivitySheet(entries){
+    // Base columns per entry (no evidence — those expand to separate rows below)
+    const headers=['Date','Property','Type','Category','Hours (decimal)','Hours (formatted)','Notes','Evidence File','Evidence URL'];
+    const rows=[];
 
-    // Make evidence link cells clickable hyperlinks
-    entries.forEach((e,i)=>{
-      const links=(e.attachments||[]).filter(a=>a.url);
-      if(!links.length)return;
-      const row=i+2;// 1-indexed, row 1 = header
-      const col=7;// column H (0-indexed col 7)
-      const cellRef=XLSX.utils.encode_cell({r:row-1,c:col});
-      if(links.length===1){
-        if(!ws[cellRef])ws[cellRef]={t:'s',v:links[0].url};
-        ws[cellRef].l={Target:links[0].url,Tooltip:links[0].name||'Evidence'};
+    entries.forEach(e=>{
+      const atts=getAttachments(e);
+      if(atts.length===0){
+        // No attachments — single row, blank evidence columns
+        rows.push([e.date,propName(e),e.trackType+(e.isSpouse?' (Spouse)':''),e.category,fmtDecHrs(e.hours),fmtHMLabel(e.hours),e.notes||'','','']);
+      } else {
+        // One row per attachment so every URL gets its own cell/hyperlink
+        atts.forEach((att,ai)=>{
+          rows.push([
+            ai===0?e.date:'',       // date only on first row
+            ai===0?propName(e):'',
+            ai===0?e.trackType+(e.isSpouse?' (Spouse)'):'',
+            ai===0?e.category:'',
+            ai===0?fmtDecHrs(e.hours):'',
+            ai===0?fmtHMLabel(e.hours):'',
+            ai===0?e.notes||'':'',
+            att.name,               // filename in col H
+            att.url,                // raw URL in col I (plain text — clickable in Excel)
+          ]);
+        });
       }
-      // Multiple attachments: first link is hyperlinked, rest in cell text
+    });
+
+    const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
+    ws['!cols']=[{wch:13},{wch:22},{wch:10},{wch:36},{wch:14},{wch:12},{wch:44},{wch:32},{wch:72}];
+
+    // Apply HYPERLINK formula to every Evidence URL cell (col I, index 8)
+    // =HYPERLINK("url","filename") works in all Excel/Sheets versions
+    rows.forEach((row,i)=>{
+      const url=row[8];
+      const name=row[7];
+      if(!url)return;
+      const cellRef=XLSX.utils.encode_cell({r:i+1,c:8});// +1 for header row
+      if(ws[cellRef]){
+        // Sanitise for formula: escape double-quotes in URL and name
+        const safeUrl=url.replace(/"/g,'""');
+        const safeName=(name||'Evidence').replace(/"/g,'""').slice(0,31);
+        ws[cellRef]={t:'s',f:`HYPERLINK("${safeUrl}","${safeName}")`,v:url};
+      }
     });
 
     return ws;
