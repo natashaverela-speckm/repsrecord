@@ -1024,6 +1024,11 @@ function confirmImport(){
   alert(`✅ Successfully imported ${_importRows.length} entries!`);
 }
 
+function setDashTab(tab){
+  window._dashTab = tab;
+  renderView();
+}
+
 function togglePropType(){
   const tp=document.getElementById('p-tp')?.value;
   const strFields=document.getElementById('str-fields');
