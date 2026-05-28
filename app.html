@@ -238,7 +238,22 @@ async function signOut(){
   window.location.href='login.html';
 }
 
-function load(){try{const s=localStorage.getItem(SK);if(s)state=JSON.parse(s);}catch(e){}}
+function load(){
+  try{
+    const s=localStorage.getItem(SK);
+    if(s){
+      state=JSON.parse(s);
+      // Migrate: ensure all properties have bookings array (backward compat)
+      if(state.properties){
+        state.properties.forEach(p=>{
+          if(!p.bookings)p.bookings=[];
+        });
+      }
+      // Migrate: ensure manualMP exists
+      if(!state.manualMP)state.manualMP={};
+    }
+  }catch(e){}
+}
 function save(){try{localStorage.setItem(SK,JSON.stringify(state));}catch(e){}}
 
 function yearEntries(){return state.entries.filter(e=>e.date&&e.date.startsWith(String(activeYear)));}
@@ -749,6 +764,7 @@ ${state.properties.map(p=>{
       <input type="file" id="ql-files-${p.id}" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" style="width:100%;padding:8px 12px;border:1.5px solid #CBD5E1;border-radius:8px;background:#F8FAFC;font-size:13px;font-family:inherit;cursor:pointer;"/>
       <div class="hint">Attach receipts, photos, invoices, or contracts</div>
     </div>
+    ${state.settings.spouseEnabled?`<label class="tog-row" style="margin-bottom:12px;"><input type="checkbox" id="ql-spouse-${p.id}"/><span class="tog-lbl">Log as ${state.settings.spouseName||'Spouse'}'s hours (tracked separately for MP Tests 3 & 7)</span></label>`:''}
     <div style="display:flex;gap:8px;">
       <button onclick="saveQuickLog('${p.id}')" style="background:#14B8A6;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Save Entry</button>
       <button onclick="document.getElementById('quick-log-${p.id}').style.display='none'" style="background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0;padding:9px 14px;border-radius:8px;font-size:13px;cursor:pointer;">Cancel</button>
@@ -772,7 +788,7 @@ ${state.properties.map(p=>{
     </div>
     <div id="ep-str-fields-${p.id}" style="${p.type==='LTR'?'display:none':''}">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-        <div class="field"><label class="fl">Avg Rental Period (days)</label><input type="number" id="ep-dy-${p.id}" value="${p.avgRentalDays||''}" min="0.5" step="0.5" placeholder="e.g. 4.5"/><div class="hint">≤7 days = strongest eligibility. 8–30 days may qualify with significant personal services.</div></div>
+        <div class="field"><label class="fl">Avg Rental Period (days)</label><input type="number" id="ep-dy-${p.id}" value="${p.avgRentalDays||''}" min="0.5" step="0.5" placeholder="e.g. 4.5"/><div class="hint">${(p.bookings&&p.bookings.length>0)?`📅 Auto-calculated from ${p.bookings.length} booking${p.bookings.length>1?'s':''}. Use Booking Log to update.`:'≤7 days = strongest eligibility. 8–30 days may qualify with significant personal services.'}</div></div>
         <div class="field"><label class="fl">Other Participants' Annual Hours</label><input type="number" id="ep-ot-${p.id}" value="${p.otherHours||0}" min="0" step="1"/><div class="hint">Cleaner, co-host, PM</div></div>
       </div>
     </div>
@@ -935,7 +951,7 @@ async function saveQuickLog(propId){
     category:document.getElementById('ql-cat-'+propId)?.value||REPS_CATS[0],
     hours:Math.round((hrs+mins/60)*100)/100,
     notes:document.getElementById('ql-note-'+propId)?.value||'',
-    isSpouse:false,
+    isSpouse:!!document.getElementById('ql-spouse-'+propId)?.checked,
     attachments
   });
   save();renderView();
@@ -964,7 +980,10 @@ function savePropEdit(id){
   prop.type=document.getElementById('ep-tp-'+id)?.value||prop.type;
   prop.street=street;prop.city=city;prop.state=st;prop.zip=zip;
   prop.address=[street,city,st,zip].filter(Boolean).join(', ');
-  prop.avgRentalDays=parseFloat(document.getElementById('ep-dy-'+id)?.value)||null;
+  // If bookings exist, recalculate avg from actual booking data; manual edit only applies when no bookings logged
+  const manualAvg=parseFloat(document.getElementById('ep-dy-'+id)?.value)||null;
+  const recalcAvg=calcAvgFromBookings(id);
+  prop.avgRentalDays=recalcAvg!==null?recalcAvg:manualAvg;
   prop.otherHours=parseFloat(document.getElementById('ep-ot-'+id)?.value)||0;
   save();renderView();
 }
@@ -1195,6 +1214,9 @@ function vMP(){
 
 <div style="background:#F0FDFA;border:1px solid #CCFBF1;border-left:4px solid #14B8A6;border-radius:12px;padding:20px 22px;margin-bottom:20px;">
   <div style="font-size:13px;font-weight:800;color:#0D1F3C;margin-bottom:10px;">📊 How this page works</div>
+<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:11px 14px;margin-bottom:16px;font-size:12px;color:#1E40AF;line-height:1.7;">
+  📖 <strong>Key Terms:</strong> <strong>SPA</strong> = Significant Participation Activity (100–499 hrs in a single activity per §1.469-5T(a)(4)). <strong>PSA</strong> = Personal Service Activity (relevant to Test 6, rarely applicable to rentals). <strong>MP</strong> = Material Participation.
+</div>
   <div style="font-size:13px;color:#334155;line-height:1.8;">
     The results on this page are calculated automatically from two sources:
     <br><strong>1. Your logged hours</strong> — every time entry you log for an STR property counts toward your participation hours for that property.
@@ -1443,7 +1465,7 @@ function vSTR(){
 <div class="card card-mb">
   <div style="font-size:15px;font-weight:800;color:#0D1F3C;margin-bottom:8px;">Temp. Reg. §1.469-5T(a)</div>
   <div style="font-size:13px;color:#64748B;line-height:1.7;margin-bottom:14px;">Once a STR qualifies under the average period test, it is treated as a trade or business activity. The taxpayer must then materially participate to make losses non-passive. Pass any one of the seven tests below.</div>
-  ${[['1','500 Hours','§1.469-5T(a)(1)','Participate more than 500 hours in the STR activity during the year. A spouse\'s hours count toward this test.','#D1FAE5','#065F46','Most straightforward but requires significant time commitment.'],['2','Substantially All','§1.469-5T(a)(2)','Your participation constitutes substantially all participation by all individuals. No one else (paid or unpaid) participated more than nominally.','#F0FDFA','#64748B','Difficult if you use a co-host, cleaner, or property manager.'],['3','100 Hrs + Primary','§1.469-5T(a)(3)','Participate more than 100 hours AND more than any other individual including paid staff. Most commonly used STR test.','#D1FAE5','#065F46','Most accessible test — keep your hours above your co-host or cleaner.'],['4','SPA Aggregate','§1.469-5T(a)(4)','Activity qualifies as significant participation (100–499 hrs) and all your SPAs aggregate to 500+ hours for the year.','#F0FDFA','#64748B','Useful when you have multiple STRs, each with 100–499 hrs.'],['5','5 of Last 10 Years','§1.469-5T(a)(5)','Materially participated in this activity in any 5 of the 10 immediately preceding taxable years. Need not be consecutive.','#F0FDFA','#64748B','Requires prior year documentation. Applies regardless of current year hours.'],['6','3 Prior Yrs (Service)','§1.469-5T(a)(6)','Materially participated in any 3 preceding years when the activity was a personal service activity.','#F0FDFA','#64748B','Rarely applies to STRs; more common for personal service businesses.'],['7','Facts & Circumstances','§1.469-5T(a)(7)','Participate 100+ hours, no compensated manager, and you participate more than any other individual.','#D1FAE5','#065F46','Catch-all test — similar to Test 3 but without the explicit "more than any other" hour count.']].map(([n,l,c,d,bg,tc,tip])=>`
+  ${[['1','500 Hours','§1.469-5T(a)(1)','Participate more than 500 hours in the STR activity during the year. A spouse\'s hours count toward this test.','#D1FAE5','#065F46','Most straightforward but requires significant time commitment.'],['2','Substantially All','§1.469-5T(a)(2)','Your participation constitutes substantially all participation by all individuals. No one else (paid or unpaid) participated more than nominally.','#F0FDFA','#64748B','Difficult if you use a co-host, cleaner, or property manager.'],['3','100 Hrs + Primary','§1.469-5T(a)(3)','Participate more than 100 hours AND more than any other individual including paid staff. Most commonly used STR test.','#D1FAE5','#065F46','Most accessible test — keep your hours above your co-host or cleaner.'],['4','SPA Aggregate','§1.469-5T(a)(4)','Activity qualifies as significant participation (100–499 hrs) and all your SPAs aggregate to 500+ hours for the year.','#F0FDFA','#64748B','Useful when you have multiple STRs, each with 100–499 hrs.'],['5','5 of Last 10 Years','§1.469-5T(a)(5)','Materially participated in this activity in any 5 of the 10 immediately preceding taxable years. Need not be consecutive.','#F0FDFA','#64748B','Requires prior year documentation. Applies regardless of current year hours.'],['6','3 Prior Yrs (Service)','§1.469-5T(a)(6)','Materially participated in any 3 preceding years when the activity was a personal service activity.','#F0FDFA','#64748B','Rarely applies to STRs; more common for personal service businesses.'],['7','Facts & Circumstances','§1.469-5T(a)(7)','Participate on a regular, continuous, and substantial basis (facts & circumstances — Temp. Reg. §1.469-5T(a)(7)). The IRS commonly applies 100+ hours as a practical floor, but no fixed minimum appears in the regulatory text.','#D1FAE5','#065F46','True facts-and-circumstances test. Document the frequency, duration, and nature of your involvement. 100+ hrs, being the primary participant, with no compensated manager is the widely applied practical standard.']].map(([n,l,c,d,bg,tc,tip])=>`
   <div style="display:flex;gap:14px;padding:14px 0;border-bottom:.5px solid #F0FDFA;align-items:flex-start;">
     <div style="width:42px;height:42px;border-radius:9px;background:${bg};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:${tc};flex-shrink:0;border:.5px solid #CCFBF1;">${n}</div>
     <div style="flex:1;">
