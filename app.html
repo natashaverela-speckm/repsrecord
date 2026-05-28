@@ -309,20 +309,28 @@ function vDashboard(){
   const r=calcREPS(),{rh,pct,m750,m50,ok}=r,tot=rh+(state.settings.nonREPSHours||0);
   const strPs=state.properties.filter(p=>p.type==='STR');
   const rec=[...yearEntries()].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
-  const strHrs=state.entries.filter(e=>!e.isSpouse&&e.trackType==='STR').reduce((s,e)=>s+(e.hours||0),0);
-  const repsOnlyHrs=state.entries.filter(e=>!e.isSpouse&&e.trackType==='REPS').reduce((s,e)=>s+(e.hours||0),0);
-  const totalLogged=state.entries.filter(e=>!e.isSpouse).reduce((s,e)=>s+(e.hours||0),0);
+  const strHrs=yearEntries().filter(e=>!e.isSpouse&&e.trackType==='STR').reduce((s,e)=>s+(e.hours||0),0);
+  const repsOnlyHrs=yearEntries().filter(e=>!e.isSpouse&&e.trackType==='REPS').reduce((s,e)=>s+(e.hours||0),0);
+  const dashTab=window._dashTab||'reps';
   return`
 <div class="ph">
   <div class="ph-row">
-    <div><div class="pg-title">${activeYear} Tax Year Overview</div><div class="pg-sub">Real Estate Professional Status (IRC §469(c)(7)) · STR Material Participation Exception (Temp. Reg. §1.469-5T)</div></div>
+    <div><div class="pg-title">${activeYear} Tax Year Overview</div><div class="pg-sub">IRC §469(c)(7) · Temp. Reg. §1.469-5T</div></div>
     <div style="display:flex;gap:8px;" class="top-acts">
       <button class="btn btn-outline btn-sm" onclick="go('reports')">📋 Report</button>
       <button class="btn btn-teal btn-sm" onclick="go('log')">+ Log Time</button>
     </div>
   </div>
 </div>
-<div class="sec-lbl">Real Estate Professional Status — IRC §469(c)(7)</div>
+
+<!-- Dashboard Tabs -->
+<div style="display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid #E2E8F0;">
+  <button onclick="setDashTab('reps')" id="dtab-reps" style="padding:12px 28px;font-size:14px;font-weight:700;border:none;background:none;cursor:pointer;font-family:inherit;border-bottom:${dashTab==='reps'?'3px solid #14B8A6':'3px solid transparent'};color:${dashTab==='reps'?'#0D1F3C':'#64748B'};margin-bottom:-2px;transition:all .15s;">🏡 REPS / LTR</button>
+  <button onclick="setDashTab('str')" id="dtab-str" style="padding:12px 28px;font-size:14px;font-weight:700;border:none;background:none;cursor:pointer;font-family:inherit;border-bottom:${dashTab==='str'?'3px solid #38BDF8':'3px solid transparent'};color:${dashTab==='str'?'#0D1F3C':'#64748B'};margin-bottom:-2px;transition:all .15s;">🏖 STR</button>
+</div>
+
+${dashTab==='reps'?`
+<!-- REPS TAB -->
 <div class="g2">
   <div class="card rc">
     <div class="rw" style="width:110px;height:110px;">${svgRing(rh,750,m750?'#10B981':'#14B8A6','#CFFAFE')}
@@ -347,43 +355,9 @@ function vDashboard(){
   <div class="bn-ic">${ok?'🏆':'⏳'}</div>
   <div>
     <div class="bn-title">${ok?'You qualify for Real Estate Professional Status!':'REPS qualification in progress — keep logging hours'}</div>
-    <div class="bn-sub">${ok?(state.settings.groupingElection?'Group election filed.':'Verify material participation in each rental activity, or file a §469(c)(7)(A) grouping election.'):[!m750&&`Need ${Math.round(750-rh)} more qualifying hours.`,!m50&&'Reduce non-RE work or increase RE hours to pass the 50% test.'].filter(Boolean).join(' ')}</div>
+    <div class="bn-sub">${ok?(state.settings.groupingElection?'Grouping election filed — all LTR activities treated as one.':'Verify material participation in each rental activity, or file a §469(c)(7)(A) grouping election.'):[!m750&&`Need ${Math.round(750-rh)} more qualifying hours.`,!m50&&'Reduce non-RE work or increase RE hours to pass the 50% test.'].filter(Boolean).join(' ')}</div>
   </div>
 </div>
-${strPs.length?`
-<div class="sec-lbl" style="margin-top:4px;">STR Material Participation Exception Hours — Temp. Reg. §1.469-5T</div>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
-  <div class="card" style="text-align:center;padding:16px 12px;">
-    <div style="font-size:30px;font-weight:900;color:#38BDF8;letter-spacing:-0.03em;">${Math.round(strHrs)}</div>
-    <div style="font-size:12px;font-weight:600;color:#0D1F3C;margin-top:2px;">Total STR Hours</div>
-    <div style="font-size:11px;color:#64748B;margin-top:2px;">across all STR properties</div>
-  </div>
-  <div class="card" style="text-align:center;padding:16px 12px;">
-    <div style="font-size:30px;font-weight:900;color:#14B8A6;letter-spacing:-0.03em;">${Math.round(repsOnlyHrs)}</div>
-    <div style="font-size:12px;font-weight:600;color:#0D1F3C;margin-top:2px;">REPS / LTR Hours</div>
-    <div style="font-size:11px;color:#64748B;margin-top:2px;">qualifying RE hours logged</div>
-  </div>
-  <div class="card" style="text-align:center;padding:16px 12px;">
-    <div style="font-size:30px;font-weight:900;color:#0D1F3C;letter-spacing:-0.03em;">${Math.round(totalLogged)}</div>
-    <div style="font-size:12px;font-weight:600;color:#0D1F3C;margin-top:2px;">Total Hours Logged</div>
-    <div style="font-size:11px;color:#64748B;margin-top:2px;">${activeYear} year-to-date</div>
-  </div>
-</div>
-<div class="sec-lbl">STR Properties — Material Participation Status</div>`:`<div class="sec-lbl" style="margin-top:4px;">STR Material Participation Exception — Material Participation (Temp. Reg. §1.469-5T)</div>`}
-<div class="g-str">
-${strPs.map(p=>{const ph=pH(p.id),ts=mpT(p.id),any=ts.some(t=>t.met),best=ts.find(t=>t.met);return`
-<div class="str-c${any?'':' unmet'}">
-  <div class="str-top">
-    <div><div class="str-nm">${p.name}</div><div class="str-mt">Avg rental: ${p.avgRentalDays||'—'} days · STR</div></div>
-    <div style="text-align:right;"><div class="str-big">${Math.round(ph.owner)} <span>hrs</span></div><span class="badge ${any?'b-met':'b-no'}" style="margin-top:4px;display:inline-block;">${any?'✓ MP Met':'✗ No MP'}</span></div>
-  </div>
-  ${best?`<div style="font-size:11px;padding:5px 9px;background:#ECFDF5;border-radius:6px;color:#065F46;font-weight:600;">Qualifies via ${best.label}</div>`:''}
-  ${!any?`<div style="font-size:11px;padding:5px 9px;background:#FFFBEB;border-radius:6px;color:#92400E;">Need ${Math.max(0,Math.ceil(100-ph.owner))} more hrs for Test 3</div>`:''}
-  <div class="tcs">${ts.map(t=>`<span class="tc ${t.met?'tc-y':'tc-n'}">${t.name} ${t.met?'✓':''}</span>`).join('')}</div>
-  ${p.avgRentalDays&&p.avgRentalDays<=7?`<div style="font-size:10px;color:#0F766E;margin-top:8px;">✓ Avg ≤7 days — not a rental activity under §469</div>`:''}
-</div>`}).join('')}
-</div>
-${!strPs.length?`<div style="margin-bottom:14px;padding:20px;background:#fff;border:.5px solid #CCFBF1;border-radius:12px;text-align:center;color:#94A3B8;font-size:13px;">No STR properties added yet. <a href="#" onclick="go('properties');return false;" style="color:#14B8A6;text-decoration:none;font-weight:600;">Add a property →</a></div>`:''}
 <div class="card card-mb">
   <div class="sec-lbl" style="margin-bottom:10px;">Monthly hours — ${activeYear}</div>
   <div style="display:flex;gap:16px;margin-bottom:10px;">
@@ -404,8 +378,35 @@ ${rec.length?`
       ${e.notes?`<div class="ei-note">"${e.notes}"</div>`:''}
     </div>
   </div>`;}).join('')}
+</div>`:`<div class="empty"><div class="empty-ic">⏱</div><div class="empty-tx">No entries yet — <a href="#" onclick="go('log');return false;" style="color:#14B8A6;text-decoration:none;">log your first hours</a></div></div>`}
+`:/* STR TAB */`
+<!-- STR TAB -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
+  <div class="card" style="text-align:center;padding:24px 16px;">
+    <div style="font-size:42px;font-weight:900;color:#38BDF8;letter-spacing:-0.03em;">${Math.round(strHrs)}</div>
+    <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-top:4px;">Total STR Hours</div>
+    <div style="font-size:11px;color:#64748B;margin-top:2px;">across all STR properties · ${activeYear}</div>
+  </div>
+  <div class="card" style="text-align:center;padding:24px 16px;">
+    <div style="font-size:42px;font-weight:900;color:#14B8A6;letter-spacing:-0.03em;">${strPs.length}</div>
+    <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-top:4px;">STR Properties</div>
+    <div style="font-size:11px;color:#64748B;margin-top:2px;">${strPs.filter(p=>{const ts=mpT(p.id);return ts.some(t=>t.met);}).length} qualifying · ${strPs.filter(p=>{const ts=mpT(p.id);return !ts.some(t=>t.met);}).length} not yet met</div>
+  </div>
 </div>
-`:`<div class="empty"><div class="empty-ic">⏱</div><div class="empty-tx">No entries yet — <a href="#" onclick="go('log');return false;" style="color:#14B8A6;text-decoration:none;">log your first hours</a></div></div>`}`;
+<div class="sec-lbl" style="margin-bottom:12px;">STR Properties — Material Participation Status</div>
+<div class="g-str">
+${strPs.length?strPs.map(p=>{const ph=pH(p.id),ts=mpT(p.id),any=ts.some(t=>t.met),best=ts.find(t=>t.met);return`
+<div class="str-c${any?'':' unmet'}">
+  <div class="str-top">
+    <div><div class="str-nm">${p.name}</div><div class="str-mt">Avg rental: ${p.avgRentalDays||'—'} days · STR</div></div>
+    <div style="text-align:right;"><div class="str-big">${Math.round(ph.owner)} <span>hrs</span></div><span class="badge ${any?'b-met':'b-no'}" style="margin-top:4px;display:inline-block;">${any?'✓ MP Met':'✗ No MP'}</span></div>
+  </div>
+  ${best?`<div style="font-size:11px;padding:5px 9px;background:#ECFDF5;border-radius:6px;color:#065F46;font-weight:600;">Qualifies via ${best.label}</div>`:''}
+  ${!any?`<div style="font-size:11px;padding:5px 9px;background:#FFFBEB;border-radius:6px;color:#92400E;">Need ${Math.max(0,Math.ceil(100-ph.owner))} more hrs for Test 3</div>`:''}
+  <div class="tcs">${ts.map(t=>`<span class="tc ${t.met?'tc-y':'tc-n'}">${t.name} ${t.met?'✓':''}</span>`).join('')}</div>
+  ${p.avgRentalDays&&p.avgRentalDays<=7?`<div style="font-size:10px;color:#0F766E;margin-top:8px;">✓ Avg ≤7 days — excluded from §469 passive rental rules</div>`:''}
+</div>`}).join(''):`<div style="padding:32px;background:#fff;border:.5px solid #CCFBF1;border-radius:12px;text-align:center;color:#94A3B8;font-size:13px;">No STR properties added yet. <a href="#" onclick="go('properties');return false;" style="color:#14B8A6;text-decoration:none;font-weight:600;">Add a property →</a></div>`}
+</div>`}`;
 }
 
 // ── LOG TIME ──
