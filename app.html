@@ -352,19 +352,26 @@ function vDashboard(){
       // 750-hour card
       '<div class="card" style="padding:20px;">' +
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">' +
+          '<div style="display:flex;align-items:center;gap:10px;">' +
+          svgRing(repsHrs,751,m750?'#10B981':'#14B8A6','#E2E8F0',52,6) +
           '<div style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">750-Hour Test</div>' +
+          '</div>' +
           (m750?badge(true,'✓ MET',''):(repsHrs===0?'<span style="background:#F1F5F9;color:#64748B;font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;white-space:nowrap;">NOT STARTED</span>':'<span style="background:#FEF3C7;color:#92400E;font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;white-space:nowrap;">IN PROGRESS</span>')) +
         '</div>' +
         '<div style="font-size:11px;color:#94A3B8;margin-bottom:8px;">Must exceed 750 hrs in qualifying real estate activities (IRC §469(c)(7)(B)(i))</div>' +
         '<div style="font-size:30px;font-weight:900;color:#0D1F3C;letter-spacing:-0.03em;">'+Math.round(repsHrs)+'<span style="font-size:13px;font-weight:400;color:#64748B;"> / 751+ hrs required</span></div>' +
         bar(repsHrs,751,m750?'#10B981':'#14B8A6') +
         '<div style="font-size:12px;font-weight:600;color:'+(m750?'#10B981':'#14B8A6')+';">'+(m750?'✓ Exceeded requirement by '+Math.round(repsHrs-750)+' hrs':Math.round(751-repsHrs)+' hrs remaining to qualify')+'</div>' +
+        (()=>{const now=new Date();const startOfYear=new Date(activeYear,0,1);const endOfYear=new Date(activeYear,11,31);const daysElapsed=Math.max(1,Math.round((now-startOfYear)/(1000*60*60*24)));const daysInYear=Math.round((endOfYear-startOfYear)/(1000*60*60*24))+1;const rate=repsHrs/daysElapsed;const projected=Math.round(rate*daysInYear);const onPace=projected>750;return repsHrs>0&&!m750?`<div style="font-size:11px;color:${onPace?'#0E7490':'#92400E'};margin-top:6px;padding:6px 10px;background:${onPace?'#CFFAFE':'#FEF3C7'};border-radius:6px;">📈 At current pace: <strong>${projected} hrs</strong> projected by Dec 31 — ${onPace?'✓ on track to qualify':'⚠ not on pace, log more hours'}</div>`:'';})() +
       '</div>' +
 
       // 50% card
       '<div class="card" style="padding:20px;">' +
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">' +
+          '<div style="display:flex;align-items:center;gap:10px;">' +
+          svgRing(pct,100,m50?'#10B981':'#EF4444','#E2E8F0',52,6) +
           '<div style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">50% Services Test</div>' +
+          '</div>' +
           badge(m50,'✓ MET','NOT MET') +
         '</div>' +
         '<div style="font-size:11px;color:#94A3B8;margin-bottom:8px;">RE hours &gt; 50% of all personal service hours</div>' +
@@ -700,7 +707,7 @@ ${state.properties.map(p=>{
       <div class="prop-nm">${p.name}</div>${p.address?`<div class="prop-addr">${p.address}</div>`:''}
       <div class="prop-tags">
         <span class="badge ${p.type==='STR'?'b-blue':'b-amber'}">${p.type}</span>
-        ${p.type==='STR'&&p.avgRentalDays?`<span class="badge ${p.avgRentalDays<=7?'b-met':'b-no'}">Avg ${p.avgRentalDays}d ${p.avgRentalDays<=7?'✓':'⚠'}</span>`:''}
+        ${p.type==='STR'&&p.avgRentalDays?`<span class="badge ${p.avgRentalDays<=7?'b-met':'b-no'}">Avg ${p.avgRentalDays}d ${p.avgRentalDays<=7?'✓':'⚠'}${p.bookings&&p.bookings.length?' 📅':''}</span>`:''}
         ${p.otherHours>0?`<span style="font-size:11px;color:#64748B;">Others: ${p.otherHours}h/yr</span>`:''}
       </div>
     </div>
@@ -708,6 +715,7 @@ ${state.properties.map(p=>{
       <div style="font-size:26px;font-weight:900;color:#0D1F3C;margin-top:28px;">${Math.round(hrs)}<span style="font-size:13px;font-weight:400;color:#64748B;"> hrs</span></div>
       <div style="display:flex;gap:6px;">
         <button class="btn btn-sm" style="background:#F0FDFA;border:1px solid #CCFBF1;color:#0E7490;font-size:11px;" onclick="togglePropEntries('${p.id}')">📋 View Entries (${propEntries.length})</button>
+        ${p.type==='STR'?`<button class="btn btn-sm" style="background:#FEF3C7;border:1px solid #FDE68A;color:#92400E;font-size:11px;" onclick="toggleBookingLog('${p.id}')">📅 Bookings (${(p.bookings||[]).length})</button>`:''}
         <button class="btn btn-sm" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;font-size:11px;" onclick="toggleEditProp('${p.id}')">✏️ Edit</button>
         <button class="btn btn-sm btn-danger" style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="rmProp('${p.id}')">🗑 Delete</button>
       </div>
@@ -772,6 +780,42 @@ ${state.properties.map(p=>{
       <button onclick="savePropEdit('${p.id}')" style="background:#14B8A6;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Save changes</button>
       <button onclick="toggleEditProp('${p.id}')" style="background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0;padding:9px 14px;border-radius:8px;font-size:13px;cursor:pointer;">Cancel</button>
     </div>
+  </div>
+  <div id="booking-log-${p.id}" style="display:none;margin-top:14px;border-top:2px solid #FDE68A;padding-top:14px;">
+    ${p.type==='STR'?`
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+      <div>
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400E;">📅 Booking Log — ${p.name}</div>
+        <div style="font-size:11px;color:#64748B;margin-top:2px;">Each booking's nights auto-calculate your average rental period (IRS method: total nights ÷ number of bookings)</div>
+      </div>
+      ${(p.bookings||[]).length>0?`<span class="badge ${(calcAvgFromBookings(p.id)||0)<=7?'b-met':'b-no'}" style="font-size:12px;padding:5px 12px;">Calculated Avg: ${calcAvgFromBookings(p.id)||'—'}d</span>`:''}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;margin-bottom:12px;align-items:end;">
+      <div class="field" style="margin-bottom:0;"><label class="fl">Check-In</label><input type="date" id="bk-in-${p.id}" value="${todayStr()}"/></div>
+      <div class="field" style="margin-bottom:0;"><label class="fl">Check-Out</label><input type="date" id="bk-out-${p.id}" value="${todayStr()}"/></div>
+      <button onclick="addBooking('${p.id}')" style="background:#F59E0B;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;height:40px;">+ Add Booking</button>
+    </div>
+    ${(p.bookings||[]).length===0?`<div style="text-align:center;padding:16px;color:#94A3B8;font-size:13px;background:#FFFBEB;border-radius:8px;">No bookings logged yet — add your first booking above.</div>`:`
+    <div style="background:#FFFBEB;border-radius:8px;padding:2px 0;margin-bottom:8px;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr>
+          <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400E;border-bottom:1px solid #FDE68A;">Check-In</th>
+          <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400E;border-bottom:1px solid #FDE68A;">Check-Out</th>
+          <th style="padding:8px 12px;text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400E;border-bottom:1px solid #FDE68A;">Nights</th>
+          <th style="padding:8px 12px;border-bottom:1px solid #FDE68A;"></th>
+        </tr></thead>
+        <tbody>${(p.bookings||[]).sort((a,b)=>new Date(b.checkIn)-new Date(a.checkIn)).map(b=>{const n=Math.round((new Date(b.checkOut)-new Date(b.checkIn))/(1000*60*60*24));return`<tr>
+          <td style="padding:7px 12px;color:#0D1F3C;">${b.checkIn}</td>
+          <td style="padding:7px 12px;color:#0D1F3C;">${b.checkOut}</td>
+          <td style="padding:7px 12px;text-align:center;font-weight:700;color:${n<=7?'#065F46':'#92400E'};">${n}d</td>
+          <td style="padding:7px 12px;text-align:right;"><button onclick="delBooking('${p.id}','${b.id}')" style="background:#FEE2E2;border:1px solid #FECACA;color:#DC2626;font-size:11px;padding:3px 8px;border-radius:5px;cursor:pointer;">✕</button></td>
+        </tr>`;}).join('')}</tbody>
+      </table>
+    </div>
+    <div style="font-size:11px;color:#92400E;background:#FFFBEB;border:1px solid #FDE68A;border-radius:6px;padding:8px 12px;">
+      📐 IRS calculation: ${(p.bookings||[]).reduce((s,b)=>s+Math.max(0,Math.round((new Date(b.checkOut)-new Date(b.checkIn))/(1000*60*60*24))),0)} total nights ÷ ${(p.bookings||[]).length} bookings = <strong>${calcAvgFromBookings(p.id)||'—'} day average</strong> — Property ${(calcAvgFromBookings(p.id)||0)<=7?'✓ qualifies':'⚠ does not qualify'} for §469 STR exception
+    </div>`}
+    `:'<div style="color:#94A3B8;font-size:12px;">Booking log is only available for STR properties.</div>'}
   </div>
   <div id="prop-entries-${p.id}" style="display:none;margin-top:14px;border-top:1px solid #F0FDFA;padding-top:12px;">
     ${propEntries.length===0
@@ -1084,7 +1128,7 @@ function addProp(){
   const state2=document.getElementById('p-state')?.value?.trim().toUpperCase()||'';
   const zip=document.getElementById('p-zip')?.value?.trim()||'';
   const address=[street,city,state2,zip].filter(Boolean).join(', ');
-  state.properties.push({id:uid(),name:nm,address,street,city,state:state2,zip,type:tp,avgRentalDays:parseFloat(document.getElementById('p-dy')?.value)||null,otherHours:parseFloat(document.getElementById('p-ot')?.value)||0});
+  state.properties.push({id:uid(),name:nm,address,street,city,state:state2,zip,type:tp,avgRentalDays:parseFloat(document.getElementById('p-dy')?.value)||null,otherHours:parseFloat(document.getElementById('p-ot')?.value)||0,bookings:[]});
   save();showPropForm=false;renderView();
 }
 function rmProp(id){
@@ -1100,6 +1144,45 @@ function rmProp(id){
       state.entries=state.entries.map(e=>e.propertyId===id?{...e,propertyId:null}:e);
     }
   }
+  save();renderView();
+}
+
+
+// ── BOOKING LOG ──
+function calcAvgFromBookings(pid){
+  const p=state.properties.find(x=>x.id===pid);
+  if(!p||!p.bookings||!p.bookings.length)return null;
+  const total=p.bookings.reduce((s,b)=>{
+    const nights=Math.round((new Date(b.checkOut)-new Date(b.checkIn))/(1000*60*60*24));
+    return s+(nights>0?nights:0);
+  },0);
+  return total>0?Math.round((total/p.bookings.length)*10)/10:null;
+}
+function toggleBookingLog(pid){
+  const el=document.getElementById('booking-log-'+pid);
+  if(!el)return;
+  el.style.display=el.style.display==='none'?'block':'none';
+}
+function addBooking(pid){
+  const cin=document.getElementById('bk-in-'+pid)?.value;
+  const cout=document.getElementById('bk-out-'+pid)?.value;
+  if(!cin||!cout){alert('Please enter both check-in and check-out dates.');return;}
+  if(new Date(cout)<=new Date(cin)){alert('Check-out must be after check-in.');return;}
+  const p=state.properties.find(x=>x.id===pid);
+  if(!p)return;
+  if(!p.bookings)p.bookings=[];
+  p.bookings.push({id:uid(),checkIn:cin,checkOut:cout});
+  // Auto-update avgRentalDays from bookings
+  const avg=calcAvgFromBookings(pid);
+  if(avg!==null)p.avgRentalDays=avg;
+  save();renderView();
+}
+function delBooking(pid,bid){
+  const p=state.properties.find(x=>x.id===pid);
+  if(!p)return;
+  p.bookings=(p.bookings||[]).filter(b=>b.id!==bid);
+  const avg=calcAvgFromBookings(pid);
+  if(avg!==null)p.avgRentalDays=avg;
   save();renderView();
 }
 
@@ -1195,7 +1278,7 @@ function vReports(){
   return`
 <div class="ph">
   <div class="ph-row">
-    <div><div class="pg-title">Audit Report <span style='font-size:13px;font-weight:400;color:#64748B;'>/ Contemporaneous Activity Log</span></div><div class="pg-sub">IRC §469(c)(7) — Tax Year ${activeYear} — Prepared for IRS substantiation</div></div>
+    <div><div class="pg-title">Audit Report <span style='font-size:13px;font-weight:400;color:#64748B;'>/ Contemporaneous Activity Log</span></div><div class="pg-sub">IRC §469(c)(7) REPS &amp; Temp. Reg. §1.469-5T STR — Tax Year ${activeYear} — Prepared for IRS substantiation</div></div>
     <button class="btn btn-outline top-acts" onclick="window.print()">🖨 Print / Export</button>
   </div>
 </div>
