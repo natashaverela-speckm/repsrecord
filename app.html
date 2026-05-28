@@ -311,122 +311,137 @@ function vDashboard(){
   const strPs=state.properties.filter(p=>p.type==='STR');
   const ltrPs=state.properties.filter(p=>p.type==='LTR');
   const repsHrs=yearEntries().filter(e=>!e.isSpouse&&e.trackType==='REPS').reduce((s,e)=>s+(e.hours||0),0);
+  const strHrs=yearEntries().filter(e=>!e.isSpouse&&e.trackType==='STR').reduce((s,e)=>s+(e.hours||0),0);
+  const strQual=strPs.filter(p=>mpT(p.id).some(t=>t.met)).length;
+  const strTotal=strPs.length;
   const grouped=state.settings.groupingElection;
 
-  const TEST_DESC={
-    1:'You logged 500 or more hours at this property this year.',
-    2:'You are the only person who participated in managing this property.',
-    3:'You logged 100+ hours AND more hours than anyone else (cleaner, co-host, manager).',
-    4:'This property is part of activities where combined participation exceeded 500 hours.',
-    5:'You materially participated in this property in at least 5 of the prior 10 tax years.',
-    6:'You materially participated for any 3 prior years. Note: generally applies to personal service activities, not typical rentals.',
-    7:'Based on facts and circumstances, your involvement was regular, continuous, and substantial.'
-  };
+  // ── helpers ──
+  function bar(val,max,color){
+    const w=Math.min(100,(val/max)*100);
+    return '<div style="height:8px;background:#E2E8F0;border-radius:99px;overflow:hidden;margin:8px 0 4px;">' +
+      '<div style="height:100%;width:'+w+'%;background:'+color+';border-radius:99px;transition:width .4s;"></div></div>';
+  }
+  function badge(met,yes,no){
+    return '<span style="background:'+(met?'#ECFDF5':'#FEE2E2')+';color:'+(met?'#065F46':'#991B1B')+';font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;white-space:nowrap;">'+(met?yes:no)+'</span>';
+  }
+  function sectionLabel(txt){
+    return '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94A3B8;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid #F1F5F9;">'+txt+'</div>';
+  }
 
-  function repsSect(){
-    return '<div style="margin-bottom:28px;">' +
-      '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94A3B8;margin-bottom:14px;">REPS Qualification — IRC §469(c)(7)</div>' +
-      '<div style="background:' + (ok?'#ECFDF5':'#F0FDFA') + ';border:1.5px solid ' + (ok?'#6EE7B7':'#CCFBF1') + ';border-radius:14px;padding:18px 20px;margin-bottom:16px;display:flex;align-items:center;gap:14px;">' +
-        '<div style="font-size:32px;">' + (ok?'🏆':'⏳') + '</div>' +
-        '<div><div style="font-size:15px;font-weight:800;color:#0D1F3C;">' + (ok?'You qualify for Real Estate Professional Status':'Working toward REPS qualification') + '</div>' +
-        '<div style="font-size:12px;color:#64748B;margin-top:2px;">' + (ok?'Both tests met for '+activeYear+'.':'Both tests below must be met to qualify.') + '</div></div>' +
+  // ── REPS Section ──
+  const repsSection =
+    '<div style="margin-bottom:32px;">' +
+    sectionLabel('REPS Qualification — IRC §469(c)(7)') +
+
+    // Status banner
+    '<div style="background:'+(ok?'#ECFDF5':'#F0FDFA')+';border:1.5px solid '+(ok?'#6EE7B7':'#CCFBF1')+';border-radius:14px;padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;gap:14px;">' +
+      '<div style="font-size:30px;">'+(ok?'🏆':'⏳')+'</div>' +
+      '<div>' +
+        '<div style="font-size:15px;font-weight:800;color:#0D1F3C;">'+(ok?'You qualify for Real Estate Professional Status':'Not yet qualified — both tests must be met')+'</div>' +
+        '<div style="font-size:12px;color:#64748B;margin-top:2px;">'+(ok?'IRC §469(c)(7) — '+activeYear+' tax year':'Keep logging qualifying hours and verify your non-RE hours in Settings.')+'</div>' +
       '</div>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">' +
-        testCard('750-Hour Test','Spend 750+ hours in qualifying real estate activities this year.',Math.round(repsHrs),750,m750,'hrs logged','/ 750',m750?'✓ Exceeded by '+Math.round(repsHrs-750)+' hrs':Math.round(750-repsHrs)+' more hours needed') +
-        testCard('50% Services Test','Real estate hours must exceed 50% of all personal service hours.',Math.round(pct),100,m50,'% of work','need 50%+',Math.round(repsHrs)+' RE hrs of '+Math.round(tot)+' total') +
+    '</div>' +
+
+    // Two test cards
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:'+(grouped||(!ok&&state.properties.length>0)?'14px':'0')+';">' +
+
+      // 750-hour card
+      '<div class="card" style="padding:20px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">' +
+          '<div style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">750-Hour Test</div>' +
+          badge(m750,'✓ MET','IN PROGRESS') +
+        '</div>' +
+        '<div style="font-size:11px;color:#94A3B8;margin-bottom:8px;">750+ hrs in qualifying real estate activities</div>' +
+        '<div style="font-size:30px;font-weight:900;color:#0D1F3C;letter-spacing:-0.03em;">'+Math.round(repsHrs)+'<span style="font-size:13px;font-weight:400;color:#64748B;"> / 750 hrs</span></div>' +
+        bar(repsHrs,750,m750?'#10B981':'#14B8A6') +
+        '<div style="font-size:12px;font-weight:600;color:'+(m750?'#10B981':'#14B8A6')+';">'+(m750?'✓ Exceeded by '+Math.round(repsHrs-750)+' hrs':Math.round(750-repsHrs)+' hrs remaining')+'</div>' +
       '</div>' +
-      (grouped?'<div style="margin-top:12px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:10px 14px;font-size:12px;color:#1D4ED8;">📋 Grouping election filed — all LTR properties are treated as a single activity for material participation purposes.</div>':'') +
-      (!ok&&state.properties.length>0?'<div style="margin-top:12px;background:#FFF7ED;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;font-size:12px;color:#92400E;">💡 ' + (!m750?'Log '+Math.round(750-repsHrs)+' more qualifying hours. ':'') + (!m50?'Your RE hours must exceed 50% of all hours worked. Check non-RE hours in Settings.':'') + '</div>':'') +
-    '</div>';
-  }
 
-  function testCard(title,desc,val,max,met,unit,cap,note){
-    const pct2=Math.min(100,(val/max)*100);
-    const color=met?'#10B981':title.includes('750')?'#14B8A6':'#EF4444';
-    const badge=met?'✓ MET':title.includes('750')?'IN PROGRESS':'NOT MET';
-    const badgeBg=met?'#ECFDF5':title.includes('750')?'#FFF7ED':'#FEE2E2';
-    const badgeColor=met?'#065F46':title.includes('750')?'#92400E':'#991B1B';
-    return '<div class="card" style="padding:20px;">' +
-      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">' +
-        '<div><div style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">' + title + '</div>' +
-        '<div style="font-size:11px;color:#94A3B8;margin-top:3px;line-height:1.5;">' + desc + '</div></div>' +
-        '<span style="background:' + badgeBg + ';color:' + badgeColor + ';font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;white-space:nowrap;">' + badge + '</span>' +
+      // 50% card
+      '<div class="card" style="padding:20px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">' +
+          '<div style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">50% Services Test</div>' +
+          badge(m50,'✓ MET','NOT MET') +
+        '</div>' +
+        '<div style="font-size:11px;color:#94A3B8;margin-bottom:8px;">RE hours &gt; 50% of all personal service hours</div>' +
+        '<div style="font-size:30px;font-weight:900;color:#0D1F3C;letter-spacing:-0.03em;">'+Math.round(pct)+'%<span style="font-size:13px;font-weight:400;color:#64748B;"> of work hrs</span></div>' +
+        bar(pct,100,m50?'#10B981':'#EF4444') +
+        '<div style="font-size:12px;color:#64748B;">'+Math.round(repsHrs)+' RE hrs · '+Math.round(tot)+' total hrs this year</div>' +
       '</div>' +
-      '<div style="font-size:26px;font-weight:900;color:#0D1F3C;letter-spacing:-0.03em;margin-bottom:4px;">' + val + '<span style="font-size:13px;font-weight:400;color:#64748B;"> ' + unit + '</span> <span style="font-size:12px;color:#94A3B8;">' + cap + '</span></div>' +
-      '<div style="height:7px;background:#E2E8F0;border-radius:99px;overflow:hidden;margin-bottom:8px;"><div style="height:100%;width:' + pct2 + '%;background:' + color + ';border-radius:99px;transition:width .4s;"></div></div>' +
-      '<div style="font-size:12px;font-weight:600;color:' + color + ';">' + note + '</div>' +
-    '</div>';
-  }
+    '</div>' +
 
-  function ltrSect(){
-    if(!ltrPs.length||grouped) return '';
-    return '<div style="margin-bottom:28px;">' +
-      '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94A3B8;margin-bottom:10px;">LTR Properties — Per-Property Material Participation</div>' +
-      '<div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;font-size:12px;color:#92400E;margin-bottom:12px;">⚠️ No grouping election on file. Each long-term rental must independently meet material participation. Consider the §469(c)(7)(A) grouping election with your tax professional.</div>' +
-      ltrPs.map(p=>{
-        const ts=mpT(p.id),any=ts.some(t=>t.met);
-        const ph2=pH(p.id);
-        return '<div class="card card-mb" style="padding:16px 18px;">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-            '<div><div style="font-size:14px;font-weight:800;color:#0D1F3C;">' + p.name + '</div>' +
-            '<div style="font-size:11px;color:#94A3B8;margin-top:2px;">LTR · ' + Math.round(ph2.owner) + ' hrs logged</div></div>' +
-            '<span style="background:' + (any?'#ECFDF5':'#FEE2E2') + ';color:' + (any?'#065F46':'#991B1B') + ';font-size:11px;font-weight:800;padding:4px 10px;border-radius:20px;">' + (any?'✓ MP Met':'✗ No MP') + '</span>' +
-          '</div>' +
-        '</div>';
-      }).join('') +
-    '</div>';
-  }
+    // Grouping election note
+    (grouped?'<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:10px 14px;font-size:12px;color:#1D4ED8;margin-bottom:14px;">📋 <strong>Grouping election on file</strong> — all LTR properties treated as a single activity for material participation. MP is tested on your combined REPS hours.</div>':'') +
 
-  function strSect(){
-    if(!strPs.length) return '';
-    return '<div style="margin-bottom:28px;">' +
-      '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94A3B8;margin-bottom:10px;">STR Properties — Material Participation Exception (Temp. Reg. §1.469-5T)</div>' +
-      strPs.map(p=>{
-        const ph2=pH(p.id),ts2=mpT(p.id),any2=ts2.some(t=>t.met);
-        const eid='str-exp-'+p.id;
-        return '<div class="card card-mb" style="padding:0;overflow:hidden;">' +
-          '<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 18px;cursor:pointer;" onclick="toggleStrCard(\'' + p.id + '\')">' +
-            '<div><div style="font-size:14px;font-weight:800;color:#0D1F3C;">' + p.name + '</div>' +
-            '<div style="font-size:11px;color:#94A3B8;margin-top:2px;">STR · Avg ' + (p.avgRentalDays||'—') + ' day rental · ' + Math.round(ph2.owner) + ' hrs logged</div></div>' +
-            '<div style="display:flex;align-items:center;gap:10px;">' +
-              '<span style="background:' + (any2?'#ECFDF5':'#FEE2E2') + ';color:' + (any2?'#065F46':'#991B1B') + ';font-size:11px;font-weight:800;padding:4px 10px;border-radius:20px;">' + (any2?'✓ MP Met':'✗ No MP') + '</span>' +
-              '<span id="arr-' + p.id + '" style="color:#94A3B8;font-size:16px;transition:transform .2s;">▼</span>' +
-            '</div>' +
-          '</div>' +
-          '<div id="' + eid + '" style="display:none;border-top:1px solid #E2E8F0;padding:16px 18px;">' +
-            '<div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">7 Material Participation Tests — pass any one to qualify</div>' +
-            ts2.map(t=>{
-              return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:' + (t.met?'#ECFDF5':'#F8FAFC') + ';border-radius:8px;border:1px solid ' + (t.met?'#A7F3D0':'#E2E8F0') + ';margin-bottom:8px;">' +
-                '<div style="width:22px;height:22px;border-radius:50%;background:' + (t.met?'#10B981':'#E2E8F0') + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px;font-weight:800;color:' + (t.met?'#fff':'#94A3B8') + ';">' + (t.met?'✓':t.id) + '</div>' +
-                '<div style="flex:1;">' +
-                  '<div style="font-size:13px;font-weight:700;color:' + (t.met?'#065F46':'#0D1F3C') + ';">' + t.label + '</div>' +
-                  '<div style="font-size:11px;color:#64748B;margin-top:2px;line-height:1.5;">' + (TEST_DESC[t.id]||t.desc) + '</div>' +
-                  (!t.auto&&!t.met?'<label style="display:flex;align-items:center;gap:6px;margin-top:6px;cursor:pointer;font-size:11px;color:#64748B;"><input type="checkbox" onchange="togMP(\'' + p.id + '\',' + t.id + ',this.checked)"/> Mark as met (requires documentation)</label>':'') +
-                  (t.id===1&&!t.met?'<div style="font-size:11px;color:#14B8A6;margin-top:3px;">Need ' + Math.max(0,Math.ceil(500-ph2.owner)) + ' more hours</div>':'') +
-                  (t.id===3&&!t.met?'<div style="font-size:11px;color:#14B8A6;margin-top:3px;">Need 100+ hrs AND more than others (' + Math.round(Math.max(ph2.spouse||0,p.otherHours||0)) + ' hrs)</div>':'') +
-                '</div>' +
-              '</div>';
-            }).join('') +
-            (!any2?'<div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E;margin-top:4px;">💡 Passing any one of these 7 tests qualifies this property for the STR material participation exception.</div>':'') +
-          '</div>' +
-        '</div>';
-      }).join('') +
-    '</div>';
-  }
+    // Tip if not qualifying
+    (!ok&&state.properties.length>0?'<div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;font-size:12px;color:#92400E;">💡 '+(!m750?'Log '+Math.round(750-repsHrs)+' more qualifying REPS hours. ':'')+(m750&&!m50?'Your RE hours need to exceed 50% of total hours. Check non-RE hours in Settings.':'')+'</div>':'') +
+
+  '</div>';
+
+  // ── LTR Summary Section (only if no grouping election) ──
+  const ltrSection = (ltrPs.length&&!grouped) ?
+    '<div style="margin-bottom:32px;">' +
+    sectionLabel('LTR Properties — Per-Property Participation') +
+    '<div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;font-size:12px;color:#92400E;margin-bottom:14px;">⚠️ No grouping election on file. Without it, each LTR property must independently meet material participation. Visit MP Tests for details or consult your tax professional about the §469(c)(7)(A) grouping election.</div>' +
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">' +
+      '<div class="card" style="text-align:center;padding:16px 12px;">' +
+        '<div style="font-size:28px;font-weight:900;color:#0D1F3C;">'+ltrPs.length+'</div>' +
+        '<div style="font-size:12px;font-weight:600;color:#64748B;margin-top:2px;">LTR Properties</div>' +
+      '</div>' +
+      '<div class="card" style="text-align:center;padding:16px 12px;">' +
+        '<div style="font-size:28px;font-weight:900;color:#10B981;">'+ltrPs.filter(p=>mpT(p.id).some(t=>t.met)).length+'</div>' +
+        '<div style="font-size:12px;font-weight:600;color:#64748B;margin-top:2px;">MP Qualifying</div>' +
+      '</div>' +
+      '<div class="card" style="text-align:center;padding:16px 12px;">' +
+        '<div style="font-size:28px;font-weight:900;color:#14B8A6;">'+Math.round(repsHrs)+'</div>' +
+        '<div style="font-size:12px;font-weight:600;color:#64748B;margin-top:2px;">REPS Hrs Logged</div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="text-align:right;margin-top:10px;"><a href="#" onclick="go(\'mp\');return false;" style="font-size:12px;color:#14B8A6;font-weight:700;text-decoration:none;">View per-property MP tests →</a></div>' +
+  '</div>' : '';
+
+  // ── STR Summary Section ──
+  const strSection = strTotal ?
+    '<div style="margin-bottom:32px;">' +
+    sectionLabel('STR Properties — Material Participation Exception (Temp. Reg. §1.469-5T)') +
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">' +
+      '<div class="card" style="text-align:center;padding:16px 12px;">' +
+        '<div style="font-size:28px;font-weight:900;color:#38BDF8;">'+Math.round(strHrs)+'</div>' +
+        '<div style="font-size:12px;font-weight:600;color:#64748B;margin-top:2px;">Total STR Hours</div>' +
+        '<div style="font-size:11px;color:#94A3B8;margin-top:2px;">across all properties</div>' +
+      '</div>' +
+      '<div class="card" style="text-align:center;padding:16px 12px;">' +
+        '<div style="font-size:28px;font-weight:900;color:#10B981;">'+strQual+'</div>' +
+        '<div style="font-size:12px;font-weight:600;color:#64748B;margin-top:2px;">Properties Qualifying</div>' +
+        '<div style="font-size:11px;color:#94A3B8;margin-top:2px;">material participation met</div>' +
+      '</div>' +
+      '<div class="card" style="text-align:center;padding:16px 12px;">' +
+        '<div style="font-size:28px;font-weight:900;color:'+(strTotal-strQual>0?'#EF4444':'#10B981')+';">'+(strTotal-strQual)+'</div>' +
+        '<div style="font-size:12px;font-weight:600;color:#64748B;margin-top:2px;">Not Yet Qualifying</div>' +
+        '<div style="font-size:11px;color:#94A3B8;margin-top:2px;">log more hours or override</div>' +
+      '</div>' +
+    '</div>' +
+    '<div style="text-align:right;"><a href="#" onclick="go(\'mp\');return false;" style="font-size:12px;color:#14B8A6;font-weight:700;text-decoration:none;">View per-property MP tests →</a></div>' +
+  '</div>' : '';
+
+  // ── Empty state ──
+  const emptyState = !state.properties.length ?
+    '<div class="empty"><div class="empty-ic">🏠</div><div class="empty-tx">Add your first property to get started. <a href="#" onclick="go(\'properties\');return false;" style="color:#14B8A6;text-decoration:none;font-weight:600;">Add a property →</a></div></div>' : '';
 
   return '<div class="ph">' +
     '<div class="ph-row">' +
-      '<div><div class="pg-title">' + activeYear + ' Overview</div><div class="pg-sub">Your qualification status at a glance</div></div>' +
+      '<div><div class="pg-title">'+activeYear+' Dashboard</div><div class="pg-sub">Your tax year status at a glance</div></div>' +
       '<div style="display:flex;gap:8px;" class="top-acts">' +
         '<button class="btn btn-outline btn-sm" onclick="go(\'reports\')">📋 Report</button>' +
         '<button class="btn btn-teal btn-sm" onclick="go(\'log\')">+ Log Time</button>' +
       '</div>' +
     '</div>' +
   '</div>' +
-  repsSect() +
-  ltrSect() +
-  strSect() +
-  (state.properties.length===0?'<div class="empty"><div class="empty-ic">🏠</div><div class="empty-tx">Add your first property to get started. <a href="#" onclick="go(\'properties\');return false;" style="color:#14B8A6;text-decoration:none;font-weight:600;">Add a property →</a></div></div>':'');
+  repsSection +
+  ltrSection +
+  strSection +
+  emptyState;
 }
 
 
