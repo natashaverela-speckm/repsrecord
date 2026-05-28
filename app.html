@@ -308,14 +308,24 @@ function svgRing(val,max,color,bg,sz=110,sw=10){
 function vDashboard(){
   const r=calcREPS(),{rh,pct,m750,m50,ok}=r,tot=rh+(state.settings.nonREPSHours||0);
   const strPs=state.properties.filter(p=>p.type==='STR');
-  const rec=[...yearEntries()].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  const repsHrs=yearEntries().filter(e=>!e.isSpouse&&e.trackType==='REPS').reduce((s,e)=>s+(e.hours||0),0);
   const strHrs=yearEntries().filter(e=>!e.isSpouse&&e.trackType==='STR').reduce((s,e)=>s+(e.hours||0),0);
-  const repsOnlyHrs=yearEntries().filter(e=>!e.isSpouse&&e.trackType==='REPS').reduce((s,e)=>s+(e.hours||0),0);
   const dashTab=window._dashTab||'reps';
+
+  const TEST_LABELS={
+    1:{short:'500+ Hours',desc:'You logged 500 or more hours in this STR property this year.'},
+    2:{short:'Only Participant',desc:'You are the only person who participated in managing this property.'},
+    3:{short:'100+ Hrs & Most',desc:'You logged 100+ hours AND more hours than anyone else (cleaner, co-host, manager).'},
+    4:{short:'Group 500+ Hrs',desc:'This property is part of a group of activities where total participation exceeded 500 hours.'},
+    5:{short:'5 of Last 10 Yrs',desc:'You materially participated in this property in at least 5 of the prior 10 tax years.'},
+    6:{short:'3 Prior Yrs (PSA)',desc:'You materially participated for any 3 prior years. Note: generally applies to personal service activities, not typical rentals.'},
+    7:{short:'Regular & Substantial',desc:'Based on facts and circumstances, your involvement was regular, continuous, and substantial.'},
+  };
+
   return`
 <div class="ph">
   <div class="ph-row">
-    <div><div class="pg-title">${activeYear} Tax Year Overview</div><div class="pg-sub">IRC §469(c)(7) · Temp. Reg. §1.469-5T</div></div>
+    <div><div class="pg-title">${activeYear} Overview</div><div class="pg-sub">Your qualification status at a glance</div></div>
     <div style="display:flex;gap:8px;" class="top-acts">
       <button class="btn btn-outline btn-sm" onclick="go('reports')">📋 Report</button>
       <button class="btn btn-teal btn-sm" onclick="go('log')">+ Log Time</button>
@@ -323,90 +333,128 @@ function vDashboard(){
   </div>
 </div>
 
-<!-- Dashboard Tabs -->
-<div style="display:flex;gap:0;margin-bottom:20px;border-bottom:2px solid #E2E8F0;">
-  <button onclick="setDashTab('reps')" id="dtab-reps" style="padding:12px 28px;font-size:14px;font-weight:700;border:none;background:none;cursor:pointer;font-family:inherit;border-bottom:${dashTab==='reps'?'3px solid #14B8A6':'3px solid transparent'};color:${dashTab==='reps'?'#0D1F3C':'#64748B'};margin-bottom:-2px;transition:all .15s;">🏡 REPS / LTR</button>
-  <button onclick="setDashTab('str')" id="dtab-str" style="padding:12px 28px;font-size:14px;font-weight:700;border:none;background:none;cursor:pointer;font-family:inherit;border-bottom:${dashTab==='str'?'3px solid #38BDF8':'3px solid transparent'};color:${dashTab==='str'?'#0D1F3C':'#64748B'};margin-bottom:-2px;transition:all .15s;">🏖 STR</button>
+<!-- Tabs -->
+<div style="display:flex;border-bottom:2px solid #E2E8F0;margin-bottom:24px;">
+  <button onclick="setDashTab('reps')" style="padding:11px 24px;font-size:14px;font-weight:700;border:none;background:none;cursor:pointer;font-family:inherit;color:${dashTab==='reps'?'#0D1F3C':'#94A3B8'};border-bottom:${dashTab==='reps'?'3px solid #14B8A6':'3px solid transparent'};margin-bottom:-2px;">🏡 REPS Status</button>
+  <button onclick="setDashTab('str')" style="padding:11px 24px;font-size:14px;font-weight:700;border:none;background:none;cursor:pointer;font-family:inherit;color:${dashTab==='str'?'#0D1F3C':'#94A3B8'};border-bottom:${dashTab==='str'?'3px solid #38BDF8':'3px solid transparent'};margin-bottom:-2px;">🏖 STR Properties</button>
 </div>
 
 ${dashTab==='reps'?`
-<!-- REPS TAB -->
-<div class="g2">
-  <div class="card rc">
-    <div class="rw" style="width:110px;height:110px;">${svgRing(rh,750,m750?'#10B981':'#14B8A6','#CFFAFE')}
-      <div class="rctr"><div class="rn">${Math.round(rh)}</div><div class="rd">of 750 hrs</div></div></div>
-    <div style="flex:1;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><div class="rl">750-Hour Test</div><span class="badge ${m750?'b-met':'b-warn'}">${m750?'MET ✓':'IN PROGRESS'}</span></div>
-      <div class="rs">Spend 750+ hours in qualifying real property trades or businesses.</div>
-      <div style="font-size:13px;font-weight:700;color:${m750?'#10B981':'#14B8A6'};">${m750?`✓ Exceeded by ${Math.round(rh-750)} hrs`:`${Math.round(750-rh)} hrs remaining`}</div>
-    </div>
-  </div>
-  <div class="card rc">
-    <div class="rw" style="width:110px;height:110px;">${svgRing(pct,100,m50?'#10B981':'#38BDF8','#CFFAFE')}
-      <div class="rctr"><div class="rn">${Math.round(pct)}%</div><div class="rd">of all work</div></div></div>
-    <div style="flex:1;">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"><div class="rl">50% Services Test</div><span class="badge ${m50?'b-met':'b-no'}">${m50?'MET ✓':'NOT MET'}</span></div>
-      <div class="rs">More than 50% of all personal services must be in real property trades/businesses.</div>
-      <div style="font-size:12px;color:#64748B;"><strong style="color:#0D1F3C;">${Math.round(rh)} RE hrs</strong> / ${Math.round(tot)} total hrs</div>
-    </div>
-  </div>
-</div>
-<div class="banner ${ok?'bn-green':'bn-teal'}">
-  <div class="bn-ic">${ok?'🏆':'⏳'}</div>
+
+<!-- ── REPS TAB ── -->
+<!-- Status banner -->
+<div style="background:${ok?'#ECFDF5':'#F0FDFA'};border:1.5px solid ${ok?'#6EE7B7':'#CCFBF1'};border-radius:14px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;gap:16px;">
+  <div style="font-size:36px;">${ok?'🏆':'⏳'}</div>
   <div>
-    <div class="bn-title">${ok?'You qualify for Real Estate Professional Status!':'REPS qualification in progress — keep logging hours'}</div>
-    <div class="bn-sub">${ok?(state.settings.groupingElection?'Grouping election filed — all LTR activities treated as one.':'Verify material participation in each rental activity, or file a §469(c)(7)(A) grouping election.'):[!m750&&`Need ${Math.round(750-rh)} more qualifying hours.`,!m50&&'Reduce non-RE work or increase RE hours to pass the 50% test.'].filter(Boolean).join(' ')}</div>
+    <div style="font-size:16px;font-weight:800;color:#0D1F3C;">${ok?'You qualify for Real Estate Professional Status':'Working toward REPS qualification'}</div>
+    <div style="font-size:13px;color:#64748B;margin-top:3px;">${ok?'Both the 750-hour test and 50% services test are met for '+activeYear+'.':'Both tests below must be met to qualify under IRC §469(c)(7).'}</div>
   </div>
 </div>
-<div class="card card-mb">
-  <div class="sec-lbl" style="margin-bottom:10px;">Monthly hours — ${activeYear}</div>
-  <div style="display:flex;gap:16px;margin-bottom:10px;">
-    <span style="font-size:12px;color:#64748B;display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:#14B8A6;border-radius:2px;display:inline-block;"></span>REPS / LTR</span>
-    <span style="font-size:12px;color:#64748B;display:flex;align-items:center;gap:5px;"><span style="width:10px;height:10px;background:#38BDF8;border-radius:2px;display:inline-block;"></span>STR</span>
-  </div>
-  <div class="chart-wrap"><canvas id="mc" role="img" aria-label="Monthly hours chart">Monthly hours by type.</canvas></div>
-</div>
-${rec.length?`
-<div class="card">
-  <div class="sec-lbl" style="margin-bottom:10px;">Recent entries</div>
-  ${rec.map(e=>{const pr=state.properties.find(p=>p.id===e.propertyId);return`
-  <div class="ei">
-    <div class="ei-ic" style="background:${e.trackType==='STR'?'#E0F7FA':'#F0FDFA'};">${e.trackType==='STR'?'🏖':'🏡'}</div>
-    <div style="flex:1;min-width:0;">
-      <div class="ei-cat">${e.category||'Uncategorized'}<span class="tb tb-${e.trackType==='STR'?'s':'r'}">${e.trackType}</span>${e.isSpouse?'<span class="tb tb-sp">SPOUSE</span>':''}</div>
-      <div class="ei-meta">${e.date} · ${pr?.name||'General RE'} · ${fmtH(e.hours)}</div>
-      ${e.notes?`<div class="ei-note">"${e.notes}"</div>`:''}
+
+<!-- Two tests -->
+<div class="g2" style="margin-bottom:20px;">
+
+  <!-- 750 hour test -->
+  <div class="card" style="padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">750-Hour Test</div>
+        <div style="font-size:11px;color:#94A3B8;line-height:1.5;">Spend 750+ hours in qualifying<br>real estate activities this year.</div>
+      </div>
+      <span style="background:${m750?'#ECFDF5':'#FFF7ED'};color:${m750?'#065F46':'#92400E'};font-size:11px;font-weight:800;padding:4px 10px;border-radius:20px;white-space:nowrap;">${m750?'✓ MET':'IN PROGRESS'}</span>
     </div>
-  </div>`;}).join('')}
-</div>`:`<div class="empty"><div class="empty-ic">⏱</div><div class="empty-tx">No entries yet — <a href="#" onclick="go('log');return false;" style="color:#14B8A6;text-decoration:none;">log your first hours</a></div></div>`}
-`:/* STR TAB */`
-<!-- STR TAB -->
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
-  <div class="card" style="text-align:center;padding:24px 16px;">
-    <div style="font-size:42px;font-weight:900;color:#38BDF8;letter-spacing:-0.03em;">${Math.round(strHrs)}</div>
-    <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-top:4px;">Total STR Hours</div>
-    <div style="font-size:11px;color:#64748B;margin-top:2px;">across all STR properties · ${activeYear}</div>
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+        <span style="font-size:28px;font-weight:900;color:#0D1F3C;letter-spacing:-0.03em;">${Math.round(repsHrs)}<span style="font-size:14px;font-weight:400;color:#64748B;"> hrs logged</span></span>
+        <span style="font-size:14px;color:#94A3B8;align-self:flex-end;padding-bottom:4px;">/ 750</span>
+      </div>
+      <div style="height:8px;background:#E2E8F0;border-radius:99px;overflow:hidden;">
+        <div style="height:100%;width:${Math.min(100,(repsHrs/750)*100)}%;background:${m750?'#10B981':'#14B8A6'};border-radius:99px;transition:width .4s;"></div>
+      </div>
+    </div>
+    <div style="font-size:13px;font-weight:600;color:${m750?'#10B981':'#14B8A6'};">${m750?`✓ Exceeded by ${Math.round(repsHrs-750)} hrs`:`${Math.round(750-repsHrs)} more hours needed`}</div>
   </div>
-  <div class="card" style="text-align:center;padding:24px 16px;">
-    <div style="font-size:42px;font-weight:900;color:#14B8A6;letter-spacing:-0.03em;">${strPs.length}</div>
-    <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-top:4px;">STR Properties</div>
-    <div style="font-size:11px;color:#64748B;margin-top:2px;">${strPs.filter(p=>{const ts=mpT(p.id);return ts.some(t=>t.met);}).length} qualifying · ${strPs.filter(p=>{const ts=mpT(p.id);return !ts.some(t=>t.met);}).length} not yet met</div>
+
+  <!-- 50% test -->
+  <div class="card" style="padding:24px;">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">50% Services Test</div>
+        <div style="font-size:11px;color:#94A3B8;line-height:1.5;">Real estate hours must exceed<br>50% of all your work hours.</div>
+      </div>
+      <span style="background:${m50?'#ECFDF5':'#FEE2E2'};color:${m50?'#065F46':'#991B1B'};font-size:11px;font-weight:800;padding:4px 10px;border-radius:20px;white-space:nowrap;">${m50?'✓ MET':'NOT MET'}</span>
+    </div>
+    <div style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+        <span style="font-size:28px;font-weight:900;color:#0D1F3C;letter-spacing:-0.03em;">${Math.round(pct)}<span style="font-size:14px;font-weight:400;color:#64748B;">% of your work</span></span>
+        <span style="font-size:14px;color:#94A3B8;align-self:flex-end;padding-bottom:4px;">need 50%+</span>
+      </div>
+      <div style="height:8px;background:#E2E8F0;border-radius:99px;overflow:hidden;">
+        <div style="height:100%;width:${Math.min(100,pct)}%;background:${m50?'#10B981':'#EF4444'};border-radius:99px;transition:width .4s;"></div>
+      </div>
+    </div>
+    <div style="font-size:12px;color:#64748B;">${Math.round(repsHrs)} RE hrs out of ${Math.round(tot)} total work hrs this year</div>
   </div>
 </div>
-<div class="sec-lbl" style="margin-bottom:12px;">STR Properties — Material Participation Status</div>
-<div class="g-str">
-${strPs.length?strPs.map(p=>{const ph=pH(p.id),ts=mpT(p.id),any=ts.some(t=>t.met),best=ts.find(t=>t.met);return`
-<div class="str-c${any?'':' unmet'}">
-  <div class="str-top">
-    <div><div class="str-nm">${p.name}</div><div class="str-mt">Avg rental: ${p.avgRentalDays||'—'} days · STR</div></div>
-    <div style="text-align:right;"><div class="str-big">${Math.round(ph.owner)} <span>hrs</span></div><span class="badge ${any?'b-met':'b-no'}" style="margin-top:4px;display:inline-block;">${any?'✓ MP Met':'✗ No MP'}</span></div>
+
+${!ok&&state.properties.length>0?`<div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:12px;padding:14px 18px;font-size:13px;color:#92400E;line-height:1.7;">
+  💡 <strong>What to do next:</strong> ${!m750?`Log ${Math.round(750-repsHrs)} more qualifying hours to hit 750. `:''}${!m50?`Your real estate hours need to be more than 50% of all hours worked. ${state.settings.nonREPSHours>0?`You have ${state.settings.nonREPSHours} non-RE hours entered — verify this is accurate.`:'Check your non-RE hours in Settings.'}`:''}
+</div>`:''}
+
+`:`
+
+<!-- ── STR TAB ── -->
+${strPs.length===0?`
+<div style="text-align:center;padding:48px 24px;">
+  <div style="font-size:40px;margin-bottom:12px;">🏖</div>
+  <div style="font-size:16px;font-weight:700;color:#0D1F3C;margin-bottom:6px;">No STR properties yet</div>
+  <div style="font-size:13px;color:#64748B;margin-bottom:20px;">Add a Short-Term Rental property to track material participation.</div>
+  <button onclick="go('properties')" style="background:#14B8A6;color:#fff;border:none;padding:12px 28px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;">Add a Property →</button>
+</div>
+`:strPs.map(p=>{
+  const ph=pH(p.id),ts=mpT(p.id),any=ts.some(t=>t.met);
+  return`
+<div class="card card-mb" style="padding:20px 24px;">
+  <!-- Property header -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+    <div>
+      <div style="font-size:16px;font-weight:800;color:#0D1F3C;">${p.name}</div>
+      <div style="font-size:12px;color:#94A3B8;margin-top:2px;">Avg rental period: ${p.avgRentalDays||'not set'} days${p.avgRentalDays&&p.avgRentalDays<=7?' · ✓ Qualifies as non-rental activity':''}</div>
+    </div>
+    <div style="text-align:right;">
+      <div style="font-size:28px;font-weight:900;color:#0D1F3C;letter-spacing:-0.03em;">${Math.round(ph.owner)}<span style="font-size:13px;font-weight:400;color:#64748B;"> hrs</span></div>
+      <span style="background:${any?'#ECFDF5':'#FEE2E2'};color:${any?'#065F46':'#991B1B'};font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;">${any?'✓ Materially Participates':'✗ Does Not Yet Qualify'}</span>
+    </div>
   </div>
-  ${best?`<div style="font-size:11px;padding:5px 9px;background:#ECFDF5;border-radius:6px;color:#065F46;font-weight:600;">Qualifies via ${best.label}</div>`:''}
-  ${!any?`<div style="font-size:11px;padding:5px 9px;background:#FFFBEB;border-radius:6px;color:#92400E;">Need ${Math.max(0,Math.ceil(100-ph.owner))} more hrs for Test 3</div>`:''}
-  <div class="tcs">${ts.map(t=>`<span class="tc ${t.met?'tc-y':'tc-n'}">${t.name} ${t.met?'✓':''}</span>`).join('')}</div>
-  ${p.avgRentalDays&&p.avgRentalDays<=7?`<div style="font-size:10px;color:#0F766E;margin-top:8px;">✓ Avg ≤7 days — excluded from §469 passive rental rules</div>`:''}
-</div>`}).join(''):`<div style="padding:32px;background:#fff;border:.5px solid #CCFBF1;border-radius:12px;text-align:center;color:#94A3B8;font-size:13px;">No STR properties added yet. <a href="#" onclick="go('properties');return false;" style="color:#14B8A6;text-decoration:none;font-weight:600;">Add a property →</a></div>`}
-</div>`}`;
+
+  <!-- Hours bar -->
+  <div style="margin-bottom:16px;">
+    <div style="height:6px;background:#E2E8F0;border-radius:99px;overflow:hidden;">
+      <div style="height:100%;width:${Math.min(100,(ph.owner/500)*100)}%;background:${any?'#10B981':'#38BDF8'};border-radius:99px;"></div>
+    </div>
+    <div style="font-size:11px;color:#94A3B8;margin-top:4px;">500 hours = Test 1 threshold</div>
+  </div>
+
+  <!-- 7 Tests -->
+  <div style="font-size:11px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;">Material Participation Tests</div>
+  <div style="display:flex;flex-direction:column;gap:8px;">
+  ${ts.map(t=>`
+    <div style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;background:${t.met?'#ECFDF5':'#F8FAFC'};border-radius:8px;border:1px solid ${t.met?'#A7F3D0':'#E2E8F0'};">
+      <div style="width:22px;height:22px;border-radius:50%;background:${t.met?'#10B981':'#E2E8F0'};display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;font-weight:800;color:${t.met?'#fff':'#94A3B8'};">${t.met?'✓':t.id}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;color:${t.met?'#065F46':'#0D1F3C'};">${TEST_LABELS[t.id]?.short||t.label}</div>
+        <div style="font-size:11px;color:#64748B;margin-top:2px;line-height:1.5;">${TEST_LABELS[t.id]?.desc||t.desc}</div>
+        ${!t.auto&&!t.met?`<label style="display:flex;align-items:center;gap:6px;margin-top:6px;cursor:pointer;"><input type="checkbox" onchange="togMP('${p.id}',${t.id},this.checked)"/> <span style="font-size:11px;color:#64748B;">Mark as met (requires documentation)</span></label>`:''}
+        ${t.id===1&&!t.met?`<div style="font-size:11px;color:#14B8A6;margin-top:4px;">Need ${Math.max(0,Math.ceil(500-ph.owner))} more hours</div>`:''}
+        ${t.id===3&&!t.met?`<div style="font-size:11px;color:#14B8A6;margin-top:4px;">Need 100+ hrs AND more than others (${Math.round(Math.max(ph.spouse||0,p.otherHours||0))} hrs)</div>`:''}
+      </div>
+    </div>
+  `).join('')}
+  </div>
+
+  ${!any?`<div style="margin-top:14px;background:#FFF7ED;border:1px solid #FDE68A;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E;">💡 Passing <strong>any one</strong> of the 7 tests above qualifies this property. Check the tests where you're closest and log more hours.</div>`:''}
+</div>`;}).join('')}
+`}`;
 }
 
 // ── LOG TIME ──
