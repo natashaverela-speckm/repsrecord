@@ -155,6 +155,90 @@ tr:last-child td{border-bottom:none;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:#CCFBF1;border-radius:3px;}
 @keyframes remyDot{0%,60%,100%{transform:translateY(0);opacity:.4;}30%{transform:translateY(-5px);opacity:1;}}
+
+/* ─── BATCH 2: Focus-visible accessibility ─── */
+:focus{outline:none;}
+:focus-visible{outline:2px solid #0F766E;outline-offset:2px;border-radius:4px;}
+button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,[role="menuitem"]:focus-visible,[tabindex]:focus-visible{outline:2px solid #0F766E;outline-offset:2px;}
+/* Sidebar focus needs lighter color since background is dark */
+.sb :focus-visible,.sb-signout:focus-visible{outline:2px solid #38BDF8;outline-offset:2px;}
+/* Override for inputs which already have a teal focus ring via box-shadow */
+.field input:focus-visible,.field select:focus-visible,.field textarea:focus-visible{outline:none;}
+
+/* ─── BATCH 2: Improved contrast for body text ─── */
+.contrast-fix-teal{color:#0F766E;}
+
+/* ─── BATCH 2: Improved print view ─── */
+@media print{
+  @page{margin:.5in .6in;}
+  body{background:#fff;color:#000;}
+  .card,.card-mb,.banner,.bn-teal,.bn-green{break-inside:avoid;page-break-inside:avoid;border:.5px solid #999;background:#fff!important;}
+  .prop-c,.str-c,.mp-row{break-inside:avoid;page-break-inside:avoid;}
+  table{break-inside:auto;}
+  tr{break-inside:avoid;page-break-inside:avoid;}
+  thead{display:table-header-group;}
+  tfoot{display:table-footer-group;}
+  h1,h2,h3{break-after:avoid;page-break-after:avoid;}
+  .pg-title{font-size:18pt!important;}
+  .sec-lbl{font-size:10pt!important;}
+  a[href]::after{content:"";}/* don't show URLs after links */
+  .content{padding:0!important;max-width:none!important;}
+  .top-acts,#remy-launcher,#remy-panel,#remy-backdrop,#import-modal{display:none!important;}
+}
+
+/* ─── BATCH 2: Responsive — tablet (≤900px) ─── */
+@media (max-width:900px){
+  .sb{width:64px;}
+  .sb-head{padding:14px 8px 8px;}
+  .sb-logo{font-size:14px;}
+  .sb-logo span{display:none;}
+  .sb-yr,.sb-foot,.sb-signout{display:none;}
+  .ni{justify-content:center;padding:10px 6px;font-size:0;}
+  .ni-ic{font-size:18px;width:auto;}
+  .content{padding:20px 18px 36px;}
+  .g2,.g3,.g-str{grid-template-columns:1fr;}
+  .pg-title{font-size:19px;}
+}
+
+/* ─── BATCH 2: Responsive — phone (≤600px) ─── */
+@media (max-width:600px){
+  .app{flex-direction:column;height:auto;min-height:100vh;overflow:visible;}
+  .main{overflow:visible;}
+  .sb{width:100%;flex-direction:row;flex-wrap:wrap;align-items:center;padding:8px;gap:6px;flex-shrink:0;}
+  .sb-head{padding:0 6px;flex:0 0 auto;}
+  .sb-logo{font-size:15px;}
+  .sb-logo span{display:inline;}
+  .sb-yr,.sb-foot,.sb-signout{display:none;}
+  .sb-nav{display:flex;flex-wrap:nowrap;overflow-x:auto;padding:0;gap:2px;flex:1 1 100%;-webkit-overflow-scrolling:touch;}
+  .sb-nav::-webkit-scrollbar{height:3px;}
+  .ni{flex-shrink:0;padding:6px 10px;font-size:11px;border-radius:6px;margin-bottom:0;color:#7DD3FC;}
+  .ni-ic{font-size:14px;width:auto;margin-right:4px;}
+  .ni[role="separator"]{display:none;}
+  .content{padding:16px 14px 32px;max-width:100%;}
+  .ph-row{flex-direction:column;align-items:stretch;gap:10px;}
+  .top-acts{display:flex;gap:8px;}
+  .top-acts .btn{flex:1;}
+  .pg-title{font-size:18px;}
+  .pg-sub{font-size:12px;}
+  .g2,.g3,.g-str{grid-template-columns:1fr;gap:10px;}
+  .card{padding:14px;}
+  .field input,.field select,.field textarea{font-size:16px;}/* prevents iOS zoom on focus */
+  .rc{flex-direction:column;align-items:flex-start;gap:10px;}
+  .prop-c{flex-direction:column;}
+  table{font-size:12px;}
+  th,td{padding:6px 0;}
+  /* Reports: stack the rstat cards */
+  .rstat{padding:12px;}
+  .rstat-num{font-size:22px;}
+  /* Make banner stack on phone */
+  .banner{flex-wrap:wrap;}
+  .bn-ic{font-size:20px;}
+  /* Sidebar mobile-status row */
+  .sb-mobile-status{flex:1 1 100%;display:flex;gap:10px;padding:6px 8px;font-size:11px;color:#7DD3FC;border-top:.5px solid #1E3A5F;margin-top:4px;align-items:center;justify-content:space-between;}
+  .sb-mobile-status .sf-val{font-size:12px;color:#fff;}
+  /* Hide desktop-only sidebar sections on phone */
+}
+@media (min-width:601px){.sb-mobile-status{display:none;}}
 </style>
 </head>
 <body>
@@ -215,7 +299,7 @@ const REPS_CATS=['— General REPS Hours (Real Estate Professional Activity)','A
 const STR_CATS=['— Material Participation Hours (STR Active Management)','Guest Communication','Booking & Reservation Management','Check-in / Check-out','Cleaning Coordination','Maintenance & Repairs','Marketing & Listing Management','Financial & Accounting','Furnishing & Setup','Travel (STR property)','Guest Services & Concierge','Other STR Activity'];
 const NAV=[{id:'dashboard',ic:'📊',label:'Dashboard'},{id:'properties',ic:'🏠',label:'Properties'},{id:'log',ic:'⏱',label:'Log Time'},{id:'mp',ic:'✅',label:'MP Tests'},{id:'reports',ic:'📋',label:'Audit Report'},{id:'divider'},{id:'ltr',ic:'🏡',label:'REPS Rules'},{id:'str',ic:'🏖',label:'STR Rules'},{id:'settings',ic:'⚙️',label:'Settings'}];
 
-let state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:true},properties:[],entries:[],manualMP:{}};
+let state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:false,personalUseDays:0,filingStatus:'MFJ',spouseHoursPolicy:'conservative'},properties:[],entries:[],manualMP:{}};
 let activeYear=CUR_YEAR;
 let view='dashboard',chartInst=null,showPropForm=false,trackType='REPS';
 // Feature state
@@ -289,6 +373,12 @@ async function load(){
         state=cloudData;
         if(state.properties){state.properties.forEach(p=>{if(!p.bookings)p.bookings=[];});}
         if(!state.manualMP)state.manualMP={};
+        // BATCH 2: forward-compat defaults for new settings
+        if(state.settings){
+          if(state.settings.personalUseDays==null)state.settings.personalUseDays=0;
+          if(!state.settings.filingStatus)state.settings.filingStatus='MFJ';
+          if(!state.settings.spouseHoursPolicy)state.settings.spouseHoursPolicy='majority';
+        }
         localStorage.setItem(SK,JSON.stringify(state));// mirror to localStorage as offline cache
         _syncStatus='synced';updateSyncIndicator();
         return;
@@ -302,6 +392,12 @@ async function load(){
       state=JSON.parse(s);
       if(state.properties){state.properties.forEach(p=>{if(!p.bookings)p.bookings=[];});}
       if(!state.manualMP)state.manualMP={};
+      // BATCH 2: forward-compat defaults for new settings
+      if(state.settings){
+        if(state.settings.personalUseDays==null)state.settings.personalUseDays=0;
+        if(!state.settings.filingStatus)state.settings.filingStatus='MFJ';
+        if(!state.settings.spouseHoursPolicy)state.settings.spouseHoursPolicy='majority';
+      }
     }
   }catch(e){}
   // If authenticated but no cloud data yet, push local data up automatically
@@ -343,16 +439,27 @@ function pH(pid){
 // impose a >100-hour minimum and disqualifying conditions in §1.469-5T(b)(2)(ii).
 // AUDIT FIX (Pass 4): Test 1/3/7 comparison operators changed from >= to > to match
 // the regulatory text ("more than 500/100 hours").
+// BATCH 2 (Pass 4 #2): spouseHoursPolicy controls Test 3/7 spouse treatment.
+//   'majority'    — §469(h)(5) view: spouse hours add to taxpayer's; spouse is NOT
+//                    "any other individual". Other-individuals = p.otherHours only.
+//   'conservative' — spouse hours treated as a competing participant. Other-individuals
+//                    = max(spouse, otherHours). This is the default (preserves Batch-1
+//                    behavior for existing users).
 function mpT(pid){
-  const ph=pH(pid),p=state.properties.find(x=>x.id===pid)||{},mo=Math.max(ph.spouse||0,p.otherHours||0),mn=(state.manualMP||{})[pid]||{};
+  const ph=pH(pid),p=state.properties.find(x=>x.id===pid)||{},mn=(state.manualMP||{})[pid]||{};
+  const policy=(state.settings&&state.settings.spouseHoursPolicy)||'conservative';
+  // Effective hours of the taxpayer under each policy
+  const ownerEff=policy==='majority'?(ph.owner+(ph.spouse||0)):ph.owner;
+  // Effective "other individuals" hours for comparison
+  const mo=policy==='majority'?(p.otherHours||0):Math.max(ph.spouse||0,p.otherHours||0);
   return[
-    {id:1,name:'Test 1',label:'500 Hours',cite:'§1.469-5T(a)(1)',desc:'More than 500 hours in this activity during the year.',auto:true,met:ph.owner>TAX.MP_TEST1_HOURS},
+    {id:1,name:'Test 1',label:'500 Hours',cite:'§1.469-5T(a)(1)',desc:'More than 500 hours in this activity during the year.',auto:true,met:ownerEff>TAX.MP_TEST1_HOURS},
     {id:2,name:'Test 2',label:'Substantially All',cite:'§1.469-5T(a)(2)',desc:'Substantially all participation in the activity was yours. "Substantially all" is not quantified in the regulation; practitioners commonly use a 95%+ safe harbor (others combined < 5%).',auto:false,met:!!mn[2]},
-    {id:3,name:'Test 3',label:'100 Hrs + Most',cite:'§1.469-5T(a)(3)',desc:'More than 100 hours AND not less than any other individual\u2019s participation in the activity (including paid staff).',auto:true,met:ph.owner>TAX.MP_TEST3_HOURS&&ph.owner>mo},
+    {id:3,name:'Test 3',label:'100 Hrs + Most',cite:'§1.469-5T(a)(3)',desc:'More than 100 hours AND not less than any other individual\u2019s participation in the activity (including paid staff).',auto:true,met:ownerEff>TAX.MP_TEST3_HOURS&&ownerEff>mo},
     {id:4,name:'Test 4',label:'SPA Aggregate',cite:'§1.469-5T(a)(4)',desc:'Activity is a Significant Participation Activity (>100 hrs in a trade or business in which you do not otherwise materially participate) and all your SPAs aggregate to more than 500 hours for the year. SPAs are non-rental trade-or-business activities only; LTR rental activities cannot generate SPAs.',auto:false,met:!!mn[4]},
     {id:5,name:'Test 5',label:'5 of Last 10 Yrs',cite:'§1.469-5T(a)(5)',desc:'Materially participated in this activity in any 5 of the last 10 taxable years.',auto:false,met:!!mn[5]},
     {id:6,name:'Test 6',label:'3 Prior Yrs (Personal Service Activity)',cite:'§1.469-5T(a)(6)',desc:'Materially participated 3 prior years when the activity was a personal service activity. Does not apply to most STRs — STR properties are almost never personal service activities (medical, law, engineering, etc.).',auto:false,met:!!mn[6]},
-    {id:7,name:'Test 7',label:'Facts & Circumstances',cite:'§1.469-5T(a)(7)',desc:'Participate on a regular, continuous, and substantial basis. Requires more than 100 hours of participation (§1.469-5T(b)(2)(iii)). Does NOT apply if any other person is compensated for managing the activity, or if any other individual performs more management hours than you (§1.469-5T(b)(2)(ii)). Document frequency, duration, and nature of involvement.',auto:true,met:ph.owner>TAX.MP_TEST7_MIN&&ph.owner>mo},
+    {id:7,name:'Test 7',label:'Facts & Circumstances',cite:'§1.469-5T(a)(7)',desc:'Participate on a regular, continuous, and substantial basis. Requires more than 100 hours of participation (§1.469-5T(b)(2)(iii)). Does NOT apply if any other person is compensated for managing the activity, or if any other individual performs more management hours than you (§1.469-5T(b)(2)(ii)). Document frequency, duration, and nature of involvement.',auto:true,met:ownerEff>TAX.MP_TEST7_MIN&&ownerEff>mo},
   ];
 }
 
@@ -430,7 +537,7 @@ function vDashboard(){
       '</div>'+
     '</div>':'';
 
-  const pageHeader='<div class="ph"><div class="ph-row"><div><div class="pg-title">'+activeYear+' Dashboard</div><div class="pg-sub">Your tax year status at a glance</div></div><div style="display:flex;gap:8px;" class="top-acts"><button class="btn btn-outline btn-sm" onclick="go(\'reports\')">📋 Audit Report</button><button class="btn btn-teal btn-sm" onclick="go(\'log\')">+ Log Time</button></div></div></div>';
+  const pageHeader='<div class="ph"><div class="ph-row"><div><h1 class="pg-title">'+activeYear+' Dashboard</h1><div class="pg-sub">Your tax year status at a glance</div></div><div style="display:flex;gap:8px;" class="top-acts"><button class="btn btn-outline btn-sm" onclick="go(\'reports\')">📋 Audit Report</button><button class="btn btn-teal btn-sm" onclick="go(\'log\')">+ Log Time</button></div></div></div>';
 
   // ── No properties: clean onboarding ──
   if(hasNeither){
@@ -464,7 +571,7 @@ function vDashboard(){
       '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;padding-top:14px;border-top:.5px solid #F0FDFA;">'+
         '<div style="text-align:center;"><div style="font-size:22px;font-weight:900;color:#0D1F3C;">'+ltrPs.length+'</div><div style="font-size:11px;color:#64748B;margin-top:2px;">LTR Properties</div></div>'+
         '<div style="text-align:center;"><div style="font-size:22px;font-weight:900;color:'+( ltrMpMet===ltrPs.length?'#10B981':'#F59E0B')+';">'+ltrMpMet+' / '+ltrPs.length+'</div><div style="font-size:11px;color:#64748B;margin-top:2px;">With MP Met</div><div style="font-size:10px;color:#94A3B8;margin-top:1px;">per-property test</div></div>'+
-        '<div style="text-align:center;"><a href="#" onclick="go(\'mp\');return false;" style="font-size:11px;color:#14B8A6;font-weight:700;text-decoration:none;display:block;margin-top:4px;">MP Tests →</a><div style="font-size:10px;color:#94A3B8;margin-top:2px;">view detail</div></div>'+
+        '<div style="text-align:center;"><a href="#" onclick="go(\'mp\');return false;" style="font-size:11px;color:#0F766E;font-weight:700;text-decoration:none;display:block;margin-top:4px;">MP Tests →</a><div style="font-size:10px;color:#94A3B8;margin-top:2px;">view detail</div></div>'+
       '</div>':
       (grouped?'<div style="margin-top:12px;font-size:12px;color:#1D4ED8;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:8px 12px;">📋 <strong>Grouping election on file</strong> — all LTR properties combined for MP testing.</div>':'');
 
@@ -491,8 +598,31 @@ function vDashboard(){
           '<div style="font-size:11px;color:#94A3B8;margin-bottom:8px;">Must exceed 750 hrs in qualifying real estate activities</div>'+
           '<div style="font-size:30px;font-weight:900;color:#0D1F3C;letter-spacing:-0.03em;">'+Math.round(repsHrs)+'<span style="font-size:13px;font-weight:400;color:#64748B;"> / &gt;750 hrs</span></div>'+
           bar(repsHrs,750,m750?'#10B981':'#14B8A6')+
-          '<div style="font-size:12px;font-weight:600;color:'+(m750?'#10B981':'#14B8A6')+';">'+(m750?'✓ Exceeded requirement by '+Math.round(repsHrs-750)+' hrs':Math.max(0,Math.ceil(750-repsHrs+0.01))+' hrs remaining to qualify')+'</div>'+
-          (()=>{const now=new Date();const sy=new Date(activeYear,0,1);const ey=new Date(activeYear,11,31);const de=Math.max(1,Math.round((now-sy)/(864e5)));const dy=Math.round((ey-sy)/(864e5))+1;const rate=repsHrs/de;const proj=Math.round(rate*dy);const onP=proj>750;return repsHrs>0&&!m750?`<div style="font-size:11px;color:${onP?'#0E7490':'#92400E'};margin-top:6px;padding:6px 10px;background:${onP?'#CFFAFE':'#FEF3C7'};border-radius:6px;">📈 At current pace: <strong>${proj} hrs</strong> projected by Dec 31 — ${onP?'✓ on track':'⚠ not on pace'}</div>`:'';})() +
+          '<div style="font-size:12px;font-weight:600;color:'+(m750?'#10B981':'#0F766E')+';">'+(m750?'✓ Exceeded requirement by '+Math.round(repsHrs-750)+' hrs':Math.max(0,Math.ceil(750-repsHrs+0.01))+' hrs remaining to qualify')+'</div>'+
+          (()=>{
+            // BATCH 2 (Pass 4 #14): Anchor pace on first-logged-entry date (or 30 days ago, whichever is later),
+            // not Jan 1. A user who started tracking on May 28 shouldn't be measured against a Jan-1 baseline.
+            const now=new Date();
+            const yearStart=new Date(activeYear,0,1);
+            const yearEnd=new Date(activeYear,11,31);
+            // Find earliest entry in active year for REPS-counting entries
+            const inc=state.settings.includeSTRinREPS!==false;
+            const yEntries=yearEntries().filter(e=>!e.isSpouse&&(e.trackType==='REPS'||e.trackType==='LTR'||(inc&&e.trackType==='STR')));
+            let earliest=null;
+            yEntries.forEach(e=>{const d=new Date(e.date);if(!earliest||d<earliest)earliest=d;});
+            // Anchor: the LATER of (earliest entry date) and (year start). Floor of 30 days back if too recent.
+            let anchor=earliest||yearStart;
+            if(anchor<yearStart)anchor=yearStart;
+            const thirtyDaysAgo=new Date(now.getTime()-30*864e5);
+            // If user only started tracking recently, use a 30-day window minimum to avoid wildly over-projecting from a single big entry
+            if(anchor>thirtyDaysAgo)anchor=thirtyDaysAgo<yearStart?yearStart:thirtyDaysAgo;
+            const daysElapsed=Math.max(1,Math.round((now-anchor)/(864e5)));
+            const daysRemaining=Math.max(0,Math.round((yearEnd-now)/(864e5)));
+            const rate=repsHrs/daysElapsed;
+            const proj=Math.round(repsHrs+rate*daysRemaining);
+            const onP=proj>750;
+            return repsHrs>0&&!m750?`<div style="font-size:11px;color:${onP?'#0E7490':'#92400E'};margin-top:6px;padding:6px 10px;background:${onP?'#CFFAFE':'#FEF3C7'};border-radius:6px;">📈 At current pace: <strong>${proj} hrs</strong> projected by Dec 31 — ${onP?'✓ on track':'⚠ not on pace'}</div>`:'';
+          })() +
           ltrInlineRow+
         '</div>'+
         // 50% card
@@ -512,6 +642,14 @@ function vDashboard(){
         '</div>'+
       '</div>'+
       (!ok&&state.properties.length>0?'<div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;font-size:12px;color:#92400E;margin-top:14px;">💡 '+(!m750?'Log '+Math.max(0,Math.ceil(750-repsHrs+0.01))+' more qualifying hours to exceed the 750-hr threshold. ':'')+(m750&&!m50?'Your RE hours need to exceed 50% of all hours. Add your non-RE hours in Settings.':'')+'</div>':'')+
+      // BATCH 2 (Pass 4 #11): Per-property MP gating — REPS qualification requires per-property
+      // material participation OR a §469(c)(7)(A) grouping election. Surface a banner if both
+      // REPS tests pass but per-property MP doesn't on some LTR.
+      ((ok&&hasLTR&&!grouped)?(function(){
+        const ltrUnmet=ltrPs.filter(lp=>!mpT(lp.id).some(t=>t.met));
+        if(ltrUnmet.length===0)return'';
+        return'<div style="background:#FEF3C7;border:1.5px solid #FCD34D;border-radius:10px;padding:12px 14px;font-size:12px;color:#92400E;line-height:1.6;margin-top:14px;">⚠ <strong>Per-property MP not verified for '+ltrUnmet.length+' of '+ltrPs.length+' LTR'+(ltrPs.length>1?' properties':' property')+'.</strong> REPS qualification alone does not make rental losses non-passive — you must also materially participate in each rental activity (or file a §469(c)(7)(A) grouping election). <a href="#" onclick="go(\'mp\');return false;" style="color:#92400E;font-weight:700;text-decoration:underline;">Review MP tests →</a></div>';
+      })():'')+
     '</div>';
   } else {
     // STR-only: compact REPS callout
@@ -551,7 +689,7 @@ function vDashboard(){
       '<div class="card" style="text-align:center;padding:16px 12px;"><div style="font-size:28px;font-weight:900;color:#10B981;">'+strQual+' / '+strTotal+'</div><div style="font-size:12px;font-weight:600;color:#64748B;margin-top:2px;">Properties Qualifying</div></div>'+
       '<div class="card" style="text-align:center;padding:16px 12px;"><div style="font-size:28px;font-weight:900;color:'+(strTotal-strQual>0?'#EF4444':'#10B981')+';">'+(strTotal-strQual)+'</div><div style="font-size:12px;font-weight:600;color:#64748B;margin-top:2px;">Not Yet Qualifying</div></div>'+
     '</div>'+
-    '<div style="text-align:right;"><a href="#" onclick="go(\'mp\');return false;" style="font-size:12px;color:#14B8A6;font-weight:700;text-decoration:none;">View per-property MP tests →</a></div>'+
+    '<div style="text-align:right;"><a href="#" onclick="go(\'mp\');return false;" style="font-size:12px;color:#0F766E;font-weight:700;text-decoration:none;">View per-property MP tests →</a></div>'+
   '</div>':'';
 
   // ── Chart section ──
@@ -587,7 +725,7 @@ function vLog(){
   const all=[...yearEntries()].sort((a,b)=>new Date(b.date)-new Date(a.date));
   return`
 <div class="ph" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
-  <div><div class="pg-title">Log Time</div><div class="pg-sub">Record qualifying hours for REPS (IRC §469(c)(7)) and STR material participation (Temp. Reg. §1.469-5T)</div></div>
+  <div><h1 class="pg-title">Log Time</h1><div class="pg-sub">Record qualifying hours for REPS (IRC §469(c)(7)) and STR material participation (Temp. Reg. §1.469-5T)</div></div>
   <button onclick="showImportModal()" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;font-size:13px;font-weight:700;padding:10px 18px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:inherit;">📊 Import from Excel</button>
 </div>
 
@@ -699,7 +837,7 @@ ${(()=>{
   if(logFilter.propId)filtered=filtered.filter(e=>e.propertyId===logFilter.propId);
   if(logFilter.search){const q=logFilter.search.toLowerCase();filtered=filtered.filter(e=>(e.notes||'').toLowerCase().includes(q)||(e.category||'').toLowerCase().includes(q));}
   if(!filtered.length)return`<div style="text-align:center;padding:32px;color:#94A3B8;font-size:13px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;">No entries match your filter — <a href="#" onclick="logFilter={type:'all',propId:'',search:''};renderView();return false;" style="color:#14B8A6;font-weight:600;">clear filters</a></div>`;
-  return`<div class="sec-lbl" style="margin-bottom:8px;">Entries (${filtered.length}${filtered.length<all.length?' of '+all.length:''})<label style="float:right;font-size:10px;font-weight:700;color:#64748B;cursor:pointer;display:flex;align-items:center;gap:5px;"><input type="checkbox" class="entry-cb" onchange="selectAllEntries(this.checked)" style="accent-color:#14B8A6;"/> Select all</label></div>
+  return`<h2 class="sec-lbl" style="margin-bottom:8px;">Entries (${filtered.length}${filtered.length<all.length?' of '+all.length:''})<label style="float:right;font-size:10px;font-weight:700;color:#64748B;cursor:pointer;display:flex;align-items:center;gap:5px;"><input type="checkbox" class="entry-cb" onchange="selectAllEntries(this.checked)" style="accent-color:#14B8A6;"/> Select all</label></h2>
 <div class="card">
 ${filtered.map(e=>{const pr=state.properties.find(p=>p.id===e.propertyId);const cats=e.trackType==='STR'?STR_CATS:REPS_CATS;const isSel=selEntries.has(e.id);return`
 <div class="ei" style="flex-wrap:wrap;${isSel?'background:#F0FDFA;border-radius:8px;':''}">
@@ -906,13 +1044,13 @@ function vProps(){
   return`
 <div class="ph">
   <div class="ph-row">
-    <div><div class="pg-title">Properties</div><div class="pg-sub">LTR properties count toward your REPS 750-hr total. STRs are evaluated for all 7 material participation tests.</div></div>
+    <div><h1 class="pg-title">Properties</h1><div class="pg-sub">LTR properties count toward your REPS 750-hr total. STRs are evaluated for all 7 material participation tests.</div></div>
     <button class="btn btn-teal" onclick="togglePF()">+ Add Property</button>
   </div>
 </div>
 ${showPropForm?`
 <div class="card card-mb" style="border-color:#14B8A6;">
-  <div class="sec-lbl" style="margin-bottom:12px;">New Property</div>
+  <h2 class="sec-lbl" style="margin-bottom:12px;">New Property</h2>
   <div class="g2">
     <div class="field"><label class="fl">Nickname / Name</label><input id="p-nm" placeholder="e.g. Kissimmee STR, Blue Ridge Cabin"/></div>
     <div class="field"><label class="fl">Type</label><select id="p-tp" onchange="togglePropType()"><option value="STR">STR — Short-Term Rental</option><option value="LTR">LTR — Long-Term Rental</option></select></div>
@@ -1074,7 +1212,7 @@ ${state.properties.map(p=>{
       <div style="flex:1;min-width:0;">
         <div style="font-size:12px;font-weight:700;color:#0D1F3C;">${esc(e.category)}<span style="font-size:10px;font-weight:400;color:#64748B;margin-left:6px;">${e.date} · ${fmtH(e.hours)}</span></div>
         ${e.notes?`<div style="font-size:12px;color:#64748B;margin-top:2px;font-style:italic;">"${esc(e.notes)}"</div>`:''}
-        ${e.attachments&&e.attachments.length?`<div style="font-size:11px;color:#14B8A6;margin-top:2px;">📎 ${e.attachments.length} attachment${e.attachments.length>1?'s':''}</div>`:''}
+        ${e.attachments&&e.attachments.length?`<div style="font-size:11px;color:#0F766E;margin-top:2px;">📎 ${e.attachments.length} attachment${e.attachments.length>1?'s':''}</div>`:''}
       </div>
       <div style="display:flex;gap:5px;flex-shrink:0;">
         <button onclick="showEditEntry('${e.id}')" style="background:#F0FDFA;border:1px solid #CCFBF1;color:#0E7490;font-size:11px;padding:4px 8px;border-radius:6px;cursor:pointer;">✏️ Edit</button>
@@ -1305,26 +1443,40 @@ async function handleImportFile(input){
     }).filter(r => r.date && r.hours && r.property);
 
     // Match properties
-    let matched=0, unmatched=[], entries=[];
+    let matched=0, unmatched=[], entries=[], skipped=0;
+    // BATCH 2: validate date format (YYYY-MM-DD), clamp hours, cap notes length, restrict type/category
+    const dateRe=/^\d{4}-\d{2}-\d{2}$/;
     normalized.forEach(r => {
       const prop = state.properties.find(p => p.name.toLowerCase() === r.property.toLowerCase());
       const hrs = parseFloat(r.hours)||0;
       const mins = parseFloat(r.minutes||0);
-      const total = Math.round((hrs + mins/60)*100)/100;
+      let total = (hrs + mins/60);
+      if(!isFinite(total)||total<=0){skipped++;return;}
+      total = Math.min(24, Math.max(0, total));// clamp to 0-24
+      total = Math.round(total*100)/100;
       const tt = (r.type||'REPS').toUpperCase() === 'STR' ? 'STR' : 'REPS';
       const cats = tt==='STR' ? STR_CATS : REPS_CATS;
       const cat = cats.find(c=>c.toLowerCase()===( r.category||'').toLowerCase()) || cats[0];
       if(!prop){ unmatched.push(r.property); return; }
-      if(total <= 0) return;
+      // Date validation: must be YYYY-MM-DD; tolerate Excel date-as-string but reject garbage
+      let dateStr = r.date;
+      if(!dateRe.test(dateStr)){
+        // Try to parse common alternate formats (M/D/YYYY, YYYY/MM/DD)
+        const d=new Date(dateStr);
+        if(isNaN(d.getTime())){skipped++;return;}
+        dateStr=d.toISOString().slice(0,10);
+      }
+      // Cap notes length to prevent denial-of-service via huge text
+      const notes=(r.notes||'').slice(0, 2000);
       entries.push({
         id: uid(),
-        date: r.date,
+        date: dateStr,
         propertyId: prop.id,
         trackType: tt,
         type: tt,
         category: cat,
         hours: total,
-        notes: r.notes||'',
+        notes: notes,
         isSpouse: false,
         attachments: []
       });
@@ -1336,7 +1488,10 @@ async function handleImportFile(input){
     let html = `<div style="background:#F0FDFA;border-radius:8px;padding:14px;font-size:13px;color:#0E7490;">
       ✅ <strong>${matched} entries</strong> ready to import`;
     if(unmatchedUniq.length){
-      html += `<br><span style="color:#B45309;">⚠️ ${unmatched.length} rows skipped — property not found: <strong>${unmatchedUniq.join(', ')}</strong></span>`;
+      html += `<br><span style="color:#B45309;">⚠️ ${unmatched.length} rows skipped — property not found: <strong>${esc(unmatchedUniq.join(', '))}</strong></span>`;
+    }
+    if(skipped>0){
+      html += `<br><span style="color:#B45309;">⚠️ ${skipped} rows skipped — invalid date or hours.</span>`;
     }
     html += '</div>';
     status.innerHTML = html;
@@ -1345,7 +1500,7 @@ async function handleImportFile(input){
     if(btn) btn.style.display = matched > 0 ? 'inline-block' : 'none';
 
   } catch(err){
-    status.innerHTML = `<div style="background:#FEE2E2;border-radius:8px;padding:12px;font-size:13px;color:#991B1B;">❌ Error reading file: ${err.message}</div>`;
+    status.innerHTML = `<div style="background:#FEE2E2;border-radius:8px;padding:12px;font-size:13px;color:#991B1B;">❌ Error reading file: ${esc(err.message||'unknown error')}</div>`;
   }
 }
 
@@ -1454,7 +1609,7 @@ function vMP(){
   const sps=state.properties.filter(p=>p.type==='STR');
   const ltrs=state.properties.filter(p=>p.type==='LTR');
   return`
-<div class="ph"><div class="pg-title">Material Participation Tests</div><div class="pg-sub">All 7 tests under Temp. Reg. §1.469-5T evaluated per STR property. Passing any one test qualifies you.</div></div>
+<div class="ph"><h1 class="pg-title">Material Participation Tests</h1><div class="pg-sub">All 7 tests under Temp. Reg. §1.469-5T evaluated per STR property. Passing any one test qualifies you.</div></div>
 
 <div style="background:#F0FDFA;border:1px solid #CCFBF1;border-left:4px solid #14B8A6;border-radius:12px;padding:20px 22px;margin-bottom:20px;">
   <div style="font-size:13px;font-weight:800;color:#0D1F3C;margin-bottom:10px;">📊 How this page works</div>
@@ -1481,7 +1636,7 @@ function vMP(){
 </div>
 
 ${sps.length>0?`
-<div class="sec-lbl" style="margin-bottom:12px;">🏖 Short-Term Rental Properties — Material Participation Tests</div>
+<h2 class="sec-lbl" style="margin-bottom:12px;">🏖 Short-Term Rental Properties — Material Participation Tests</h2>
 ${sps.map(p=>{
   const ph=pH(p.id),ts=mpT(p.id),any=ts.some(t=>t.met);
   return`<div class="card card-mb">
@@ -1503,14 +1658,14 @@ ${sps.map(p=>{
         </div>
         <div class="mp-desc">${t.desc}</div>
         ${!t.auto?`<label class="mp-man"><input type="checkbox" ${t.met?'checked':''} onchange="togMP('${p.id}',${t.id},this.checked)"/><span>Mark as met for ${activeYear} — requires supporting documentation</span></label>`:''}
-        ${t.auto&&!t.met&&t.id===3?`<div style="font-size:11px;color:#14B8A6;margin-top:6px;">Need ${Math.max(0,100-Math.round(ph.owner))} more hours & must exceed all other participants (${Math.round(Math.max(ph.spouse||0,p.otherHours||0))} hrs)</div>`:''}
-        ${t.auto&&!t.met&&t.id===1?`<div style="font-size:11px;color:#14B8A6;margin-top:6px;">Need ${Math.max(0,500-Math.round(ph.owner))} more hours for this property</div>`:''}
+        ${t.auto&&!t.met&&t.id===3?`<div style="font-size:11px;color:#0F766E;margin-top:6px;">Need ${Math.max(0,Math.ceil(100-(state.settings.spouseHoursPolicy==='majority'?(ph.owner+(ph.spouse||0)):ph.owner)+0.01))} more hours${state.settings.spouseHoursPolicy==='majority'?'':' & must exceed all other participants ('+Math.round(Math.max(ph.spouse||0,p.otherHours||0))+' hrs)'}</div>`:''}
+        ${t.auto&&!t.met&&t.id===1?`<div style="font-size:11px;color:#0F766E;margin-top:6px;">Need ${Math.max(0,Math.ceil(500-(state.settings.spouseHoursPolicy==='majority'?(ph.owner+(ph.spouse||0)):ph.owner)+0.01))} more hours for this property</div>`:''}
       </div>
     </div>`).join('')}
   </div>`;}).join('')}`:''}
 
 ${ltrs.length>0?`
-<div class="sec-lbl" style="margin-bottom:12px;margin-top:24px;">🏡 Long-Term Rental Properties — REPS Portfolio Tracking</div>
+<h2 class="sec-lbl" style="margin-bottom:12px;margin-top:24px;">🏡 Long-Term Rental Properties — REPS Portfolio Tracking</h2>
 <div style="background:#EFF6FF;border:1px solid #BFDBFE;border-left:4px solid #38BDF8;border-radius:12px;padding:16px 20px;margin-bottom:16px;font-size:13px;color:#1D4ED8;">
   ℹ️ Long-term rental properties do not use per-property MP tests. Instead, your hours across all LTR properties are pooled toward your <strong>750-hour REPS qualification</strong> and the <strong>50% personal services test</strong>. Track your progress on the Dashboard.
 </div>
@@ -1544,7 +1699,7 @@ function vReports(){
   return`
 <div class="ph">
   <div class="ph-row">
-    <div><div class="pg-title">Audit Report <span style='font-size:13px;font-weight:400;color:#64748B;'>/ Contemporaneous Activity Log</span></div><div class="pg-sub">IRC §469(c)(7) REPS &amp; Temp. Reg. §1.469-5T STR — Tax Year ${activeYear} — Prepared for IRS substantiation</div></div>
+    <div><h1 class="pg-title">Audit Report <span style='font-size:13px;font-weight:400;color:#64748B;'>/ Contemporaneous Activity Log</span></h1><div class="pg-sub">IRC §469(c)(7) REPS &amp; Temp. Reg. §1.469-5T STR — Tax Year ${activeYear} — Prepared for IRS substantiation</div></div>
     <div class="top-acts" style="display:flex;gap:8px;">
       <button class="btn btn-outline btn-sm" onclick="window.print()">🖨 Print</button>
       <button class="btn btn-teal btn-sm" onclick="exportXLSX()">📥 Export to Excel</button>
@@ -1602,7 +1757,7 @@ ${sps.length?`
 function vSettings(){
   const s=state.settings;
   return`
-<div class="ph"><div class="pg-title">Settings</div><div class="pg-sub">Configure your tax situation for accurate qualification tracking.</div></div>
+<div class="ph"><h1 class="pg-title">Settings</h1><div class="pg-sub">Configure your tax situation for accurate qualification tracking.</div></div>
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">50% Personal Services Test — IRC §469(c)(7)(B)(ii)</div>
   <div style="font-size:12px;color:#64748B;margin-bottom:14px;line-height:1.6;">Enter your total hours in non-real-estate activities this year (W-2, other businesses). Used to calculate whether RE hours exceed 50% of ALL personal services.</div>
@@ -1622,7 +1777,19 @@ function vSettings(){
     <span style="color:#B45309;font-weight:600;">Do not rely on spouse hours to help you qualify for REPS qualification itself.</span>
   </div>
   <label class="tog-row"><input type="checkbox" ${s.spouseEnabled?'checked':''} onchange="setSetting('spouseEnabled',this.checked);renderView()"/><span class="tog-lbl">Enable spouse hour tracking</span></label>
-  ${s.spouseEnabled?`<div class="field"><label class="fl">Spouse Name</label><input value="${s.spouseName||''}" placeholder="First name or initials" onchange="setSetting('spouseName',this.value)"/></div>`:''}
+  ${s.spouseEnabled?`<div class="field"><label class="fl">Spouse Name</label><input value="${esc(s.spouseName||'')}" placeholder="First name or initials" onchange="setSetting('spouseName',this.value)"/></div>`:''}
+  ${s.spouseEnabled?`
+  <div class="field">
+    <label class="fl">Tests 3 &amp; 7 — Spouse Hours Treatment</label>
+    <select onchange="setSetting('spouseHoursPolicy',this.value);renderView();updateSB();">
+      <option value="conservative" ${(s.spouseHoursPolicy||'conservative')==='conservative'?'selected':''}>Conservative — spouse treated as a competing participant (defensive)</option>
+      <option value="majority" ${s.spouseHoursPolicy==='majority'?'selected':''}>Majority view — spouse hours combine with yours per §469(h)(5) (regulatory position)</option>
+    </select>
+    <div class="hint">
+      <strong>Conservative</strong>: spouse hours are compared against you for the "more than any other individual" requirement in Tests 3 &amp; 7. This is the most defensive position and what RepsRecord currently calculates by default.<br>
+      <strong>Majority view</strong>: per IRC §469(h)(5) and §1.469-5T(f)(3), spouse participation is "taken into account" — spouse hours are added to yours and the spouse is not treated as a separate individual. This is the dominant practitioner reading but should be confirmed with your CPA before relying on it.
+    </div>
+  </div>`:''}
 </div>
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">§469(c)(7)(A) Grouping Election</div>
@@ -1633,6 +1800,9 @@ function vSettings(){
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">Count STR Hours Toward REPS 750-Hr Test</div>
   <div style="font-size:12px;color:#64748B;margin-bottom:12px;line-height:1.6;">STR hours count toward the 750-hr test only if you materially participate in each STR property as a trade or business (not merely as passive owner). Consult your tax advisor for your specific situation.</div>
+  <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:11px 14px;margin-bottom:12px;font-size:12px;color:#991B1B;line-height:1.7;">
+    ⚠ <strong>Important — adverse case law:</strong> The Tax Court has held in <em>Bailey v. Comm'r</em>, T.C. Memo 2001-296 and <em>Bailey v. Comm'r</em>, T.C. Summary 2011-22 that hours spent on short-term rentals (≤7-day average rental period) do <strong>not</strong> count toward the §469(c)(7)(B)(ii) 750-hour REPS test, because STRs are not "rental" activities under §469. Under that reading, this toggle should be <strong>off</strong>. Some practitioners take the contrary view that STR hours qualify as services in a real property trade or business under §469(c)(7)(C). Discuss with your CPA before relying on this setting.
+  </div>
   <label class="tog-row"><input type="checkbox" ${s.includeSTRinREPS!==false?'checked':''} onchange="setSetting('includeSTRinREPS',this.checked)"/><span class="tog-lbl">Include STR hours in REPS 750-hr total</span></label>
 </div>
 <div class="card card-mb">
@@ -1641,6 +1811,18 @@ function vSettings(){
   <div style="background:#F0FDFA;border:.5px solid #CCFBF1;border-radius:8px;padding:12px 14px;font-size:12px;color:#0F766E;line-height:1.7;">
     <strong>What this means for you:</strong> If your rental properties generated passive losses in years when you were not REPS-qualified, those losses are suspended under IRC §469(b). Qualifying as a REPS taxpayer in a <em>later</em> year does not automatically free prior-year suspended PALs — they remain suspended until the activity is disposed of or other triggering events occur. Your tax professional should review your carryforward schedule when you first qualify.
   </div>
+</div>
+<div class="card card-mb">
+  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">Net Investment Income Tax (NIIT) — IRC §1411</div>
+  <div style="font-size:12px;color:#64748B;line-height:1.7;margin-bottom:10px;">REPS qualification does <strong>not</strong> automatically remove the 3.8% Net Investment Income Tax on rental income.</div>
+  <div style="background:#F0FDFA;border:.5px solid #CCFBF1;border-radius:8px;padding:12px 14px;font-size:12px;color:#0F766E;line-height:1.7;">
+    <strong>Why this matters:</strong> §1411 has its own trade-or-business and material-participation analysis. Rental income avoids NIIT only when (1) the rental activity rises to a §162 trade or business AND (2) you materially participate. REPS status alone — without the underlying trade-or-business posture — may not be enough. The position depends on facts (services provided, scale of operations, hours, etc.). Discuss the §1411 analysis with your CPA separately from your §469 analysis.
+  </div>
+</div>
+<div class="card card-mb">
+  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">§280A Personal-Use Limitation</div>
+  <div style="font-size:12px;color:#64748B;line-height:1.7;margin-bottom:10px;">If you use a dwelling unit as a residence — defined as personal use exceeding the greater of <strong>14 days</strong> or <strong>10% of total rental days</strong> — IRC §280A limits the deductions you can claim against the rental income. Net losses may be disallowed entirely, regardless of REPS or material participation status.</div>
+  <div class="field"><label class="fl">Total personal use days this year (across all STR/LTR properties)</label><input type="number" min="0" step="1" value="${s.personalUseDays||''}" placeholder="0" onchange="setSetting('personalUseDays',parseFloat(this.value)||0)"/><div class="hint">Includes days used by you, family members (spouse, kids, siblings, parents, grandparents), or anyone paying less than fair rental value. A property meeting the 14-day-or-10% threshold becomes a "residence" under §280A and loss deductibility is capped at gross rental income. Consult your CPA — §280A interacts with §469 in complex ways.</div></div>
 </div>
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">Community Property States</div>
@@ -1659,7 +1841,7 @@ function resetAll(){
   if(!confirm('Reset all data? This will permanently delete all entries, properties, and settings.\n\nThis CANNOT be undone.'))return;
   const code=prompt('Type RESET to confirm:');
   if(code!=='RESET'){alert('Reset cancelled — text did not match.');return;}
-  state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:true},properties:[],entries:[],manualMP:{}};
+  state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:false,personalUseDays:0,filingStatus:'MFJ',spouseHoursPolicy:'conservative'},properties:[],entries:[],manualMP:{}};
   save();renderView();
 }
 
@@ -1667,14 +1849,14 @@ function resetAll(){
 // ── LTR RULES ──
 function vLTR(){
   return`
-<div class="ph"><div class="pg-title">REPS Rules — Real Estate Professional Status</div><div class="pg-sub">IRC §469(c)(7) · Two-part qualification test for non-passive rental losses</div></div>
+<div class="ph"><h1 class="pg-title">REPS Rules — Real Estate Professional Status</h1><div class="pg-sub">IRC §469(c)(7) · Two-part qualification test for non-passive rental losses</div></div>
 <div class="banner bn-teal" style="margin-bottom:16px;"><div class="bn-ic">⚖️</div><div><div class="bn-title">Why REPS matters</div><div class="bn-sub">Without REPS, rental losses are passive and can only offset passive income. With REPS, rental losses become non-passive and can offset W-2, business, and other active income — potentially eliminating unlimited tax liability.</div></div></div>
 
-<div class="sec-lbl">Test 1 of 2 — More Than 750 Hours Required</div>
+<h2 class="sec-lbl">Test 1 of 2 — More Than 750 Hours Required</h2>
 <div class="card card-mb">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;"><div style="font-size:15px;font-weight:800;color:#0D1F3C;">IRC §469(c)(7)(B)(i)</div><span class="badge b-warn" style="font-size:12px;padding:5px 13px;">Must exceed 750 hours</span></div>
   <div style="font-size:13px;color:#64748B;line-height:1.7;margin-bottom:14px;">You must perform more than 750 hours of services during the tax year in real property trades or businesses in which you materially participate. Hours from any qualifying real property trade or business count — not just rentals.</div>
-  <div class="sec-lbl">Qualifying real property trades or businesses — <span style="text-transform:none;font-family:ui-monospace,monospace;letter-spacing:0;">§469(c)(7)(C)</span></div>
+  <h2 class="sec-lbl">Qualifying real property trades or businesses — <span style="text-transform:none;font-family:ui-monospace,monospace;letter-spacing:0;">§469(c)(7)(C)</span></h2>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
     ${['Real property development','Real property redevelopment','Real property construction','Real property reconstruction','Real property acquisition','Real property conversion','Rental of real property','Operation of real property','Management of real property','Leasing of real property','Brokerage trade or business'].map(a=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;background:#F0FDFA;border-radius:8px;font-size:12px;color:#0D1F3C;"><span style="color:#14B8A6;font-weight:700;">✓</span>${a}</div>`).join('')}
   </div>
@@ -1685,7 +1867,7 @@ function vLTR(){
   </div>
 </div>
 
-<div class="sec-lbl">Test 2 of 2 — 50% Personal Services Test</div>
+<h2 class="sec-lbl">Test 2 of 2 — 50% Personal Services Test</h2>
 <div class="card card-mb">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;"><div style="font-size:15px;font-weight:800;color:#0D1F3C;">IRC §469(c)(7)(B)(ii)</div><span class="badge b-warn" style="font-size:12px;padding:5px 13px;">&gt; 50% of all services must be RE</span></div>
   <div style="font-size:13px;color:#64748B;line-height:1.7;margin-bottom:14px;">More than half of all personal services performed in all trades or businesses during the year must be in real property trades or businesses in which you materially participate. Your RE hours must outnumber your non-RE hours.</div>
@@ -1695,7 +1877,7 @@ function vLTR(){
   </div>
 </div>
 
-<div class="sec-lbl">Material Participation in Each Rental Activity</div>
+<h2 class="sec-lbl">Material Participation in Each Rental Activity</h2>
 <div class="card card-mb">
   <div style="font-size:15px;font-weight:800;color:#0D1F3C;margin-bottom:8px;">IRC §469(c)(7)(A) + Temp. Reg. §1.469-5T</div>
   <div style="font-size:13px;color:#64748B;line-height:1.7;margin-bottom:14px;">Passing both REPS tests is not enough on its own. You must also materially participate in each rental activity individually — or file a grouping election. Rental properties where you don't materially participate remain passive even with REPS.</div>
@@ -1704,7 +1886,7 @@ function vLTR(){
   </div>
 </div>
 
-<div class="sec-lbl"><span style="text-transform:none;font-family:ui-monospace,monospace;letter-spacing:0;">§469(c)(7)(A)</span> Grouping Election</div>
+<h2 class="sec-lbl"><span style="text-transform:none;font-family:ui-monospace,monospace;letter-spacing:0;">§469(c)(7)(A)</span> Grouping Election</h2>
 <div class="card card-mb">
   <div style="font-size:13px;color:#64748B;line-height:1.7;margin-bottom:12px;">A REPS taxpayer may elect to treat all rental real estate interests as a single activity. This makes material participation much easier — all hours across all properties are combined. Must be filed on a timely filed return.</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
@@ -1713,7 +1895,7 @@ function vLTR(){
   </div>
 </div>
 
-<div class="sec-lbl">Top Audit Red Flags</div>
+<h2 class="sec-lbl">Top Audit Red Flags</h2>
 <div class="card">
   ${[['⛔','No contemporaneous records','Courts have repeatedly rejected after-the-fact reconstructions. Log hours as they occur with specific descriptions of what was done.'],['⛔','Vague activity descriptions','"Managed property" is not enough. Record who you called, what was decided, what the outcome was, and how long it took.'],['⛔','Suspiciously round numbers','Claiming exactly 750 hours raises examiner scrutiny. Log actual time including minutes.'],['⚠','Non-RE hours not disclosed','Failing to account for W-2 or other business hours makes the 50% test unverifiable and indefensible.'],['⚠','Spouse hours mixed with taxpayer','Only the taxpayer\'s hours count for the 750-hr and 50% tests. Spouse hours are separate and must be logged distinctly.']].map(([ic,t,d])=>`<div style="display:flex;gap:12px;padding:12px 0;border-bottom:.5px solid #F0FDFA;align-items:flex-start;"><span style="font-size:18px;flex-shrink:0;">${ic}</span><div><div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:3px;">${t}</div><div style="font-size:12px;color:#64748B;line-height:1.6;">${d}</div></div></div>`).join('')}
 </div>`;
@@ -1722,10 +1904,10 @@ function vLTR(){
 // ── STR RULES ──
 function vSTR(){
   return`
-<div class="ph"><div class="pg-title">STR Rules — Short-Term Rental Material Participation Exception</div><div class="pg-sub">IRC §469 · Temp. Reg. §1.469-5T · How short-term rentals escape the passive loss rules</div></div>
+<div class="ph"><h1 class="pg-title">STR Rules — Short-Term Rental Material Participation Exception</h1><div class="pg-sub">IRC §469 · Temp. Reg. §1.469-5T · How short-term rentals escape the passive loss rules</div></div>
 <div class="banner bn-teal" style="margin-bottom:16px;"><div class="bn-ic">🔑</div><div><div class="bn-title">Why the STR material participation exception is powerful</div><div class="bn-sub">Short-term rentals are NOT automatically rental activities under §469 if the average rental period is 7 days or fewer. This means they are subject to material participation rules — and losses can be non-passive without REPS status, making this available to anyone.</div></div></div>
 
-<div class="sec-lbl">Step 1 — Average Rental Period Test</div>
+<h2 class="sec-lbl">Step 1 — Average Rental Period Test</h2>
 <div class="card card-mb">
   <div style="font-size:15px;font-weight:800;color:#0D1F3C;margin-bottom:8px;">Temp. Reg. §1.469-1T(e)(3)(ii)</div>
   <div style="font-size:13px;color:#64748B;line-height:1.7;margin-bottom:14px;">An activity is NOT treated as a rental activity if the average period of customer use is 7 days or fewer. Calculated as total rental days ÷ number of separate rental transactions in the year.</div>
@@ -1733,8 +1915,8 @@ function vSTR(){
     ${[['≤ 7 days','STR Material Participation Exception Applies','Not a rental activity — MP tests govern. Most powerful scenario. (§1.469-1T(e)(3)(ii)(A)(1))','#ECFDF5','#6EE7B7','#065F46'],['8–30 days','May Still Qualify','Must provide significant personal services — a distinct, more complex standard than the §1.469-5T MP tests. Higher scrutiny. (§1.469-1T(e)(3)(ii)(A)(2))','#FFFBEB','#FDE68A','#92400E'],['> 30 days','Standard Rental Rules','Subject to passive loss rules. Needs REPS for non-passive treatment.','#FEF2F2','#FECACA','#991B1B']].map(([r,t,d,bg,br,tc])=>`<div style="padding:14px;background:${bg};border-radius:10px;border:.5px solid ${br};text-align:center;"><div style="font-size:20px;font-weight:900;color:${tc};margin-bottom:4px;">${r}</div><div style="font-size:12px;font-weight:700;color:#0D1F3C;margin-bottom:6px;">${t}</div><div style="font-size:11px;color:#64748B;line-height:1.5;">${d}</div></div>`).join('')}
   </div>
   <div style="padding:11px 14px;background:#EFF6FF;border-radius:8px;border:.5px solid #BFDBFE;margin-bottom:10px;">
-    <div style="font-size:12px;font-weight:700;color:#1E40AF;margin-bottom:4px;">💡 Extraordinary personal services exception</div>
-    <div style="font-size:12px;color:#1E40AF;line-height:1.7;">Even without meeting the ≤7-day or 8–30-day average rental period tests, an activity is NOT treated as a rental if extraordinary personal services are provided by or on behalf of the owner (§1.469-1T(e)(3)(ii)(B)). This exception applies regardless of average rental period — consult your tax professional.</div>
+    <div style="font-size:12px;font-weight:700;color:#1E40AF;margin-bottom:4px;">💡 Six non-rental exceptions — §1.469-1T(e)(3)(ii)(A)–(F)</div>
+    <div style="font-size:12px;color:#1E40AF;line-height:1.7;">An activity may be treated as non-rental — regardless of average rental period — if it falls into any of the six exceptions in the regulation: (A) average rental period ≤7 days; (B) average rental period 8–30 days with significant personal services; (C) extraordinary personal services provided regardless of average rental period; (D) rental incidental to a non-rental activity; (E) property available during defined business hours for non-exclusive use by customers; or (F) the taxpayer-owner's interest in the property is used in a non-rental trade-or-business activity of a partnership/S-corp/JV in which the taxpayer materially participates. A &gt;30-day arrangement satisfying any of (B)–(F) is still non-rental. Consult your tax professional.</div>
   </div>
   <div style="padding:12px 14px;background:#CFFAFE;border-radius:8px;border:.5px solid #99F6E4;">
     <div style="font-size:12px;font-weight:700;color:#0E7490;margin-bottom:4px;">📐 How to calculate average rental period</div>
@@ -1742,7 +1924,7 @@ function vSTR(){
   </div>
 </div>
 
-<div class="sec-lbl">Step 2 — Material Participation (pass any 1 of 7 tests)</div>
+<h2 class="sec-lbl">Step 2 — Material Participation (pass any 1 of 7 tests)</h2>
 <div class="card card-mb">
   <div style="font-size:15px;font-weight:800;color:#0D1F3C;margin-bottom:8px;">Temp. Reg. §1.469-5T(a)</div>
   <div style="font-size:13px;color:#64748B;line-height:1.7;margin-bottom:14px;">Once a STR qualifies under the average period test, it is treated as a trade or business activity. The taxpayer must then materially participate to make losses non-passive. Pass any one of the seven tests below.</div>
@@ -1760,7 +1942,7 @@ function vSTR(){
   </div>`).join('')}
 </div>
 
-<div class="sec-lbl">What hours qualify?</div>
+<h2 class="sec-lbl">What hours qualify?</h2>
 <div class="card card-mb">
   <div style="font-size:13px;color:#64748B;line-height:1.7;margin-bottom:12px;">Any hour genuinely spent in active management and operation of the STR counts. Courts look for real participation — not passive ownership. Document every interaction with the date, duration, and specific activity.</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -1768,7 +1950,7 @@ function vSTR(){
   </div>
 </div>
 
-<div class="sec-lbl">Spouse Hours & the STR Material Participation Exception</div>
+<h2 class="sec-lbl">Spouse Hours & the STR Material Participation Exception</h2>
 <div class="card card-mb">
   <div style="font-size:15px;font-weight:800;color:#0D1F3C;margin-bottom:8px;">Temp. Reg. §1.469-5T(f)(3)</div>
   <div style="font-size:13px;color:#64748B;line-height:1.7;margin-bottom:10px;">Spouse hours are treated differently in STR MP tests than in REPS qualification:</div>
@@ -1778,7 +1960,7 @@ function vSTR(){
   </div>
 </div>
 
-<div class="sec-lbl">Top STR Audit Issues</div>
+<h2 class="sec-lbl">Top STR Audit Issues</h2>
 <div class="card">
   ${[['⛔','Average rental period not calculated','You must track each individual booking. Airbnb/VRBO summaries may not match the IRS calculation. Keep your own booking-level log.'],['⛔','Co-host or cleaner hours exceed yours','If a paid co-host or cleaning service logs more hours than you, Tests 3 and 7 both fail. Stay the primary participant.'],['⛔','No documentation of personal services (8–30 day avg)','For mid-range rentals, courts require evidence of specific services provided on specific dates — standard cleaning doesn\'t qualify.'],['⚠','Inconsistent treatment year to year','Treating an STR as passive one year then non-passive the next raises red flags. Pick a strategy and document it consistently.'],['⚠','Combining STR and LTR hours improperly','Each property is a separate activity unless a grouping election is filed. Hours cannot be freely mixed between properties.']].map(([ic,t,d])=>`<div style="display:flex;gap:12px;padding:12px 0;border-bottom:.5px solid #F0FDFA;align-items:flex-start;"><span style="font-size:18px;flex-shrink:0;">${ic}</span><div><div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:3px;">${t}</div><div style="font-size:12px;color:#64748B;line-height:1.6;">${d}</div></div></div>`).join('')}
 </div>`;
@@ -1853,8 +2035,8 @@ function toggleRemy(){
     panel.style.display='flex';
     backdrop.style.display='block';
     if(btn)btn.style.opacity='.7';
-    // Load saved messages
-    try{const saved=localStorage.getItem(REMY_SK);if(saved)remyMessages=JSON.parse(saved);}catch(e){}
+    // Load saved messages (filter out any malformed entries from prior versions)
+    try{const saved=localStorage.getItem(REMY_SK);if(saved){const parsed=JSON.parse(saved);if(Array.isArray(parsed))remyMessages=parsed.filter(m=>m&&typeof m==='object'&&m.role&&m.content!=null&&m.content!=='');}}catch(e){}
     renderRemyMessages();
     // Greeting if no messages yet
     if(remyMessages.length===0){
@@ -1911,9 +2093,11 @@ function renderRemyMessages(){
   if(!el)return;
   el.innerHTML=remyMessages.map(m=>{
     const isUser=m.role==='user';
+    // AUDIT FIX: defend against legacy/corrupt messages with no content field
+    const content=m.content==null?'':String(m.content);
     return`<div style="display:flex;justify-content:${isUser?'flex-end':'flex-start'};gap:8px;align-items:flex-end;">
       ${!isUser?`<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#14B8A6,#38BDF8);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;" aria-hidden="true">✨</div>`:''}
-      <div style="max-width:78%;padding:10px 13px;border-radius:${isUser?'14px 14px 4px 14px':'14px 14px 14px 4px'};background:${isUser?'linear-gradient(135deg,#0D1F3C,#1a3a5c)':'#fff'};color:${isUser?'#fff':'#0D1F3C'};font-size:13px;line-height:1.6;box-shadow:0 1px 3px rgba(0,0,0,.08);white-space:pre-wrap;word-break:break-word;">${m.content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+      <div style="max-width:78%;padding:10px 13px;border-radius:${isUser?'14px 14px 4px 14px':'14px 14px 14px 4px'};background:${isUser?'linear-gradient(135deg,#0D1F3C,#1a3a5c)':'#fff'};color:${isUser?'#fff':'#0D1F3C'};font-size:13px;line-height:1.6;box-shadow:0 1px 3px rgba(0,0,0,.08);white-space:pre-wrap;word-break:break-word;">${esc(content)}</div>
     </div>`;
   }).join('');
   // Typing indicator
