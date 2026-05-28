@@ -246,7 +246,8 @@ function yearEntries(){return state.entries.filter(e=>e.date&&e.date.startsWith(
 function calcREPS(){
   const inc=state.settings.includeSTRinREPS!==false;
   const ye=yearEntries();
-  const rh=ye.filter(e=>!e.isSpouse&&(e.trackType==='REPS'||(inc&&e.trackType==='STR'))).reduce((s,e)=>s+(e.hours||0),0);
+  // LTR entries always count as REPS hours. STR entries count if setting enabled.
+  const rh=ye.filter(e=>!e.isSpouse&&(e.trackType==='REPS'||e.trackType==='LTR'||(inc&&e.trackType==='STR'))).reduce((s,e)=>s+(e.hours||0),0);
   const th=rh+(state.settings.nonREPSHours||0);
   const pct=th>0?rh/th*100:0;
   return{rh,pct,m750:rh>=750,m50:pct>50,ok:rh>=750&&pct>50};
@@ -310,7 +311,7 @@ function vDashboard(){
   const tot=rh+(state.settings.nonREPSHours||0);
   const strPs=state.properties.filter(p=>p.type==='STR');
   const ltrPs=state.properties.filter(p=>p.type==='LTR');
-  const repsHrs=yearEntries().filter(e=>!e.isSpouse&&e.trackType==='REPS').reduce((s,e)=>s+(e.hours||0),0);
+  const repsHrs=rh; // use calcREPS() result — already handles STR inclusion setting
   const strHrs=yearEntries().filter(e=>!e.isSpouse&&e.trackType==='STR').reduce((s,e)=>s+(e.hours||0),0);
   const strQual=strPs.filter(p=>mpT(p.id).some(t=>t.met)).length;
   const strTotal=strPs.length;
@@ -716,7 +717,7 @@ ${state.properties.map(p=>{
       <div class="field"><label class="fl">Date</label><input type="date" id="ql-date-${p.id}" value="${todayStr()}"/></div>
       <div class="field"><label class="fl">Track Type</label>
         <select id="ql-tt-${p.id}" onchange="updateQLCats('${p.id}')">
-          <option value="${p.type}" selected>${p.type} — ${p.type==='STR'?'Short-Term Rental':'Long-Term Rental'}</option>
+          <option value="${p.type==='LTR'?'REPS':p.type}" selected>${p.type==='LTR'?'REPS — Real Estate Professional':'STR — Short-Term Rental'}</option>
           ${p.type==='STR'?'<option value="REPS">REPS — Real Estate Professional</option>':'<option value="STR">STR — Short-Term Rental</option>'}
         </select>
       </div>
