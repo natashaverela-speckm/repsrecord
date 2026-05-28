@@ -251,7 +251,7 @@ function calcREPS(){
   const rh=ye.filter(e=>!e.isSpouse&&(propIds.has(e.propertyId)||e.propertyId===null||e.propertyId===undefined||e.propertyId==='')&&(e.trackType==='REPS'||e.trackType==='LTR'||(inc&&e.trackType==='STR'))).reduce((s,e)=>s+(e.hours||0),0);
   const th=rh+(state.settings.nonREPSHours||0);
   const pct=th>0?rh/th*100:0;
-  return{rh,pct,m750:rh>=750,m50:pct>50,ok:rh>=750&&pct>50};
+  return{rh,pct,m750:rh>750,m50:pct>50,ok:rh>750&&pct>50};
 }
 
 function pH(pid){
@@ -265,10 +265,10 @@ function mpT(pid){
     {id:1,name:'Test 1',label:'500 Hours',cite:'§1.469-5T(a)(1)',desc:'500+ hours in this activity during the year.',auto:true,met:ph.owner>=500},
     {id:2,name:'Test 2',label:'Substantially All',cite:'§1.469-5T(a)(2)',desc:'Substantially all participation was yours (others participated less than 10%).',auto:false,met:!!mn[2]},
     {id:3,name:'Test 3',label:'100 Hrs + Primary',cite:'§1.469-5T(a)(3)',desc:'100+ hours AND more than any other individual participant.',auto:true,met:ph.owner>=100&&ph.owner>mo},
-    {id:4,name:'Test 4',label:'SPA Aggregate',cite:'§1.469-5T(a)(4)',desc:'100+ hrs as SPA; all significant participation activities aggregate to 500+ hours.',auto:false,met:!!mn[4]},
+    {id:4,name:'Test 4',label:'SPA Aggregate',cite:'§1.469-5T(a)(4)',desc:'Each qualifying activity requires 100–499 hrs (Significant Participation Activity threshold); all your SPAs must aggregate to 500+ hours total for the year.',auto:false,met:!!mn[4]},
     {id:5,name:'Test 5',label:'5 of Last 10 Yrs',cite:'§1.469-5T(a)(5)',desc:'Materially participated in this activity in any 5 of the last 10 taxable years.',auto:false,met:!!mn[5]},
-    {id:6,name:'Test 6',label:'3 Prior Yrs (Svc)',cite:'§1.469-5T(a)(6)',desc:'Materially participated 3 prior years when the activity was a personal service activity.',auto:false,met:!!mn[6]},
-    {id:7,name:'Test 7',label:'Facts & Circumstances',cite:'§1.469-5T(a)(7)',desc:'100+ hours, no paid manager, and you participate more than anyone else.',auto:true,met:ph.owner>=100&&ph.owner>mo},
+    {id:6,name:'Test 6',label:'3 Prior Yrs (Svc)',cite:'§1.469-5T(a)(6)',desc:'Materially participated 3 prior years when the activity was a personal service activity. Rarely applicable to STRs — most STRs are not personal service activities.',auto:false,met:!!mn[6]},
+    {id:7,name:'Test 7',label:'Facts & Circumstances',cite:'§1.469-5T(a)(7)',desc:'Participate on a regular, continuous, and substantial basis (facts & circumstances). IRS commonly requires 100+ hours in practice, but no fixed minimum is in the regulation.',auto:true,met:ph.owner>=100&&ph.owner>mo},
   ];
 }
 
@@ -281,7 +281,7 @@ function renderNav(){
 }
 function updateSB(){
   const r=calcREPS(),pct=Math.min(r.rh/750*100,100);
-  document.getElementById('sb-val').textContent=r.ok?'✓ Qualified!':`${Math.round(r.rh)} / 750 hrs`;
+  document.getElementById('sb-val').textContent=r.ok?'✓ Qualified!':`${Math.round(r.rh)} / 751+ hrs`;
   document.getElementById('sb-val').style.color=r.ok?'#14B8A6':'#fff';
   document.getElementById('sb-fill').style.width=pct+'%';
   document.getElementById('sb-fill').style.background=r.ok?'#10B981':'#14B8A6';
@@ -335,7 +335,7 @@ function vDashboard(){
   // ── REPS Section ──
   const repsSection =
     '<div style="margin-bottom:32px;">' +
-    sectionLabel('REPS Qualification — IRC §469(c)(7)') +
+    sectionLabel('REPS Qualification') + '<div style="font-size:11px;color:#94A3B8;font-family:ui-monospace,monospace;margin-top:-10px;margin-bottom:14px;">IRC §469(c)(7)</div>' +
 
     // Status banner
     '<div style="background:'+(ok?'#ECFDF5':'#F0FDFA')+';border:1.5px solid '+(ok?'#6EE7B7':'#CCFBF1')+';border-radius:14px;padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;gap:14px;">' +
@@ -353,12 +353,12 @@ function vDashboard(){
       '<div class="card" style="padding:20px;">' +
         '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">' +
           '<div style="font-size:12px;font-weight:700;color:#64748B;text-transform:uppercase;letter-spacing:.05em;">750-Hour Test</div>' +
-          badge(m750,'✓ MET','IN PROGRESS') +
+          (m750?badge(true,'✓ MET',''):(repsHrs===0?'<span style="background:#F1F5F9;color:#64748B;font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;white-space:nowrap;">NOT STARTED</span>':'<span style="background:#FEF3C7;color:#92400E;font-size:11px;font-weight:800;padding:3px 10px;border-radius:20px;white-space:nowrap;">IN PROGRESS</span>')) +
         '</div>' +
-        '<div style="font-size:11px;color:#94A3B8;margin-bottom:8px;">750+ hrs in qualifying real estate activities</div>' +
-        '<div style="font-size:30px;font-weight:900;color:#0D1F3C;letter-spacing:-0.03em;">'+Math.round(repsHrs)+'<span style="font-size:13px;font-weight:400;color:#64748B;"> / 750 hrs</span></div>' +
-        bar(repsHrs,750,m750?'#10B981':'#14B8A6') +
-        '<div style="font-size:12px;font-weight:600;color:'+(m750?'#10B981':'#14B8A6')+';">'+(m750?'✓ Exceeded by '+Math.round(repsHrs-750)+' hrs':Math.round(750-repsHrs)+' hrs remaining')+'</div>' +
+        '<div style="font-size:11px;color:#94A3B8;margin-bottom:8px;">Must exceed 750 hrs in qualifying real estate activities (IRC §469(c)(7)(B)(i))</div>' +
+        '<div style="font-size:30px;font-weight:900;color:#0D1F3C;letter-spacing:-0.03em;">'+Math.round(repsHrs)+'<span style="font-size:13px;font-weight:400;color:#64748B;"> / 751+ hrs required</span></div>' +
+        bar(repsHrs,751,m750?'#10B981':'#14B8A6') +
+        '<div style="font-size:12px;font-weight:600;color:'+(m750?'#10B981':'#14B8A6')+';">'+(m750?'✓ Exceeded requirement by '+Math.round(repsHrs-750)+' hrs':Math.round(751-repsHrs)+' hrs remaining to qualify')+'</div>' +
       '</div>' +
 
       // 50% card
@@ -378,7 +378,7 @@ function vDashboard(){
     (grouped?'<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:10px 14px;font-size:12px;color:#1D4ED8;margin-bottom:14px;">📋 <strong>Grouping election on file</strong> — all LTR properties treated as a single activity for material participation. MP is tested on your combined REPS hours.</div>':'') +
 
     // Tip if not qualifying
-    (!ok&&state.properties.length>0?'<div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;font-size:12px;color:#92400E;">💡 '+(!m750?'Log '+Math.round(750-repsHrs)+' more qualifying REPS hours. ':'')+(m750&&!m50?'Your RE hours need to exceed 50% of total hours. Check non-RE hours in Settings.':'')+'</div>':'') +
+    (!ok&&state.properties.length>0?'<div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;font-size:12px;color:#92400E;">💡 '+(!m750?'Log '+Math.round(751-repsHrs)+' more qualifying REPS hours to exceed the 750-hour threshold. ':'')+(m750&&!m50?'Your RE hours need to exceed 50% of total hours. Check non-RE hours in Settings.':'')+'</div>':'') +
 
   '</div>';
 
@@ -490,7 +490,7 @@ function vLog(){
 </div>
 <div class="card card-mb">
   <div class="track-bar">
-    <button class="track-btn${trackType==='REPS'?' active-reps':''}" onclick="setTT('REPS')">🏡  REPS / LTR Hours</button>
+    <button class="track-btn${trackType==='REPS'?' active-reps':''}" onclick="setTT('REPS')">🏡 Qualifying RE Hours</button>
     <button class="track-btn${trackType==='STR'?' active-str':''}" onclick="setTT('STR')">🏖  STR Hours</button>
   </div>
   <div class="info-box ${trackType==='STR'?'ib-blue':'ib-teal'}">
@@ -678,7 +678,7 @@ ${showPropForm?`
   </div>
   <div id="str-fields">
   <div class="g2">
-    <div class="field"><label class="fl">Avg Rental Period (days)</label><input type="number" id="p-dy" min="0.5" step="0.5" placeholder="e.g. 4.5"/><div class="hint">Must be ≤7 days for STR material participation exception eligibility</div></div>
+    <div class="field"><label class="fl">Avg Rental Period (days)</label><input type="number" id="p-dy" min="0.5" step="0.5" placeholder="e.g. 4.5"/><div class="hint">≤7 days = strongest STR exception eligibility. 8–30 days may still qualify with significant personal services. Recalculate annually from actual booking records.</div></div>
     <div class="field"><label class="fl">Other Participants' Annual Hours</label><input type="number" id="p-ot" min="0" step="1" placeholder="e.g. 50"/><div class="hint">Cleaner, PM, co-host — used for Tests 3 & 7</div></div>
   </div>
   </div>
@@ -764,7 +764,7 @@ ${state.properties.map(p=>{
     </div>
     <div id="ep-str-fields-${p.id}" style="${p.type==='LTR'?'display:none':''}">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-        <div class="field"><label class="fl">Avg Rental Period (days)</label><input type="number" id="ep-dy-${p.id}" value="${p.avgRentalDays||''}" min="0.5" step="0.5" placeholder="e.g. 4.5"/><div class="hint">≤7 days for STR material participation exception</div></div>
+        <div class="field"><label class="fl">Avg Rental Period (days)</label><input type="number" id="ep-dy-${p.id}" value="${p.avgRentalDays||''}" min="0.5" step="0.5" placeholder="e.g. 4.5"/><div class="hint">≤7 days = strongest eligibility. 8–30 days may qualify with significant personal services.</div></div>
         <div class="field"><label class="fl">Other Participants' Annual Hours</label><input type="number" id="ep-ot-${p.id}" value="${p.otherHours||0}" min="0" step="1"/><div class="hint">Cleaner, co-host, PM</div></div>
       </div>
     </div>
@@ -1123,7 +1123,7 @@ function vMP(){
     <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 3</span> <span style="color:#64748B;">Your hours ≥ 100 AND > others' hours</span></div>
     <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 4</span> <span style="color:#64748B;">Part of group with 500+ hrs total</span></div>
     <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 5</span> <span style="color:#64748B;">Qualified in 5 of last 10 years</span></div>
-    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 6</span> <span style="color:#64748B;">Qualified 3 prior years (PSA)</span></div>
+    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 6</span> <span style="color:#64748B;">Qualified 3 prior years (PSA — rarely applies to STRs)</span></div>
     <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;grid-column:1/-1;"><span style="font-weight:700;color:#0D1F3C;">Test 7</span> <span style="color:#64748B;">Regular, continuous & substantial basis (facts & circumstances)</span></div>
   </div>
   <div style="margin-top:12px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E;">
@@ -1202,7 +1202,7 @@ function vReports(){
 <div class="card card-mb" style="background:${r.ok?'#ECFDF5':'#F0FDFA'};border-color:${r.ok?'#6EE7B7':'#99F6E4'};">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:14px;">REPS Qualification Summary — IRC §469(c)(7)</div>
   <div class="g3">
-    <div class="rstat"><div class="rstat-num">${Math.round(r.rh)}</div><div class="rstat-lbl">RE hours logged</div><div class="rstat-req">Required: ≥ 750 hrs</div><span class="badge ${r.m750?'b-met':'b-no'}" style="margin-top:6px;display:inline-block;">${r.m750?'MET ✓':'NOT MET'}</span></div>
+    <div class="rstat"><div class="rstat-num">${Math.round(r.rh)}</div><div class="rstat-lbl">RE hours logged</div><div class="rstat-req">Required: > 750 hrs</div><span class="badge ${r.m750?'b-met':'b-no'}" style="margin-top:6px;display:inline-block;">${r.m750?'MET ✓':'NOT MET'}</span></div>
     <div class="rstat"><div class="rstat-num">${Math.round(r.pct)}%</div><div class="rstat-lbl">% of personal services</div><div class="rstat-req">Required: > 50%</div><span class="badge ${r.m50?'b-met':'b-no'}" style="margin-top:6px;display:inline-block;">${r.m50?'MET ✓':'NOT MET'}</span></div>
     <div class="rstat"><div class="rstat-num" style="color:${r.ok?'#10B981':'#EF4444'}">${r.ok?'YES':'NO'}</div><div class="rstat-lbl">REPS qualified</div><div class="rstat-req">Both tests required</div><span class="badge ${r.ok?'b-met':'b-no'}" style="margin-top:6px;display:inline-block;">${r.ok?'QUALIFIED':'NOT YET'}</span></div>
   </div>
@@ -1252,7 +1252,7 @@ function vSettings(){
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">50% Personal Services Test — IRC §469(c)(7)(B)(ii)</div>
   <div style="font-size:12px;color:#64748B;margin-bottom:14px;line-height:1.6;">Enter your total hours in non-real-estate activities this year (W-2, other businesses). Used to calculate whether RE hours exceed 50% of ALL personal services.</div>
-  <div class="field"><label class="fl">Non-Real Estate Hours This Year</label><input type="number" min="0" step="1" value="${s.nonREPSHours||''}" placeholder="0" onchange="setSetting('nonREPSHours',parseFloat(this.value)||0)"/></div>
+  <div class="field"><label class="fl">Non-Real Estate Hours This Year</label><input type="number" min="0" step="1" value="${s.nonREPSHours||''}" placeholder="0" onchange="setSetting('nonREPSHours',parseFloat(this.value)||0)"/><div class="hint">Enter your hours in W-2 jobs, other businesses, or any non-real-estate activity. Example: a full-time W-2 job = ~2,080 hrs/yr (52 weeks × 40 hrs). Only YOUR hours count — not a spouse's W-2.</div></div>
 </div>
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:14px;">Spouse / Co-Participant Tracking</div>
@@ -1263,6 +1263,7 @@ function vSettings(){
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">§469(c)(7)(A) Grouping Election</div>
   <div style="font-size:12px;color:#64748B;margin-bottom:12px;line-height:1.6;">All rental real estate activities treated as a single activity for material participation. Cannot be easily revoked once filed.</div>
   <label class="tog-row"><input type="checkbox" ${s.groupingElection?'checked':''} onchange="setSetting('groupingElection',this.checked)"/><span class="tog-lbl">Grouping election filed for ${activeYear}</span></label>
+  <div class="hint" style="margin-top:2px;padding:8px 10px;background:#EFF6FF;border-radius:6px;border:.5px solid #BFDBFE;color:#1E40AF;">⚠ This tracks your election status only. The actual grouping election must be attached to your timely filed original tax return per Treas. Reg. §1.469-9(g). Consult your tax professional before filing.</div>
 </div>
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">Count STR Hours Toward REPS 750-Hr Test</div>
@@ -1273,24 +1274,28 @@ function vSettings(){
   <div style="font-size:14px;font-weight:800;color:#991B1B;margin-bottom:6px;">Reset All Data</div>
   <div style="font-size:12px;color:#64748B;margin-bottom:12px;">Permanently deletes all entries, properties, and settings.</div>
   <button class="btn btn-danger" onclick="resetAll()">Reset Everything</button>
+  <div class="hint" style="margin-top:8px;color:#EF4444;">⚠ A second confirmation will be required. This action cannot be undone.</div>
 </div>`;
 }
 
 function setSetting(k,v){state.settings[k]=v;save();updateSB();}
-function resetAll(){if(!confirm('Are you sure? This cannot be undone.'))return;state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:true},properties:[],entries:[],manualMP:{}};save();renderView();}
-
-function setSetting(k,v){state.settings[k]=v;save();updateSB();}
-function resetAll(){if(!confirm('Are you sure? This cannot be undone.'))return;state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:true},properties:[],entries:[],manualMP:{}};save();renderView();}
+function resetAll(){
+  if(!confirm('Reset all data? This will permanently delete all entries, properties, and settings.\n\nThis CANNOT be undone.'))return;
+  const code=prompt('Type RESET to confirm:');
+  if(code!=='RESET'){alert('Reset cancelled — text did not match.');return;}
+  state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:true},properties:[],entries:[],manualMP:{}};
+  save();renderView();
+}
 
 // ── LTR RULES ──
 function vLTR(){
   return`
-<div class="ph"><div class="pg-title">LTR Rules — Real Estate Professional Status</div><div class="pg-sub">IRC §469(c)(7) · Two-part qualification test for non-passive rental losses</div></div>
+<div class="ph"><div class="pg-title">REPS Rules — Real Estate Professional Status</div><div class="pg-sub">IRC §469(c)(7) · Two-part qualification test for non-passive rental losses</div></div>
 <div class="banner bn-teal" style="margin-bottom:16px;"><div class="bn-ic">⚖️</div><div><div class="bn-title">Why REPS matters</div><div class="bn-sub">Without REPS, rental losses are passive and can only offset passive income. With REPS, rental losses become non-passive and can offset W-2, business, and other active income — potentially eliminating unlimited tax liability.</div></div></div>
 
-<div class="sec-lbl">Test 1 of 2 — 750-Hour Requirement</div>
+<div class="sec-lbl">Test 1 of 2 — More Than 750 Hours Required</div>
 <div class="card card-mb">
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;"><div style="font-size:15px;font-weight:800;color:#0D1F3C;">IRC §469(c)(7)(B)(i)</div><span class="badge b-warn" style="font-size:12px;padding:5px 13px;">≥ 750 hours required</span></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;"><div style="font-size:15px;font-weight:800;color:#0D1F3C;">IRC §469(c)(7)(B)(i)</div><span class="badge b-warn" style="font-size:12px;padding:5px 13px;">Must exceed 750 hours</span></div>
   <div style="font-size:13px;color:#64748B;line-height:1.7;margin-bottom:14px;">You must perform more than 750 hours of services during the tax year in real property trades or businesses in which you materially participate. Hours from any qualifying real property trade or business count — not just rentals.</div>
   <div class="sec-lbl">Qualifying real property trades or businesses — §469(c)(7)(C)</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -1313,7 +1318,7 @@ function vLTR(){
   <div style="font-size:15px;font-weight:800;color:#0D1F3C;margin-bottom:8px;">IRC §469(c)(7)(A) + Temp. Reg. §1.469-5T</div>
   <div style="font-size:13px;color:#64748B;line-height:1.7;margin-bottom:14px;">Passing both REPS tests is not enough on its own. You must also materially participate in each rental activity individually — or file a grouping election. Rental properties where you don't materially participate remain passive even with REPS.</div>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-    ${[['Test 1','500+ hours in the activity'],['Test 2','Substantially all participation'],['Test 3','100 hrs + more than anyone else'],['Test 4','SPA aggregate 500+ hrs'],['Test 5','5 of the last 10 years'],['Test 6','3 prior years (service activity)'],['Test 7','Facts & Circumstances (100+ hrs)']].map(([t,d])=>`<div style="padding:10px 12px;background:#F0FDFA;border-radius:8px;border:.5px solid #CCFBF1;"><div style="font-size:11px;font-weight:700;color:#14B8A6;margin-bottom:3px;">${t}</div><div style="font-size:12px;color:#0D1F3C;">${d}</div></div>`).join('')}
+    ${[['Test 1','500+ hours in the activity'],['Test 2','Substantially all participation'],['Test 3','100 hrs + more than anyone else'],['Test 4','SPA aggregate: 100–499 hrs each activity, 500+ total'],['Test 5','5 of the last 10 years'],['Test 6','3 prior years (personal service activity — rarely applies to rentals)'],['Test 7','Facts & Circumstances (regular, continuous, substantial — 100+ hrs in practice)']].map(([t,d])=>`<div style="padding:10px 12px;background:#F0FDFA;border-radius:8px;border:.5px solid #CCFBF1;"><div style="font-size:11px;font-weight:700;color:#14B8A6;margin-bottom:3px;">${t}</div><div style="font-size:12px;color:#0D1F3C;">${d}</div></div>`).join('')}
   </div>
 </div>
 
@@ -1505,7 +1510,8 @@ const steps=[
       <li>🏠 <strong>Properties</strong> — add your rental properties here first</li>
       <li>✅ <strong>MP Tests</strong> — see if each STR property qualifies</li>
       <li>📋 <strong>Audit Report</strong> — one click to generate your IRS-ready report</li>
-      <li>🏡 <strong>LTR / STR Rules</strong> — reference guides whenever you need them</li>
+      <li>🏡 <strong>REPS Rules</strong> — IRC §469(c)(7) qualification guide</li>
+      <li>🏖 <strong>STR Rules</strong> — short-term rental material participation guide</li>
     </ul>
     <p style="margin-top:12px;color:#14B8A6;font-weight:700;">Start by adding your properties, then log your first entry today!</p>`,
     tip:null
