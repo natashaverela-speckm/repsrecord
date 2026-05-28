@@ -154,6 +154,7 @@ tr:last-child td{border-bottom:none;}
 ::-webkit-scrollbar{width:5px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:#CCFBF1;border-radius:3px;}
+@keyframes remyDot{0%,60%,100%{transform:translateY(0);opacity:.4;}30%{transform:translateY(-5px);opacity:1;}}
 </style>
 </head>
 <body>
@@ -175,7 +176,8 @@ tr:last-child td{border-bottom:none;}
       <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;" id="sb-str-props"></div>
       <div style="height:.5px;background:#1E4A6E;margin:10px 0;"></div>
       <div id="sync-indicator" role="status" aria-live="polite" aria-label="Data sync status" style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#7DD3FC;text-align:center;margin-bottom:8px;">⟳ Loading…</div>
-      <button onclick="signOut()" class="sb-signout">🚪 Sign out</button>
+      <button onclick="toggleRemy()" id="remy-btn" aria-label="Open Remy AI assistant" style="width:100%;margin-bottom:8px;padding:9px 12px;background:linear-gradient(135deg,#14B8A6,#38BDF8);border:none;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border-radius:8px;transition:opacity .15s;text-align:center;letter-spacing:.02em;">✨ Ask Remy</button>
+      <button onclick="signOut()" class="sb-signout" aria-label="Sign out of RepsRecord">🚪 Sign out</button>
     </div>
   </div>
   <div class="main" role="main"><div class="content" id="content"></div></div>
@@ -204,6 +206,10 @@ let logFilter={type:'all',propId:'',search:''};
 let timerStart=null,timerTick=null;
 let selEntries=new Set();
 let _chartTab='monthly';// 'monthly' | 'property'
+// Remy AI assistant
+let remyOpen=false,remyLoading=false;
+let remyMessages=[];// {role:'user'|'assistant', content:string}
+const REMY_SK='repsrecord_remy_v1';
 
 function uid(){return Math.random().toString(36).slice(2,9);}
 function fmtH(h){const a=Math.floor(h),b=Math.round((h-a)*60);return b===0?`${a}h`:`${a}h ${b}m`;}
@@ -1761,6 +1767,140 @@ function renderView(){
   }
 }
 
+// ── REMY AI ASSISTANT ──
+const REMY_EDGE_URL='https://ehuttijifubonhhgnvzx.supabase.co/functions/v1/remy-chat';
+
+function toggleRemy(){
+  remyOpen=!remyOpen;
+  const panel=document.getElementById('remy-panel');
+  const backdrop=document.getElementById('remy-backdrop');
+  const btn=document.getElementById('remy-btn');
+  if(!panel||!backdrop)return;
+  if(remyOpen){
+    panel.style.display='flex';
+    backdrop.style.display='block';
+    if(btn)btn.style.opacity='.7';
+    // Load saved messages
+    try{const saved=localStorage.getItem(REMY_SK);if(saved)remyMessages=JSON.parse(saved);}catch(e){}
+    renderRemyMessages();
+    // Greeting if no messages yet
+    if(remyMessages.length===0){
+      const ctx=buildRemyCtx();
+      const rh=Math.round(ctx.rh||0);
+      const greeting=ctx.ok
+        ?`Hi! I'm Remy 👋 You've qualified for REPS this year with ${rh} hrs. What would you like to dig into?`
+        :`Hi! I'm Remy 👋 You have ${rh} hrs logged — ${Math.round(Math.max(0,751-rh))} more needed to clear the 750-hr test. How can I help?`;
+      addRemyMessage('assistant',greeting);
+    }
+    setTimeout(()=>document.getElementById('remy-input')?.focus(),50);
+  } else {
+    panel.style.display='none';
+    backdrop.style.display='none';
+    if(btn)btn.style.opacity='1';
+  }
+}
+
+function buildRemyCtx(){
+  const r=calcREPS();
+  const ye=yearEntries();
+  return{
+    year:activeYear,
+    rh:r.rh,pct:r.pct,m750:r.m750,m50:r.m50,ok:r.ok,
+    nonREPSHours:state.settings.nonREPSHours||0,
+    groupingElection:!!state.settings.groupingElection,
+    includeSTRinREPS:state.settings.includeSTRinREPS!==false,
+    spouseEnabled:!!state.settings.spouseEnabled,
+    spouseName:state.settings.spouseName||'',
+    properties:state.properties.map(p=>{
+      const ph_=pH(p.id);
+      return{
+        name:p.name,type:p.type,
+        avgRentalDays:p.avgRentalDays||null,
+        otherHours:p.otherHours||0,
+        ownerHrs:ph_.owner,
+        mpMet:mpT(p.id).some(t=>t.met),
+      };
+    }),
+    entryCount:ye.length,
+    repsCount:ye.filter(e=>e.trackType==='REPS'&&!e.isSpouse).length,
+    strCount:ye.filter(e=>e.trackType==='STR'&&!e.isSpouse).length,
+  };
+}
+
+function addRemyMessage(role,content){
+  remyMessages.push({role,content});
+  try{localStorage.setItem(REMY_SK,JSON.stringify(remyMessages.slice(-40)));}catch(e){}
+  renderRemyMessages();
+}
+
+function renderRemyMessages(){
+  const el=document.getElementById('remy-messages');
+  if(!el)return;
+  el.innerHTML=remyMessages.map(m=>{
+    const isUser=m.role==='user';
+    return`<div style="display:flex;justify-content:${isUser?'flex-end':'flex-start'};gap:8px;align-items:flex-end;">
+      ${!isUser?`<div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#14B8A6,#38BDF8);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;" aria-hidden="true">✨</div>`:''}
+      <div style="max-width:78%;padding:10px 13px;border-radius:${isUser?'14px 14px 4px 14px':'14px 14px 14px 4px'};background:${isUser?'linear-gradient(135deg,#0D1F3C,#1a3a5c)':'#fff'};color:${isUser?'#fff':'#0D1F3C'};font-size:13px;line-height:1.6;box-shadow:0 1px 3px rgba(0,0,0,.08);white-space:pre-wrap;word-break:break-word;">${m.content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</div>
+    </div>`;
+  }).join('');
+  // Typing indicator
+  if(remyLoading){
+    el.innerHTML+=`<div style="display:flex;justify-content:flex-start;gap:8px;align-items:flex-end;">
+      <div style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#14B8A6,#38BDF8);display:flex;align-items:center;justify-content:center;font-size:13px;" aria-hidden="true">✨</div>
+      <div style="padding:12px 16px;border-radius:14px 14px 14px 4px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08);">
+        <div style="display:flex;gap:4px;align-items:center;">
+          <span style="width:7px;height:7px;border-radius:50%;background:#14B8A6;animation:remyDot 1.2s ease-in-out infinite;"></span>
+          <span style="width:7px;height:7px;border-radius:50%;background:#14B8A6;animation:remyDot 1.2s ease-in-out .2s infinite;"></span>
+          <span style="width:7px;height:7px;border-radius:50%;background:#14B8A6;animation:remyDot 1.2s ease-in-out .4s infinite;"></span>
+        </div>
+      </div>
+    </div>`;
+  }
+  el.scrollTop=el.scrollHeight;
+}
+
+async function remySend(){
+  const input=document.getElementById('remy-input');
+  const text=(input?.value||'').trim();
+  if(!text||remyLoading)return;
+  input.value='';
+  addRemyMessage('user',text);
+  remyLoading=true;
+  renderRemyMessages();
+  const sendBtn=document.getElementById('remy-send');
+  if(sendBtn){sendBtn.disabled=true;sendBtn.style.opacity='.5';}
+  try{
+    const sess=_sb?await _sb.auth.getSession():null;
+    const token=sess?.data?.session?.access_token;
+    const res=await fetch(REMY_EDGE_URL,{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        ...(token?{'Authorization':`Bearer ${token}`}:{})
+      },
+      body:JSON.stringify({
+        messages:remyMessages.slice(-20).map(m=>({role:m.role,content:m.content})),
+        ctx:buildRemyCtx(),
+      }),
+    });
+    const data=await res.json();
+    if(data.error)throw new Error(data.error);
+    addRemyMessage('assistant',data.reply);
+  }catch(err){
+    addRemyMessage('assistant',`Sorry, I ran into an error: ${err.message}. Please try again in a moment.`);
+  }finally{
+    remyLoading=false;
+    if(sendBtn){sendBtn.disabled=false;sendBtn.style.opacity='1';}
+    renderRemyMessages();
+  }
+}
+
+function clearRemyHistory(){
+  remyMessages=[];
+  try{localStorage.removeItem(REMY_SK);}catch(e){}
+  renderRemyMessages();
+}
+
 // ── App init — async to support cloud-first data load ──
 async function appInit(){
   // Initialize Supabase client and get session
@@ -1937,5 +2077,34 @@ setTimeout(showWalkthrough,800);
     </div>
   </div>
 </div>
+
+<!-- ── REMY AI CHAT PANEL ── -->
+<div id="remy-panel" role="dialog" aria-modal="true" aria-label="Remy AI assistant" style="display:none;position:fixed;right:0;top:0;bottom:0;width:380px;max-width:100vw;background:#fff;box-shadow:-4px 0 32px rgba(0,0,0,.18);z-index:600;display:none;flex-direction:column;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;">
+  <!-- Header -->
+  <div style="background:linear-gradient(135deg,#0D1F3C,#1a3a5c);padding:16px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#14B8A6,#38BDF8);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;" aria-hidden="true">✨</div>
+      <div>
+        <div style="font-size:15px;font-weight:800;color:#fff;letter-spacing:-0.02em;">Remy</div>
+        <div style="font-size:11px;color:#7DD3FC;margin-top:1px;">RepsRecord AI · Educational only</div>
+      </div>
+    </div>
+    <button onclick="toggleRemy()" aria-label="Close Remy" style="background:rgba(255,255,255,.1);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">×</button>
+  </div>
+  <!-- Messages -->
+  <div id="remy-messages" role="log" aria-live="polite" aria-label="Conversation with Remy" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;background:#F8FAFC;">
+    <!-- Populated by JS -->
+  </div>
+  <!-- Input -->
+  <div style="padding:12px 14px;border-top:1px solid #E2E8F0;background:#fff;flex-shrink:0;">
+    <div style="display:flex;gap:8px;align-items:flex-end;">
+      <textarea id="remy-input" rows="2" placeholder="Ask Remy about your REPS hours, STR strategy, or qualification…" aria-label="Message to Remy" style="flex:1;padding:10px 13px;border-radius:10px;border:1.5px solid #CBD5E1;font-size:13px;font-family:inherit;color:#0D1F3C;background:#F8FAFC;outline:none;resize:none;line-height:1.5;transition:border-color .15s;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();remySend();}"></textarea>
+      <button onclick="remySend()" id="remy-send" aria-label="Send message" style="background:linear-gradient(135deg,#14B8A6,#38BDF8);border:none;color:#fff;width:40px;height:40px;border-radius:10px;cursor:pointer;font-size:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:opacity .15s;">→</button>
+    </div>
+    <div style="font-size:10px;color:#94A3B8;margin-top:6px;text-align:center;">Remy is educational — not a licensed tax advisor. Verify with your CPA.</div>
+  </div>
+</div>
+<!-- Remy backdrop -->
+<div id="remy-backdrop" onclick="toggleRemy()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:599;backdrop-filter:blur(2px);"></div>
 </body>
 </html>
