@@ -334,6 +334,16 @@ function vDashboard(){
   const strTotal=strPs.length;
   const grouped=state.settings.groupingElection;
 
+  const _showSettBanner=!localStorage.getItem('rr_settings_banner')&&(state.settings.nonREPSHours||0)===0;
+  const settingsBanner=_showSettBanner?
+    '<div id="set-banner" style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:flex-start;gap:12px;justify-content:space-between;">' +
+      '<div style="font-size:13px;color:#92400E;flex:1;line-height:1.6;"><strong>Have a W-2 job or other non-real-estate income?</strong> Enter your hours in Settings so the 50% Services Test calculates correctly. Without it, your REPS status could show as qualified when it isn\'t.</div>' +
+      '<div style="display:flex;gap:8px;flex-shrink:0;margin-top:2px;">' +
+        '<button onclick="go(\'settings\')" style="background:#F59E0B;color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;">Go to Settings</button>' +
+        '<button onclick="document.getElementById(\'set-banner\').style.display=\'none\';localStorage.setItem(\'rr_settings_banner\',\'1\')" style="background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit;">Dismiss</button>' +
+      '</div>' +
+    '</div>':'';
+
   // ── helpers ──
   function bar(val,max,color){
     const w=Math.min(100,(val/max)*100);
@@ -393,10 +403,12 @@ function vDashboard(){
         '<div style="font-size:30px;font-weight:900;color:#0D1F3C;letter-spacing:-0.03em;">'+Math.round(pct)+'%<span style="font-size:13px;font-weight:400;color:#64748B;"> of work hrs</span></div>' +
         bar(pct,100,m50?'#10B981':'#EF4444') +
         '<div style="font-size:12px;color:#64748B;">'+Math.round(repsHrs)+' RE hrs · '+Math.round(tot)+' total hrs this year</div>' +
+        (tot===0?'<div style="font-size:11px;margin-top:6px;"><a href="#" onclick="go(\'settings\');return false;" style="color:#14B8A6;font-weight:600;">→ Enter your non-RE hours in Settings to calculate this accurately</a></div>':'') +
       '</div>' +
     '</div>' +
 
     // Grouping election note
+    (ltrPs.length===0&&!ok?'<div style="background:#F0FDFA;border:.5px solid #CCFBF1;border-radius:10px;padding:10px 14px;font-size:12px;color:#0E7490;margin-bottom:8px;">🏡 Tracking REPS hours? <a href="#" onclick="go(\'properties\');return false;" style="color:#14B8A6;font-weight:700;">Add an LTR property →</a> to associate your hours with a property and track them toward the 750-hr test.</div>':'') +
     (grouped?'<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:10px 14px;font-size:12px;color:#1D4ED8;margin-bottom:14px;">📋 <strong>Grouping election on file</strong> — all LTR properties treated as a single activity for material participation. MP is tested on your combined REPS hours.</div>':'') +
 
     // Tip if not qualifying
@@ -491,7 +503,7 @@ function vDashboard(){
   // ── Empty state ──
   const emptyState = '';
 
-  return '<div class="ph">' +
+  return settingsBanner + '<div class="ph">' +
     '<div class="ph-row">' +
       '<div><div class="pg-title">'+activeYear+' Dashboard</div><div class="pg-sub">Your tax year status at a glance</div></div>' +
       '<div style="display:flex;gap:8px;" class="top-acts">' +
@@ -550,8 +562,8 @@ function vLog(){
 </div>
 <div class="card card-mb">
   <div class="track-bar">
-    <button class="track-btn${trackType==='REPS'?' active-reps':''}" onclick="setTT('REPS')">🏡 Qualifying RE Hours</button>
-    <button class="track-btn${trackType==='STR'?' active-str':''}" onclick="setTT('STR')">🏖  STR Hours</button>
+    <button class="track-btn${trackType==='REPS'?' active-reps':''}" onclick="setTT('REPS')">🏡 REPS Hours (LTR)</button>
+    <button class="track-btn${trackType==='STR'?' active-str':''}" onclick="setTT('STR')">🏖 STR Hours (MP)</button>
   </div>
   <div class="info-box ${trackType==='STR'?'ib-blue':'ib-teal'}">
     ${trackType==='REPS'?'<strong>Qualifying activities</strong> include property management, acquisition, construction, leasing, maintenance, brokerage, and related financial/legal work (IRC §469(c)(7)(C)).':'<strong>STR hours</strong> count toward material participation for properties with avg rental period ≤7 days (Reg. §1.469-1T(e)(3)(ii)(A)).'}
@@ -559,7 +571,19 @@ function vLog(){
   <div class="g2">
     <div class="field"><label class="fl">Date</label><input type="date" id="f-date" value="${todayStr()}"/></div>
     <div class="field"><label class="fl">Property ${trackType==='STR'?'<span style="color:#EF4444;">*</span>':''}</label>
-      <select id="f-prop"><option value="" disabled selected>— Select a property —</option>${state.properties.map(p=>`<option value="${p.id}">${p.name} (${p.type})</option>`).join('')}</select>
+      <select id="f-prop">${(()=>{
+        if(trackType==='STR'){
+          const sp=state.properties.filter(p=>p.type==='STR');
+          return '<option value="" disabled selected>— Select an STR property —</option>'+
+            (sp.length?sp.map(p=>`<option value="${p.id}">${p.name}</option>`).join(''):'<option value="" disabled>No STR properties yet</option>');
+        } else {
+          const lp=state.properties.filter(p=>p.type==='LTR');
+          return '<option value="">— General RE (not property-specific) —</option>'+
+            lp.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+        }
+      })()}</select>
+      ${trackType==='STR'&&!state.properties.some(p=>p.type==='STR')?'<div class="hint" style="color:#F59E0B;margin-top:4px;">No STR properties yet. <a href="#" onclick="go(\'properties\');return false;" style="color:#14B8A6;font-weight:600;">Add one in Properties →</a></div>':''}
+      ${trackType==='REPS'&&!state.properties.some(p=>p.type==='LTR')?'<div class="hint" style="margin-top:4px;">No LTR properties yet — <a href="#" onclick="go(\'properties\');return false;" style="color:#14B8A6;font-weight:600;">add one in Properties →</a> or select general above.</div>':''}
     </div>
   </div>
   <div class="field"><label class="fl">Activity Category</label>
@@ -661,10 +685,11 @@ async function uploadFiles(entryId,files){
 async function submitEntry(){
   const h=(parseFloat(document.getElementById('f-hrs')?.value)||0)+(parseInt(document.getElementById('f-mins')?.value)||0)/60;
   if(h<=0){alert('Please enter a time greater than 0.');return;}
-  const propId=document.getElementById('f-prop')?.value;
-  if(!propId){alert('Please select a property.\n\nGo to Properties in the menu to add your properties first.');return;}
+  const propId=document.getElementById('f-prop')?.value||'';
+  if(!propId&&trackType==='STR'){alert('Please select an STR property.\n\nGo to Properties to add your STR properties first.');return;}
   const btn=document.getElementById('sub-btn');
   if(btn){btn.disabled=true;btn.textContent=pendingFiles.length?'⬆ Uploading files…':'Saving…';}
+  const _preHrs=calcREPS().rh;
   const cat=document.getElementById('f-cat')?.value||(trackType==='STR'?STR_CATS[0]:REPS_CATS[0]);
   const entryId=uid();
   let attachments=[];
@@ -675,7 +700,10 @@ async function submitEntry(){
   state.entries.push({id:entryId,date:document.getElementById('f-date')?.value||todayStr(),propertyId:propId,trackType,type:trackType,category:cat,hours:Math.round(h*100)/100,notes:document.getElementById('f-notes')?.value||'',isSpouse:!!document.getElementById('f-spouse')?.checked,attachments});
   save();
   pendingFiles=[];
-  if(btn){btn.textContent='✓ Saved!';btn.style.background='#10B981';}
+  const _newRH=calcREPS().rh;
+  const _propHrs=propId?state.entries.filter(e=>e.propertyId===propId&&!e.isSpouse&&e.trackType==='STR').reduce((s,e)=>s+(e.hours||0),0):0;
+  const _saveMsg=trackType==='STR'?`✓ Saved! This property: ${Math.round(_propHrs)} hrs`:`✓ Saved! REPS total: ${Math.round(_newRH)} / 751 hrs`;
+  if(btn){btn.textContent=_saveMsg;btn.style.background='#10B981';}
   setTimeout(()=>renderView(),1200);
 }
 
@@ -738,8 +766,8 @@ ${showPropForm?`
   </div>
   <div id="str-fields">
   <div class="g2">
-    <div class="field"><label class="fl">Avg Rental Period (days)</label><input type="number" id="p-dy" min="0.5" step="0.5" placeholder="e.g. 4.5"/><div class="hint">≤7 days = strongest STR exception eligibility. 8–30 days may still qualify with significant personal services. Recalculate annually from actual booking records.</div></div>
-    <div class="field"><label class="fl">Other Participants' Annual Hours</label><input type="number" id="p-ot" min="0" step="1" placeholder="e.g. 50"/><div class="hint">Cleaner, PM, co-host — used for Tests 3 & 7</div></div>
+    <div class="field"><label class="fl">Avg Rental Period (days)</label><input type="number" id="p-dy" min="0.5" step="0.5" placeholder="e.g. 4.5"/><div class="hint">≤7 days = strongest eligibility. 8–30 days may still qualify. <strong>Don't know yet?</strong> Leave blank — use the <strong>Booking Log</strong> (available after saving this property) to auto-calculate from your individual bookings.</div></div>
+    <div class="field"><label class="fl">Other Participants' Annual Hours</label><input type="number" id="p-ot" min="0" step="1" placeholder="e.g. 50"/><div class="hint">Hours/year your cleaner, co-host, or PM spends on this property — used to check if your hours exceed theirs (key to the most common qualification test).</div></div>
   </div>
   </div>
   <div style="display:flex;gap:8px;">
@@ -827,7 +855,7 @@ ${state.properties.map(p=>{
     <div id="ep-str-fields-${p.id}" style="${p.type==='LTR'?'display:none':''}">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
         <div class="field"><label class="fl">Avg Rental Period (days)</label><input type="number" id="ep-dy-${p.id}" value="${p.avgRentalDays||''}" min="0.5" step="0.5" placeholder="e.g. 4.5"/><div class="hint">${(p.bookings&&p.bookings.length>0)?`📅 Auto-calculated from ${p.bookings.length} booking${p.bookings.length>1?'s':''}. Use Booking Log to update.`:'≤7 days = strongest eligibility. 8–30 days may qualify with significant personal services.'}</div></div>
-        <div class="field"><label class="fl">Other Participants' Annual Hours</label><input type="number" id="ep-ot-${p.id}" value="${p.otherHours||0}" min="0" step="1"/><div class="hint">Cleaner, co-host, PM</div></div>
+        <div class="field"><label class="fl">Other Participants' Annual Hours</label><input type="number" id="ep-ot-${p.id}" value="${p.otherHours||0}" min="0" step="1"/><div class="hint">Hours/year your cleaner, co-host, or PM spends on this property.</div></div>
       </div>
     </div>
     <div style="display:flex;gap:8px;">
@@ -1416,7 +1444,7 @@ function vSettings(){
 </div>
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">§469(c)(7)(A) Grouping Election</div>
-  <div style="font-size:12px;color:#64748B;margin-bottom:12px;line-height:1.6;">All rental real estate activities treated as a single activity for material participation. Cannot be easily revoked once filed.</div>
+  <div style="font-size:12px;color:#64748B;margin-bottom:12px;line-height:1.6;">If you have multiple LTR properties, this election combines all your hours into one pool — making material participation easier to achieve. <strong>Most new investors should consult their CPA before enabling this.</strong> Cannot be easily revoked once filed.</div>
   <label class="tog-row"><input type="checkbox" ${s.groupingElection?'checked':''} onchange="setSetting('groupingElection',this.checked)"/><span class="tog-lbl">Grouping election filed for ${activeYear}</span></label>
   <div class="hint" style="margin-top:2px;padding:8px 10px;background:#EFF6FF;border-radius:6px;border:.5px solid #BFDBFE;color:#1E40AF;">⚠ This tracks your election status only. The actual grouping election must be attached to your timely filed original tax return per Treas. Reg. §1.469-9(g). Note: The REPS-specific election under §469(c)(7)(A) (combining all rentals for MP purposes) and the general §1.469-9 grouping election are related but distinct — your tax professional should confirm which applies to your situation. If you missed the filing deadline, see Rev. Proc. 2011-34 for potential relief. Consult your tax professional before filing.</div>
 </div>
@@ -1608,9 +1636,10 @@ const steps=[
   {
     icon:'🏡',
     title:'REPS or STR — which do I pick?',
-    body:`<p><strong style="color:#14B8A6;">REPS (Long-Term Rental)</strong> — Choose this when logging hours for long-term rentals (tenants staying more than 7 days). These hours count toward your 750-hour qualification.</p>
-    <p style="margin-top:10px;"><strong style="color:#38BDF8;">STR (Short-Term Rental)</strong> — Choose this for Airbnb, VRBO, or any property where guests typically stay 7 days or less.</p>`,
-    tip:'💡 Not sure? If your tenant has a monthly lease, pick REPS. If it\'s a vacation rental, pick STR.'
+    body:`<p><strong style="color:#14B8A6;">REPS (Real Estate Professional Status)</strong> — Log hours here for long-term rentals and other qualifying real estate activities. These count toward your 750-hour REPS qualification.</p>
+    <p style="margin-top:10px;"><strong style="color:#38BDF8;">STR (Short-Term Rental)</strong> — Log hours here for Airbnb, VRBO, or any property where guests typically stay 7 days or less. Tracked separately for the material participation tests.</p>
+    <p style="margin-top:10px;padding:10px 12px;background:#F0FDFA;border-radius:8px;font-size:13px;color:#0E7490;">Have <strong>both LTR and STR properties?</strong> You\'ll use both tabs — REPS for your long-term rentals, STR for your short-term rentals.</p>`,
+    tip:'💡 Monthly lease tenant = log as REPS. Vacation/Airbnb rental = log as STR.'
   },
   {
     icon:'📋',
@@ -1640,7 +1669,7 @@ const steps=[
       <li><strong>7.</strong> Optionally attach a receipt or photo</li>
       <li><strong>8.</strong> Hit <strong>Log Entry</strong> ✓</li>
     </ol>`,
-    tip:'💡 Log your hours the same day you do the work. The IRS calls this "contemporaneous" records — and it\'s much stronger evidence than reconstructed logs.'
+    tip:'💡 Before logging, make sure your properties are added in the Properties page — you\'ll need them in the dropdown. Log hours the same day you do the work for the strongest IRS records.'
   },
   {
     icon:'✍️',
@@ -1704,7 +1733,7 @@ function renderWalkStep(){
 
 function walkNext(){
   if(walkStep<steps.length-1){walkStep++;renderWalkStep();}
-  else{closeWalkthrough();}
+  else{closeWalkthrough();go('properties');}
 }
 function walkBack(){if(walkStep>0){walkStep--;renderWalkStep();}}
 function closeWalkthrough(){
