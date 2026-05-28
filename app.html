@@ -403,7 +403,9 @@ function vDashboard(){
         '<div style="font-size:30px;font-weight:900;color:#0D1F3C;letter-spacing:-0.03em;">'+Math.round(pct)+'%<span style="font-size:13px;font-weight:400;color:#64748B;"> of work hrs</span></div>' +
         bar(pct,100,m50?'#10B981':'#EF4444') +
         '<div style="font-size:12px;color:#64748B;">'+Math.round(repsHrs)+' RE hrs · '+Math.round(tot)+' total hrs this year</div>' +
-        (tot===0?'<div style="font-size:11px;margin-top:6px;"><a href="#" onclick="go(\'settings\');return false;" style="color:#14B8A6;font-weight:600;">→ Enter your non-RE hours in Settings to calculate this accurately</a></div>':'') +
+        ((state.settings.nonREPSHours||0)===0&&repsHrs>0
+          ?'<div style="font-size:11px;margin-top:6px;padding:5px 8px;background:#FFF7ED;border-radius:6px;border:.5px solid #FDE68A;color:#92400E;">⚠ Non-RE hours not entered — this result may not be accurate. <a href="#" onclick="go(\'settings\');return false;" style="color:#B45309;font-weight:600;text-decoration:underline;">→ Add in Settings</a></div>'
+          :(tot===0?'<div style="font-size:11px;margin-top:6px;"><a href="#" onclick="go(\'settings\');return false;" style="color:#14B8A6;font-weight:600;">→ Enter your non-RE hours in Settings to calculate this accurately</a></div>':'')) +
       '</div>' +
     '</div>' +
 
