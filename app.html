@@ -8,6 +8,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+/* ── Skip nav ── */
+.skip-nav{position:absolute;left:-9999px;top:4px;z-index:9999;padding:8px 16px;background:#14B8A6;color:#fff;font-size:13px;font-weight:700;border-radius:8px;text-decoration:none;}
+.skip-nav:focus{left:4px;}
+
 html,body{height:100%;}
 body{font-family:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;background:#F0FDFA;color:#0D1F3C;}
 .app{display:flex;height:100vh;overflow:hidden;}
@@ -153,14 +157,15 @@ tr:last-child td{border-bottom:none;}
 </style>
 </head>
 <body>
-<div class="app">
-  <div class="sb">
+<a class="skip-nav" href="#content">Skip to main content</a>
+<div class="app" role="application" aria-label="RepsRecord">
+  <div class="sb" role="navigation" aria-label="Main navigation">
     <div class="sb-head">
       <div class="sb-logo">REPS<span>Record</span></div>
-      <select id="year-sel" onchange="activeYear=parseInt(this.value);renderView()" style="font-size:10px;color:#7DD3FC;background:transparent;border:none;outline:none;cursor:pointer;font-family:inherit;font-weight:700;letter-spacing:.03em;margin-top:3px;"></select>
+      <select id="year-sel" aria-label="Select tax year" onchange="activeYear=parseInt(this.value);renderView()" style="font-size:10px;color:#7DD3FC;background:transparent;border:none;outline:none;cursor:pointer;font-family:inherit;font-weight:700;letter-spacing:.03em;margin-top:3px;"></select>
     </div>
     <div class="sb-nav" id="sb-nav"></div>
-    <div class="sb-foot">
+    <div class="sb-foot" role="complementary" aria-label="REPS qualification status">
       <div class="sf-lbl">REPS Status</div>
       <div class="sf-val" id="sb-val">0 / 750 hrs</div>
       <div class="sf-track"><div class="sf-fill" id="sb-fill" style="width:0%"></div></div>
@@ -169,11 +174,11 @@ tr:last-child td{border-bottom:none;}
       <div class="sf-val" id="sb-str-val">0 hrs logged</div>
       <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;" id="sb-str-props"></div>
       <div style="height:.5px;background:#1E4A6E;margin:10px 0;"></div>
-      <div id="sync-indicator" style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#7DD3FC;text-align:center;margin-bottom:8px;">⟳ Loading…</div>
+      <div id="sync-indicator" role="status" aria-live="polite" aria-label="Data sync status" style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#7DD3FC;text-align:center;margin-bottom:8px;">⟳ Loading…</div>
       <button onclick="signOut()" class="sb-signout">🚪 Sign out</button>
     </div>
   </div>
-  <div class="main"><div class="content" id="content"></div></div>
+  <div class="main" role="main"><div class="content" id="content"></div></div>
 </div>
 <script>
 // ── Supabase Config (extracted to top-level — used by signOut, uploadFiles, and cloud sync) ──
@@ -198,6 +203,7 @@ let view='dashboard',chartInst=null,showPropForm=false,trackType='REPS';
 let logFilter={type:'all',propId:'',search:''};
 let timerStart=null,timerTick=null;
 let selEntries=new Set();
+let _chartTab='monthly';// 'monthly' | 'property'
 
 function uid(){return Math.random().toString(36).slice(2,9);}
 function fmtH(h){const a=Math.floor(h),b=Math.round((h-a)*60);return b===0?`${a}h`:`${a}h ${b}m`;}
@@ -321,8 +327,9 @@ function mpT(pid){
 
 function renderNav(){
   document.getElementById('sb-nav').innerHTML=NAV.map(n=>{
-    if(n.id==='divider')return`<div style="height:.5px;background:#1E3A5F;margin:8px 10px;"></div>`;
-    return`<div class="ni${view===n.id?' active':''}" onclick="go('${n.id}')"><span class="ni-ic">${n.ic}</span>${n.label}</div>`;
+    if(n.id==='divider')return`<div role="separator" style="height:.5px;background:#1E3A5F;margin:8px 10px;"></div>`;
+    const isActive=view===n.id;
+    return`<div class="ni${isActive?' active':''}" role="menuitem" tabindex="0" aria-current="${isActive?'page':'false'}" aria-label="${n.label}" onclick="go('${n.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();go('${n.id}');}"><span class="ni-ic" aria-hidden="true">${n.ic}</span>${n.label}</div>`;
   }).join('');
 }
 function updateSB(){
@@ -468,8 +475,31 @@ function vDashboard(){
       '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;"><div class="card" style="text-align:center;padding:16px 12px;"><div style="font-size:28px;font-weight:900;color:#38BDF8;">'+Math.round(strHrs)+'</div><div style="font-size:12px;font-weight:600;color:#64748B;margin-top:2px;">Total STR Hours</div><div style="font-size:11px;color:#94A3B8;margin-top:2px;">across all properties</div></div><div class="card" style="text-align:center;padding:16px 12px;"><div style="font-size:28px;font-weight:900;color:#10B981;">'+strQual+'</div><div style="font-size:12px;font-weight:600;color:#64748B;margin-top:2px;">Properties Qualifying</div><div style="font-size:11px;color:#94A3B8;margin-top:2px;">material participation met</div></div><div class="card" style="text-align:center;padding:16px 12px;"><div style="font-size:28px;font-weight:900;color:'+(strTotal-strQual>0?'#EF4444':'#10B981')+';">'+(strTotal-strQual)+'</div><div style="font-size:12px;font-weight:600;color:#64748B;margin-top:2px;">Not Yet Qualifying</div><div style="font-size:11px;color:#94A3B8;margin-top:2px;">log more hours or override</div></div></div><div style="text-align:right;"><a href="#" onclick="go(\'mp\');return false;" style="font-size:12px;color:#14B8A6;font-weight:700;text-decoration:none;">View per-property MP tests →</a></div>')+
   '</div>';
 
+  // ── Chart section ──
+  const _hasEntries=state.entries.filter(e=>e.date&&e.date.startsWith(String(activeYear))).length>0;
+  const chartSection=_hasEntries?`
+<div style="margin-bottom:32px;">
+  <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94A3B8;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid #F1F5F9;">Hours Trend</div>
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:13px;font-weight:700;color:#0D1F3C;">${activeYear} Activity</div>
+      <div style="display:flex;background:#F0FDFA;border-radius:8px;padding:3px;gap:2px;">
+        <button onclick="_chartTab='monthly';renderView()" style="padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;background:${_chartTab==='monthly'?'#14B8A6':'transparent'};color:${_chartTab==='monthly'?'#fff':'#64748B'};">Monthly</button>
+        <button onclick="_chartTab='property';renderView()" style="padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;background:${_chartTab==='property'?'#14B8A6':'transparent'};color:${_chartTab==='property'?'#fff':'#64748B'};">By Property</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#64748B;"><span style="width:12px;height:12px;border-radius:3px;background:#14B8A6;display:inline-block;"></span>REPS</div>
+      <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:#64748B;"><span style="width:12px;height:12px;border-radius:3px;background:#38BDF8;display:inline-block;"></span>STR</div>
+    </div>
+    <div class="chart-wrap" style="height:${_chartTab==='property'?Math.max(140,state.properties.length*52)+'px':'200px'};">
+      <canvas id="mc" aria-label="${_chartTab==='monthly'?'Monthly hours bar chart for '+activeYear:'Hours by property bar chart'}" role="img"></canvas>
+    </div>
+  </div>
+</div>`:'';
+
   return settingsBanner+'<div class="ph"><div class="ph-row"><div><div class="pg-title">'+activeYear+' Dashboard</div><div class="pg-sub">Your tax year status at a glance</div></div><div style="display:flex;gap:8px;" class="top-acts"><button class="btn btn-outline btn-sm" onclick="go(\'reports\')">📋 Audit Report</button><button class="btn btn-teal btn-sm" onclick="go(\'log\')">+ Log Time</button></div></div></div>'+
-  repsSection+ltrSection+strSection;
+  repsSection+ltrSection+strSection+chartSection;
 }
 
 
@@ -484,9 +514,9 @@ function vLog(){
 </div>
 
 <!-- Import Modal -->
-<div id="import-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:none;align-items:center;justify-content:center;">
+<div id="import-modal" role="dialog" aria-modal="true" aria-labelledby="import-modal-title" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:none;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:16px;padding:32px;max-width:520px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.3);">
-    <div style="font-size:20px;font-weight:900;color:#0D1F3C;margin-bottom:6px;">📊 Import Hours from Excel</div>
+    <div id="import-modal-title" style="font-size:20px;font-weight:900;color:#0D1F3C;margin-bottom:6px;">📊 Import Hours from Excel</div>
     <p style="font-size:13px;color:#64748B;margin-bottom:20px;line-height:1.6;">Upload an Excel (.xlsx) or CSV file. Your file must have these column headers (exact spelling):</p>
     <div style="background:#F0FDFA;border:1px solid #CCFBF1;border-radius:10px;padding:14px 16px;margin-bottom:12px;font-size:12px;font-family:ui-monospace,monospace;color:#0E7490;line-height:2;">
       <strong>date</strong> &nbsp;|&nbsp; <strong>hours</strong> &nbsp;|&nbsp; <strong>minutes</strong> &nbsp;|&nbsp; <strong>property</strong> &nbsp;|&nbsp; <strong>type</strong> &nbsp;|&nbsp; <strong>category</strong> &nbsp;|&nbsp; <strong>notes</strong>
@@ -571,7 +601,7 @@ function vLog(){
   <button class="btn btn-block" id="sub-btn" onclick="submitEntry()" style="background:${trackType==='STR'?'#38BDF8':'#14B8A6'};color:#fff;">+ Log ${trackType} Entry</button>
 </div>
 ${all.length?`
-<!-- Filter bar -->
+<!-- Filter bar --><div role="search" aria-label="Filter and search entries">
 <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
   <div style="display:flex;background:#F0FDFA;border-radius:8px;padding:3px;gap:2px;">
     ${['all','REPS','STR'].map(t=>`<button onclick="setLogFilter('type','${t}')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;background:${logFilter.type===t?(t==='STR'?'#38BDF8':'#14B8A6'):'transparent'};color:${logFilter.type===t?'#fff':'#64748B'};">${t==='all'?'All':t}</button>`).join('')}
@@ -584,7 +614,7 @@ ${all.length?`
   <div id="bulk-bar" style="display:${selEntries.size>0?'flex':'none'};gap:8px;align-items:center;">
     <button id="bulk-cnt" onclick="bulkDelete()" style="background:#EF4444;color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Delete selected (${selEntries.size})</button>
   </div>
-</div>
+</div></div>
 ${(()=>{
   let filtered=[...all];
   if(logFilter.type!=='all')filtered=filtered.filter(e=>e.trackType===logFilter.type);
@@ -605,9 +635,9 @@ ${filtered.map(e=>{const pr=state.properties.find(p=>p.id===e.propertyId);const 
   </div>
   <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
     <div class="ei-hrs">${fmtH(e.hours)}</div>
-    <button onclick="dupeEntry('${e.id}')" title="Copy to new entry" style="background:#F0FDFA;border:1px solid #CCFBF1;color:#0E7490;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;font-weight:600;">📋 Copy</button>
-    <button onclick="showEditEntry('${e.id}')" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;font-weight:600;">✏️ Edit</button>
-    <button class="ei-del" onclick="delEntry('${e.id}')" title="Delete entry">🗑</button>
+    <button onclick="dupeEntry('${e.id}')" aria-label="Copy ${e.category} entry to new entry" title="Copy to new entry" style="background:#F0FDFA;border:1px solid #CCFBF1;color:#0E7490;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;font-weight:600;">📋 Copy</button>
+    <button onclick="showEditEntry('${e.id}')" aria-label="Edit ${e.category} entry from ${e.date}" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;font-weight:600;">✏️ Edit</button>
+    <button class="ei-del" onclick="delEntry('${e.id}')" aria-label="Delete ${e.category} entry from ${e.date}" title="Delete entry">🗑</button>
   </div>
   <div id="edit-entry-${e.id}" style="display:none;width:100%;margin-top:12px;background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:10px;padding:14px;">
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#14B8A6;margin-bottom:12px;">Edit Entry</div>
@@ -839,7 +869,7 @@ ${state.properties.map(p=>{
   const propEntries=yearEntries().filter(e=>e.propertyId===p.id).sort((a,b)=>new Date(b.date)-new Date(a.date));
   return`<div class="prop-c ${p.type==='LTR'?'ltr':''}" style="flex-direction:column;gap:0;position:relative;">
   <div style="position:absolute;top:0;right:0;">
-    <button onclick="openQuickLog('${p.id}')" style="background:#14B8A6;color:#fff;border:none;font-size:12px;font-weight:700;padding:7px 14px;border-radius:0 10px 0 10px;cursor:pointer;letter-spacing:.01em;">⏱ Log Time</button>
+    <button onclick="openQuickLog('${p.id}')" style="background:#14B8A6;color:#fff;border:none;font-size:12px;font-weight:700;padding:7px 14px;border-radius:0 10px 0 10px;cursor:pointer;letter-spacing:.01em;" aria-label="Log time for ${p.name}">⏱ Log Time</button>
   </div>
   <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-right:90px;">
     <div>
@@ -856,7 +886,7 @@ ${state.properties.map(p=>{
         <button class="btn btn-sm" style="background:#F0FDFA;border:1px solid #CCFBF1;color:#0E7490;font-size:11px;" onclick="togglePropEntries('${p.id}')">📋 View Entries (${propEntries.length})</button>
         ${p.type==='STR'?`<button class="btn btn-sm" style="background:#FEF3C7;border:1px solid #FDE68A;color:#92400E;font-size:11px;" onclick="toggleBookingLog('${p.id}')">📅 Bookings (${(p.bookings||[]).length})</button>`:''}
         <button class="btn btn-sm" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;font-size:11px;" onclick="toggleEditProp('${p.id}')">✏️ Edit</button>
-        <button class="btn btn-sm btn-danger" style="display:flex;align-items:center;gap:4px;font-size:11px;" onclick="rmProp('${p.id}')">🗑 Delete</button>
+        <button class="btn btn-sm btn-danger" style="display:flex;align-items:center;gap:4px;font-size:11px;" aria-label="Delete property ${p.name}" onclick="rmProp('${p.id}')">🗑 Delete</button>
       </div>
     </div>
   </div>
@@ -1694,10 +1724,33 @@ function renderView(){
     },1000);
   }
   if(view==='dashboard'){
-    const monthly=Array.from({length:12},()=>({r:0,s:0}));
-    state.entries.forEach(e=>{if(!e.date)return;const m=new Date(e.date+'T12:00:00').getMonth();if(e.trackType==='STR')monthly[m].s+=e.hours||0;else monthly[m].r+=e.hours||0;});
     const cv=document.getElementById('mc');
-    if(cv) chartInst=new Chart(cv,{type:'bar',data:{labels:MONTHS,datasets:[{label:'REPS',data:monthly.map(m=>Math.round(m.r*10)/10),backgroundColor:'#14B8A6',borderRadius:3,barPercentage:.65},{label:'STR',data:monthly.map(m=>Math.round(m.s*10)/10),backgroundColor:'#38BDF8',borderRadius:3,barPercentage:.65}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y}h`}}},scales:{x:{grid:{display:false},ticks:{font:{size:11},color:'#64748B'},border:{display:false}},y:{grid:{color:'#F0FDFA'},ticks:{font:{size:11},color:'#64748B'},border:{display:false},beginAtZero:true}}}});
+    if(cv){
+      const ye=state.entries.filter(e=>e.date&&e.date.startsWith(String(activeYear)));
+      if(_chartTab==='monthly'){
+        const monthly=Array.from({length:12},()=>({r:0,s:0}));
+        ye.forEach(e=>{const m=new Date(e.date+'T12:00:00').getMonth();if(e.trackType==='STR')monthly[m].s+=e.hours||0;else monthly[m].r+=e.hours||0;});
+        chartInst=new Chart(cv,{type:'bar',data:{labels:MONTHS,datasets:[
+          {label:'REPS',data:monthly.map(m=>Math.round(m.r*10)/10),backgroundColor:'#14B8A6',borderRadius:3,barPercentage:.6},
+          {label:'STR',data:monthly.map(m=>Math.round(m.s*10)/10),backgroundColor:'#38BDF8',borderRadius:3,barPercentage:.6}
+        ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.y}h`}}},scales:{x:{grid:{display:false},ticks:{font:{size:11},color:'#64748B'},border:{display:false}},y:{grid:{color:'#F0FDFA'},ticks:{font:{size:11},color:'#64748B'},border:{display:false},beginAtZero:true}}}});
+      } else {
+        // By property view — horizontal bar per property
+        const props=state.properties.length>0?state.properties:[{id:null,name:'General RE',type:'REPS'}];
+        const propHrs=props.map(p=>({
+          name:p.name.length>18?p.name.slice(0,18)+'…':p.name,
+          reps:ye.filter(e=>e.propertyId===p.id&&e.trackType!=='STR'&&!e.isSpouse).reduce((a,e)=>a+(e.hours||0),0),
+          str:ye.filter(e=>e.propertyId===p.id&&e.trackType==='STR'&&!e.isSpouse).reduce((a,e)=>a+(e.hours||0),0)
+        }));
+        // Also include general (no property)
+        const genReps=ye.filter(e=>(!e.propertyId||e.propertyId==='')&&e.trackType!=='STR'&&!e.isSpouse).reduce((a,e)=>a+(e.hours||0),0);
+        if(genReps>0&&state.properties.length>0)propHrs.push({name:'General RE',reps:genReps,str:0});
+        chartInst=new Chart(cv,{type:'bar',data:{labels:propHrs.map(p=>p.name),datasets:[
+          {label:'REPS',data:propHrs.map(p=>Math.round(p.reps*10)/10),backgroundColor:'#14B8A6',borderRadius:3,barPercentage:.6},
+          {label:'STR',data:propHrs.map(p=>Math.round(p.str*10)/10),backgroundColor:'#38BDF8',borderRadius:3,barPercentage:.6}
+        ]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.x}h`}}},scales:{x:{grid:{color:'#F0FDFA'},ticks:{font:{size:11},color:'#64748B'},border:{display:false},beginAtZero:true},y:{grid:{display:false},ticks:{font:{size:11},color:'#64748B'},border:{display:false}}}}});
+      }
+    }
   }
 }
 
@@ -1853,13 +1906,13 @@ setTimeout(showWalkthrough,800);
 </script>
 
 <!-- ── WALKTHROUGH OVERLAY ── -->
-<div id="walk-overlay" style="display:none;position:fixed;inset:0;background:rgba(8,21,38,.85);z-index:1000;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);">
+<div id="walk-overlay" role="dialog" aria-modal="true" aria-labelledby="walk-title" style="display:none;position:fixed;inset:0;background:rgba(8,21,38,.85);z-index:1000;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px);">
   <div style="background:#fff;border-radius:20px;max-width:520px;width:100%;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.4);">
     <!-- Header -->
     <div style="background:#0D1F3C;padding:28px 28px 20px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
         <div style="display:flex;gap:6px;align-items:center;" id="walk-dots"></div>
-        <button onclick="closeWalkthrough()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:20px;cursor:pointer;padding:0;line-height:1;">×</button>
+        <button onclick="closeWalkthrough()" aria-label="Close walkthrough" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:20px;cursor:pointer;padding:0;line-height:1;">×</button>
       </div>
       <div id="walk-icon" style="font-size:40px;margin-bottom:10px;"></div>
       <div id="walk-title" style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-0.03em;line-height:1.2;"></div>
