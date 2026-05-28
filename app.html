@@ -2036,7 +2036,7 @@ async function exportXLSX(){
           rows.push([
             ai===0?e.date:'',       // date only on first row
             ai===0?propName(e):'',
-            ai===0?e.trackType+(e.isSpouse?' (Spouse)'):'',
+            ai===0?e.trackType+(e.isSpouse?' (Spouse)':''):'',
             ai===0?e.category:'',
             ai===0?fmtDecHrs(e.hours):'',
             ai===0?fmtHMLabel(e.hours):'',
