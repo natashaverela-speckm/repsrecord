@@ -413,7 +413,41 @@ function vLog(){
   const cats=trackType==='STR'?STR_CATS:REPS_CATS;
   const all=[...yearEntries()].sort((a,b)=>new Date(b.date)-new Date(a.date));
   return`
-<div class="ph"><div class="pg-title">Log Time</div><div class="pg-sub">Record qualifying hours for REPS (§469(c)(7)) and STR material participation (Temp. Reg. §1.469-5T)</div></div>
+<div class="ph" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
+  <div><div class="pg-title">Log Time</div><div class="pg-sub">Record qualifying hours for REPS (§469(c)(7)) and STR material participation (Temp. Reg. §1.469-5T)</div></div>
+  <button onclick="showImportModal()" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;font-size:13px;font-weight:700;padding:10px 18px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:inherit;">📊 Import from Excel</button>
+</div>
+
+<!-- Import Modal -->
+<div id="import-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;display:none;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:16px;padding:32px;max-width:520px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.3);">
+    <div style="font-size:20px;font-weight:900;color:#0D1F3C;margin-bottom:6px;">📊 Import Hours from Excel</div>
+    <p style="font-size:13px;color:#64748B;margin-bottom:20px;line-height:1.6;">Upload an Excel (.xlsx) or CSV file. Your file must have these column headers (exact spelling):</p>
+    <div style="background:#F0FDFA;border:1px solid #CCFBF1;border-radius:10px;padding:14px 16px;margin-bottom:20px;font-size:12px;font-family:ui-monospace,monospace;color:#0E7490;line-height:2;">
+      <strong>date</strong> &nbsp;|&nbsp; <strong>hours</strong> &nbsp;|&nbsp; <strong>minutes</strong> &nbsp;|&nbsp; <strong>property</strong> &nbsp;|&nbsp; <strong>type</strong> &nbsp;|&nbsp; <strong>category</strong> &nbsp;|&nbsp; <strong>notes</strong>
+    </div>
+    <div style="font-size:12px;color:#64748B;margin-bottom:16px;line-height:1.7;">
+      <strong>date</strong> — format: YYYY-MM-DD (e.g. 2026-01-15)<br>
+      <strong>hours</strong> — whole number (e.g. 2)<br>
+      <strong>minutes</strong> — 0, 15, 30, or 45<br>
+      <strong>property</strong> — must match an existing property name exactly<br>
+      <strong>type</strong> — REPS or STR<br>
+      <strong>category</strong> — any activity category<br>
+      <strong>notes</strong> — optional description
+    </div>
+    <div id="import-drop" onclick="document.getElementById('import-file').click()" style="border:2px dashed #CBD5E1;border-radius:12px;padding:32px;text-align:center;cursor:pointer;background:#F8FAFC;margin-bottom:16px;transition:all .15s;" onmouseover="this.style.borderColor='#14B8A6';this.style.background='#F0FDFA'" onmouseout="this.style.borderColor='#CBD5E1';this.style.background='#F8FAFC'">
+      <div style="font-size:28px;margin-bottom:8px;">📂</div>
+      <div style="font-size:14px;font-weight:700;color:#0D1F3C;">Click to choose your file</div>
+      <div style="font-size:12px;color:#94A3B8;margin-top:4px;">.xlsx or .csv files supported</div>
+      <input type="file" id="import-file" accept=".xlsx,.csv" style="display:none" onchange="handleImportFile(this)"/>
+    </div>
+    <div id="import-status" style="display:none;margin-bottom:16px;"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="closeImportModal()" style="background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0;padding:10px 20px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;">Cancel</button>
+      <button id="import-confirm-btn" onclick="confirmImport()" style="display:none;background:#14B8A6;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Import Entries</button>
+    </div>
+  </div>
+</div>
 <div class="card card-mb">
   <div class="track-bar">
     <button class="track-btn${trackType==='REPS'?' active-reps':''}" onclick="setTT('REPS')">🏡  REPS / LTR Hours</button>
@@ -662,6 +696,11 @@ ${state.properties.map(p=>{
     <div class="field" style="margin-bottom:12px;"><label class="fl">Notes / Description</label>
       <textarea id="ql-note-${p.id}" rows="2" placeholder="What did you do? Be specific — this is your audit record."></textarea>
     </div>
+    <div class="field" style="margin-bottom:12px;">
+      <label class="fl">Evidence / Attachments <span style="font-weight:400;color:#94A3B8;">(optional)</span></label>
+      <input type="file" id="ql-files-${p.id}" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx" style="width:100%;padding:8px 12px;border:1.5px solid #CBD5E1;border-radius:8px;background:#F8FAFC;font-size:13px;font-family:inherit;cursor:pointer;"/>
+      <div class="hint">Attach receipts, photos, invoices, or contracts</div>
+    </div>
     <div style="display:flex;gap:8px;">
       <button onclick="saveQuickLog('${p.id}')" style="background:#14B8A6;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Save Entry</button>
       <button onclick="document.getElementById('quick-log-${p.id}').style.display='none'" style="background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0;padding:9px 14px;border-radius:8px;font-size:13px;cursor:pointer;">Cancel</button>
@@ -788,13 +827,23 @@ function updateQLCats(propId){
   sel.innerHTML=cats.map(c=>`<option value="${c}">${c}</option>`).join('');
 }
 
-function saveQuickLog(propId){
+async function saveQuickLog(propId){
   const hrs=parseFloat(document.getElementById('ql-hrs-'+propId)?.value)||0;
   const mins=parseFloat(document.getElementById('ql-min-'+propId)?.value)||0;
   if(hrs+mins<=0){alert('Please enter a time greater than 0.');return;}
+  const btn=document.querySelector(`#quick-log-${propId} button`);
+  if(btn){btn.disabled=true;btn.textContent='Saving…';}
   const tt=document.getElementById('ql-tt-'+propId)?.value||'REPS';
+  const entryId=uid();
+  // Handle file uploads
+  const fileInput=document.getElementById('ql-files-'+propId);
+  let attachments=[];
+  if(fileInput?.files?.length>0){
+    const pendingFiles=Array.from(fileInput.files);
+    attachments=await uploadFiles(entryId,pendingFiles);
+  }
   state.entries.push({
-    id:uid(),
+    id:entryId,
     date:document.getElementById('ql-date-'+propId)?.value||todayStr(),
     propertyId:propId,
     trackType:tt,
@@ -803,7 +852,7 @@ function saveQuickLog(propId){
     hours:Math.round((hrs+mins/60)*100)/100,
     notes:document.getElementById('ql-note-'+propId)?.value||'',
     isSpouse:false,
-    attachments:[]
+    attachments
   });
   save();renderView();
 }
@@ -841,6 +890,137 @@ function togglePropEntries(id){
   if(!el)return;
   const isOpen=el.style.display!=='none';
   el.style.display=isOpen?'none':'block';
+}
+
+// ── IMPORT FROM EXCEL ──
+let _importRows = [];
+
+function showImportModal(){
+  const m = document.getElementById('import-modal');
+  if(m){ m.style.display='flex'; }
+}
+
+function closeImportModal(){
+  const m = document.getElementById('import-modal');
+  if(m){ m.style.display='none'; }
+  _importRows = [];
+  const s = document.getElementById('import-status');
+  if(s){ s.style.display='none'; s.innerHTML=''; }
+  const btn = document.getElementById('import-confirm-btn');
+  if(btn) btn.style.display='none';
+  const fi = document.getElementById('import-file');
+  if(fi) fi.value='';
+}
+
+async function handleImportFile(input){
+  const file = input.files[0];
+  if(!file) return;
+  const status = document.getElementById('import-status');
+  status.style.display='block';
+  status.innerHTML = '<div style="color:#64748B;font-size:13px;">⏳ Reading file...</div>';
+
+  try {
+    let rows = [];
+    if(file.name.endsWith('.csv')){
+      const text = await file.text();
+      rows = parseCSV(text);
+    } else {
+      // Load SheetJS from CDN
+      if(!window.XLSX){
+        await new Promise((res,rej)=>{
+          const s=document.createElement('script');
+          s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+          s.onload=res; s.onerror=rej;
+          document.head.appendChild(s);
+        });
+      }
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const data = XLSX.utils.sheet_to_json(ws, {defval:''});
+      rows = data;
+    }
+
+    // Validate and map rows
+    const required = ['date','hours','property','type'];
+    const sample = rows[0] ? Object.keys(rows[0]).map(k=>k.toLowerCase()) : [];
+    const missing = required.filter(r => !sample.includes(r));
+    if(missing.length){
+      status.innerHTML = `<div style="background:#FEE2E2;border-radius:8px;padding:12px;font-size:13px;color:#991B1B;">❌ Missing required columns: <strong>${missing.join(', ')}</strong><br>Check your column headers match exactly.</div>`;
+      return;
+    }
+
+    // Normalize keys to lowercase
+    const normalized = rows.map(r => {
+      const obj = {};
+      Object.keys(r).forEach(k => obj[k.toLowerCase().trim()] = String(r[k]).trim());
+      return obj;
+    }).filter(r => r.date && r.hours && r.property);
+
+    // Match properties
+    let matched=0, unmatched=[], entries=[];
+    normalized.forEach(r => {
+      const prop = state.properties.find(p => p.name.toLowerCase() === r.property.toLowerCase());
+      const hrs = parseFloat(r.hours)||0;
+      const mins = parseFloat(r.minutes||0);
+      const total = Math.round((hrs + mins/60)*100)/100;
+      const tt = (r.type||'REPS').toUpperCase() === 'STR' ? 'STR' : 'REPS';
+      const cats = tt==='STR' ? STR_CATS : REPS_CATS;
+      const cat = cats.find(c=>c.toLowerCase()===( r.category||'').toLowerCase()) || cats[0];
+      if(!prop){ unmatched.push(r.property); return; }
+      if(total <= 0) return;
+      entries.push({
+        id: uid(),
+        date: r.date,
+        propertyId: prop.id,
+        trackType: tt,
+        type: tt,
+        category: cat,
+        hours: total,
+        notes: r.notes||'',
+        isSpouse: false,
+        attachments: []
+      });
+      matched++;
+    });
+
+    _importRows = entries;
+    const unmatchedUniq = [...new Set(unmatched)];
+    let html = `<div style="background:#F0FDFA;border-radius:8px;padding:14px;font-size:13px;color:#0E7490;">
+      ✅ <strong>${matched} entries</strong> ready to import`;
+    if(unmatchedUniq.length){
+      html += `<br><span style="color:#B45309;">⚠️ ${unmatched.length} rows skipped — property not found: <strong>${unmatchedUniq.join(', ')}</strong></span>`;
+    }
+    html += '</div>';
+    status.innerHTML = html;
+
+    const btn = document.getElementById('import-confirm-btn');
+    if(btn) btn.style.display = matched > 0 ? 'inline-block' : 'none';
+
+  } catch(err){
+    status.innerHTML = `<div style="background:#FEE2E2;border-radius:8px;padding:12px;font-size:13px;color:#991B1B;">❌ Error reading file: ${err.message}</div>`;
+  }
+}
+
+function parseCSV(text){
+  const lines = text.split('\n').filter(l=>l.trim());
+  if(lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,'').toLowerCase());
+  return lines.slice(1).map(line=>{
+    const vals = line.split(',').map(v=>v.trim().replace(/^"|"$/g,''));
+    const obj = {};
+    headers.forEach((h,i)=>obj[h]=vals[i]||'');
+    return obj;
+  });
+}
+
+function confirmImport(){
+  if(!_importRows.length) return;
+  state.entries.push(..._importRows);
+  save();
+  closeImportModal();
+  renderView();
+  alert(`✅ Successfully imported ${_importRows.length} entries!`);
 }
 
 function togglePropType(){
