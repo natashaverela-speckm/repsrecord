@@ -239,6 +239,53 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
   /* Hide desktop-only sidebar sections on phone */
 }
 @media (min-width:601px){.sb-mobile-status{display:none;}}
+
+/* ════════ BATCH 3 ════════ */
+/* ── Toast notifications ── */
+#toast-container{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:10px;max-width:380px;width:calc(100% - 32px);pointer-events:none;}
+.toast{pointer-events:auto;display:flex;align-items:flex-start;gap:10px;background:#fff;border-radius:10px;border-left:4px solid #14B8A6;box-shadow:0 6px 24px rgba(13,31,60,.16);padding:13px 14px;font-size:13px;color:#0D1F3C;animation:toastIn .22s cubic-bezier(.16,1,.3,1);}
+.toast.toast-info{border-left-color:#14B8A6;}
+.toast.toast-success{border-left-color:#10B981;}
+.toast.toast-warn{border-left-color:#F59E0B;}
+.toast.toast-error{border-left-color:#EF4444;}
+.toast-msg{flex:1;line-height:1.5;word-break:break-word;}
+.toast-action{flex-shrink:0;background:#0F766E;color:#fff;border:none;border-radius:7px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+.toast-action:hover{opacity:.88;}
+.toast-close{flex-shrink:0;background:transparent;border:none;color:#94A3B8;font-size:18px;line-height:1;cursor:pointer;padding:0 2px;font-family:inherit;}
+.toast-close:hover{color:#0D1F3C;}
+.toast.toast-leaving{animation:toastOut .2s ease forwards;}
+@keyframes toastIn{from{opacity:0;transform:translateX(40px);}to{opacity:1;transform:translateX(0);}}
+@keyframes toastOut{from{opacity:1;transform:translateX(0);}to{opacity:0;transform:translateX(40px);}}
+
+/* ── Custom dialog ── */
+#dlg-backdrop{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;background:rgba(13,31,60,.5);backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);padding:20px;}
+#dlg-backdrop[data-open="1"]{display:flex;animation:dlgFade .15s ease;}
+.dlg-card{background:#fff;border-radius:14px;max-width:460px;width:100%;padding:22px 24px;box-shadow:0 18px 50px rgba(13,31,60,.3);animation:dlgIn .2s cubic-bezier(.16,1,.3,1);}
+.dlg-title{font-size:17px;font-weight:800;color:#0D1F3C;margin-bottom:8px;}
+.dlg-body{font-size:13px;color:#64748B;line-height:1.6;white-space:pre-line;}
+.dlg-input{width:100%;margin-top:14px;padding:10px 12px;border:1.5px solid #CBD5E1;border-radius:8px;font-size:16px;font-family:inherit;color:#0D1F3C;}
+.dlg-input:focus{outline:none;border-color:#14B8A6;}
+.dlg-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:20px;}
+.dlg-btn{padding:9px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;border:1.5px solid transparent;}
+.dlg-btn-cancel{background:#F1F5F9;color:#475569;border-color:#E2E8F0;}
+.dlg-btn-cancel:hover{background:#E2E8F0;}
+.dlg-btn-confirm{background:#0F766E;color:#fff;}
+.dlg-btn-confirm:hover{opacity:.9;}
+.dlg-btn-danger{background:#EF4444;color:#fff;}
+.dlg-btn-danger:hover{opacity:.9;}
+@keyframes dlgFade{from{opacity:0;}to{opacity:1;}}
+@keyframes dlgIn{from{opacity:0;transform:translateY(12px) scale(.98);}to{opacity:1;transform:translateY(0) scale(1);}}
+
+/* ── Spinners & skeletons ── */
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid #CCFBF1;border-top-color:#14B8A6;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;}
+.spinner-lg{width:24px;height:24px;border-width:3px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.skeleton{background:linear-gradient(90deg,#E2E8F0 25%,#F1F5F9 50%,#E2E8F0 75%);background-size:200% 100%;border-radius:6px;animation:shimmer 1.4s ease infinite;}
+@keyframes shimmer{0%{background-position:200% 0;}100%{background-position:-200% 0;}}
+
+/* ── Interactive sync pill ── */
+#sync-indicator{cursor:pointer;transition:opacity .15s;}
+#sync-indicator:hover{opacity:.75;}
 </style>
 </head>
 <body>
@@ -259,12 +306,24 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
       <div class="sf-val" id="sb-str-val">0 hrs logged</div>
       <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;" id="sb-str-props"></div>
       <div style="height:.5px;background:#1E4A6E;margin:10px 0;"></div>
-      <div id="sync-indicator" role="status" aria-live="polite" aria-label="Data sync status" style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#7DD3FC;text-align:center;margin-bottom:8px;">⟳ Loading…</div>
+      <div id="sync-indicator" role="button" tabindex="0" aria-live="polite" aria-label="Data sync status — click for details" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}" style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#7DD3FC;text-align:center;margin-bottom:8px;">⟳ Loading…</div>
       <button onclick="toggleRemy()" id="remy-btn" aria-label="Open Remy AI assistant" style="width:100%;margin-bottom:8px;padding:9px 12px;background:linear-gradient(135deg,#14B8A6,#38BDF8);border:none;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border-radius:8px;transition:opacity .15s;text-align:center;letter-spacing:.02em;">✨ Ask Remy</button>
       <button onclick="signOut()" class="sb-signout" aria-label="Sign out of RepsRecord">🚪 Sign out</button>
     </div>
   </div>
-  <div class="main" role="main"><div class="content" id="content"></div></div>
+  <div class="main" role="main"><div class="content" id="content"><div style="padding:60px 20px;text-align:center;color:#94A3B8;"><div class="spinner spinner-lg" style="margin:0 auto 14px;"></div><div style="font-size:13px;">Loading your data…</div></div></div></div>
+</div>
+<div id="toast-container" role="region" aria-label="Notifications" aria-live="polite"></div>
+<div id="dlg-backdrop" role="dialog" aria-modal="true" aria-labelledby="dlg-title" data-open="0">
+  <div class="dlg-card">
+    <div id="dlg-title" class="dlg-title"></div>
+    <div id="dlg-body" class="dlg-body"></div>
+    <input id="dlg-input" class="dlg-input" style="display:none" type="text" aria-label="Confirmation input"/>
+    <div class="dlg-actions">
+      <button id="dlg-btn-cancel" class="dlg-btn dlg-btn-cancel">Cancel</button>
+      <button id="dlg-btn-confirm" class="dlg-btn dlg-btn-confirm">Confirm</button>
+    </div>
+  </div>
 </div>
 <script>
 // ── Supabase Config (extracted to top-level — used by signOut, uploadFiles, and cloud sync) ──
@@ -273,10 +332,109 @@ const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 // ── Cloud sync state ──
 let _sb=null,_sbUser=null,_syncTimer=null,_syncStatus='local';
+let _cloudFailCount=0;// BATCH 3: consecutive cloud-save failures (toast on 3rd)
 
 // ── XSS-safe HTML escaping (used in all template literals that interpolate user data) ──
 const _ESC_MAP={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;','/':'&#x2F;','`':'&#x60;','=':'&#x3D;'};
 function esc(s){if(s==null)return'';return String(s).replace(/[&<>"'`=\/]/g,c=>_ESC_MAP[c]);}
+
+// ════════ BATCH 3: Toast notifications ════════
+// toast(msg, kind, opts) — kind: 'info'|'success'|'warn'|'error'
+// opts.action + opts.onAction → action button; opts.duration → auto-dismiss ms
+// (default 4000 info/success/warn, 6000 error; 0 = manual). Returns dismiss().
+function toast(msg, kind, opts){
+  kind=kind||'info'; opts=opts||{};
+  const c=document.getElementById('toast-container');
+  if(!c){return function(){};}
+  const el=document.createElement('div');
+  el.className='toast toast-'+kind;
+  const m=document.createElement('div');
+  m.className='toast-msg';
+  m.textContent=(msg==null?'':String(msg));
+  el.appendChild(m);
+  let timer=null;
+  function dismiss(){
+    if(el._dismissed)return; el._dismissed=true;
+    if(timer)clearTimeout(timer);
+    el.classList.add('toast-leaving');
+    setTimeout(function(){el.remove();},220);
+  }
+  if(opts.action){
+    const b=document.createElement('button');
+    b.className='toast-action'; b.type='button';
+    b.textContent=opts.action;
+    b.onclick=function(){ try{opts.onAction&&opts.onAction();}finally{dismiss();} };
+    el.appendChild(b);
+  }
+  const x=document.createElement('button');
+  x.className='toast-close'; x.type='button';
+  x.setAttribute('aria-label','Dismiss notification');
+  x.innerHTML='&times;';
+  x.onclick=dismiss;
+  el.appendChild(x);
+  c.appendChild(el);
+  const dur=(opts.duration!=null)?opts.duration:(kind==='error'?6000:4000);
+  if(dur>0){timer=setTimeout(dismiss,dur);}
+  return dismiss;
+}
+
+// ════════ BATCH 3: Custom dialog (replaces confirm/prompt) ════════
+// Single shared resolver — opening a new dialog cancels the previous one.
+let _dlgActive=null;
+function _dlgOpen(o){
+  const isPrompt=!!o.prompt;
+  if(_dlgActive){ const a=_dlgActive; _dlgActive=null; a.cleanup(); a.resolve(a.isPrompt?null:false); }
+  return new Promise(function(resolve){
+    const bd=document.getElementById('dlg-backdrop');
+    const tEl=document.getElementById('dlg-title');
+    const bEl=document.getElementById('dlg-body');
+    const inp=document.getElementById('dlg-input');
+    const ok=document.getElementById('dlg-btn-confirm');
+    const cancel=document.getElementById('dlg-btn-cancel');
+    if(!bd||!ok||!cancel){ resolve(isPrompt?null:false); return; }
+    tEl.textContent=o.title||'';
+    bEl.textContent=o.body||'';
+    ok.textContent=o.confirmLabel||'Confirm';
+    cancel.textContent=o.cancelLabel||'Cancel';
+    ok.className='dlg-btn '+(o.danger?'dlg-btn-danger':'dlg-btn-confirm');
+    if(isPrompt){ inp.style.display='block'; inp.value=''; inp.placeholder=o.placeholder||''; }
+    else { inp.style.display='none'; }
+    function cleanup(){
+      ok.onclick=null; cancel.onclick=null;
+      document.removeEventListener('keydown',onKey,true);
+      bd.setAttribute('data-open','0');
+    }
+    function finish(val){
+      if(_dlgActive&&_dlgActive.resolve===resolve)_dlgActive=null;
+      cleanup(); resolve(val);
+    }
+    function doConfirm(){
+      if(isPrompt){
+        const v=inp.value;
+        if(o.expectedText!=null && v!==o.expectedText){ finish(null); toast('Text did not match — action cancelled.','warn'); return; }
+        finish(v);
+      } else { finish(true); }
+    }
+    function doCancel(){ finish(isPrompt?null:false); }
+    function onKey(e){
+      if(e.key==='Escape'){ e.preventDefault(); finish(isPrompt?null:false); }
+      else if(e.key==='Enter'&&isPrompt){ e.preventDefault(); doConfirm(); }
+    }
+    ok.onclick=doConfirm; cancel.onclick=doCancel;
+    document.addEventListener('keydown',onKey,true);
+    _dlgActive={resolve:resolve,cleanup:cleanup,isPrompt:isPrompt};
+    bd.setAttribute('data-open','1');
+    setTimeout(function(){ if(isPrompt){inp.focus();}else{ok.focus();} },50);
+  });
+}
+function dlgConfirm(opts){ return _dlgOpen(Object.assign({},opts||{},{prompt:false})); }
+function dlgPrompt(opts){ return _dlgOpen(Object.assign({},opts||{},{prompt:true})); }
+
+// ════════ BATCH 3: safeAwait helper ════════
+async function safeAwait(promise, label){
+  try{ return await promise; }
+  catch(e){ console.error('['+(label||'async')+']', e); toast('Something went wrong'+(label?' ('+label+')':'')+'. Your changes are saved locally.', 'error'); return undefined; }
+}
 
 // ── Tax-law thresholds (centralized — see citations) ──
 const TAX={
@@ -329,9 +487,17 @@ async function signOut(){
 function updateSyncIndicator(){
   const el=document.getElementById('sync-indicator');
   if(!el)return;
-  const map={syncing:['⟳ Syncing…','#7DD3FC'],synced:['☁ Synced','#14B8A6'],local:['⚠ Local only','#F59E0B'],offline:['📴 Offline','#94A3B8']};
-  const[txt,col]=map[_syncStatus]||map.local;
-  el.textContent=txt;el.style.color=col;
+  // BATCH 3: [text, color, tooltip, toastKind] per status
+  const map={
+    syncing:['⟳ Syncing…','#7DD3FC','Saving your latest changes to the cloud…','info'],
+    synced:['☁ Synced','#14B8A6','Your data is backed up to the cloud and synced across your devices.','success'],
+    local:['⚠ Local only','#F59E0B','Your data is saved on this device only. Sign in to back it up to the cloud.','warn'],
+    offline:['📴 Offline','#94A3B8','You appear to be offline. Changes are saved locally and will sync when you reconnect.','info']
+  };
+  const e=map[_syncStatus]||map.local;
+  const txt=e[0],col=e[1],tip=e[2],kind=e[3];
+  el.textContent=txt;el.style.color=col;el.title=tip;
+  el.onclick=function(){ toast(tip,kind,{duration:6000}); };
 }
 
 async function cloudLoad(){
@@ -359,8 +525,20 @@ async function cloudSave(){
       headers:{'Authorization':`Bearer ${session.access_token}`,'apikey':SUPABASE_ANON_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates'},
       body:JSON.stringify({user_id:_sbUser.id,data:state,updated_at:new Date().toISOString()})
     });
-    _syncStatus=res.ok?'synced':'local';
-  }catch(e){_syncStatus='local';}
+    if(res.ok){
+      _cloudFailCount=0;
+      _syncStatus='synced';
+    } else {
+      _cloudFailCount++;
+      _syncStatus='local';
+      if(_cloudFailCount===3) toast('Cloud sync is having trouble. Your data is still saved on this device.','warn',{duration:6000});
+    }
+  }catch(e){
+    _cloudFailCount++;
+    _syncStatus='local';
+    console.error('[cloudSave]',e);
+    if(_cloudFailCount===3) toast('Cloud sync is having trouble. Your data is still saved on this device.','warn',{duration:6000});
+  }
   updateSyncIndicator();
 }
 
@@ -947,11 +1125,15 @@ function refreshBulkBar(){
   const cnt=document.getElementById('bulk-cnt');
   if(cnt)cnt.textContent=`Delete selected (${selEntries.size})`;
 }
-function bulkDelete(){
+async function bulkDelete(){
   if(!selEntries.size)return;
-  if(!confirm(`Delete ${selEntries.size} entr${selEntries.size===1?'y':'ies'}? This cannot be undone.`))return;
+  const n=selEntries.size;
+  const ok=await dlgConfirm({title:'Delete entries',body:`Delete ${n} time ${n===1?'entry':'entries'}? You can undo this right after.`,confirmLabel:'Delete',danger:true});
+  if(!ok)return;
+  const removed=state.entries.filter(e=>selEntries.has(e.id));
   state.entries=state.entries.filter(e=>!selEntries.has(e.id));
   selEntries=new Set();save();renderView();
+  toast(`${removed.length} ${removed.length===1?'entry':'entries'} deleted.`,'info',{duration:6000,action:'Undo',onAction:()=>{state.entries.push(...removed);save();renderView();toast('Restored.','success');}});
 }
 
 // ── FILE PREVIEW ──
@@ -969,18 +1151,30 @@ function previewFiles(input){
 async function uploadFiles(entryId,files){
   // Uses top-level SUPABASE_URL and SUPABASE_ANON_KEY
   const attachments=[];
-  for(const file of files){
-    const path=`${entryId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
-    const sess=_sb?await _sb.auth.getSession():null;
-    const token=sess?.data?.session?.access_token||SUPABASE_ANON_KEY;
-    const res=await fetch(`${SUPABASE_URL}/storage/v1/object/evidence/${path}`,{
-      method:'POST',
-      headers:{'Authorization':`Bearer ${token}`,'Content-Type':file.type||'application/octet-stream','x-upsert':'true'},
-      body:file
-    });
-    if(res.ok){
-      const url=`${SUPABASE_URL}/storage/v1/object/public/evidence/${path}`;
-      attachments.push({name:file.name,url,path});
+  let failed=0;
+  const list=Array.from(files||[]);
+  for(const file of list){
+    try{
+      const path=`${entryId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
+      const sess=_sb?await _sb.auth.getSession():null;
+      const token=sess?.data?.session?.access_token||SUPABASE_ANON_KEY;
+      const res=await fetch(`${SUPABASE_URL}/storage/v1/object/evidence/${path}`,{
+        method:'POST',
+        headers:{'Authorization':`Bearer ${token}`,'Content-Type':file.type||'application/octet-stream','x-upsert':'true'},
+        body:file
+      });
+      if(res.ok){
+        const url=`${SUPABASE_URL}/storage/v1/object/public/evidence/${path}`;
+        attachments.push({name:file.name,url,path});
+      } else { failed++; console.error('[uploadFiles] HTTP',res.status,file.name); }
+    }catch(err){ failed++; console.error('[uploadFiles]',file?.name,err); }
+  }
+  if(failed>0){
+    const total=list.length;
+    if(failed===total){
+      toast(`Could not upload ${failed} file${failed===1?'':'s'}. Your entry was saved without ${failed===1?'it':'them'}.`,'error');
+    } else {
+      toast(`${failed} of ${total} files failed to upload. The rest were attached.`,'warn');
     }
   }
   return attachments;
@@ -988,9 +1182,9 @@ async function uploadFiles(entryId,files){
 
 async function submitEntry(){
   const h=(parseFloat(document.getElementById('f-hrs')?.value)||0)+(parseInt(document.getElementById('f-mins')?.value)||0)/60;
-  if(h<=0){alert('Please enter a time greater than 0.');return;}
+  if(h<=0){toast('Please enter a time greater than 0.','warn');return;}
   const propId=document.getElementById('f-prop')?.value||'';
-  if(!propId&&trackType==='STR'){alert('Please select an STR property.\n\nGo to Properties to add your STR properties first.');return;}
+  if(!propId&&trackType==='STR'){toast('Please select an STR property. Go to Properties to add your STR properties first.','warn');return;}
   const btn=document.getElementById('sub-btn');
   if(btn){btn.disabled=true;btn.textContent=pendingFiles.length?'⬆ Uploading files…':'Saving…';}
   const _preHrs=calcREPS().rh;
@@ -1011,7 +1205,14 @@ async function submitEntry(){
   setTimeout(()=>renderView(),1200);
 }
 
-function delEntry(id){if(!confirm('Delete this entry?'))return;state.entries=state.entries.filter(e=>e.id!==id);save();renderView();}
+async function delEntry(id){
+  const ok=await dlgConfirm({title:'Delete entry',body:'Delete this time entry? You can undo this right after.',confirmLabel:'Delete',danger:true});
+  if(!ok)return;
+  const removed=state.entries.find(e=>e.id===id);
+  state.entries=state.entries.filter(e=>e.id!==id);
+  save();renderView();
+  toast('Entry deleted.','info',{duration:5000,action:'Undo',onAction:()=>{ if(removed){state.entries.push(removed);save();renderView();toast('Restored.','success');} }});
+}
 
 function showEditEntry(id){
   const el=document.getElementById('edit-entry-'+id);
@@ -1300,7 +1501,7 @@ function updateQLCats(propId){
 async function saveQuickLog(propId){
   const hrs=parseFloat(document.getElementById('ql-hrs-'+propId)?.value)||0;
   const mins=parseFloat(document.getElementById('ql-min-'+propId)?.value)||0;
-  if(hrs+mins<=0){alert('Please enter a time greater than 0.');return;}
+  if(hrs+mins<=0){toast('Please enter a time greater than 0.','warn');return;}
   const btn=document.querySelector(`#quick-log-${propId} button`);
   if(btn){btn.disabled=true;btn.textContent='Saving…';}
   const tt=document.getElementById('ql-tt-'+propId)?.value||'REPS';
@@ -1402,7 +1603,7 @@ async function handleImportFile(input){
   if(!file) return;
   const status = document.getElementById('import-status');
   status.style.display='block';
-  status.innerHTML = '<div style="color:#64748B;font-size:13px;">⏳ Reading file...</div>';
+  status.innerHTML = '<div style="color:#64748B;font-size:13px;"><span class="spinner"></span> Reading file…</div>';
 
   try {
     let rows = [];
@@ -1412,10 +1613,11 @@ async function handleImportFile(input){
     } else {
       // Load SheetJS from CDN
       if(!window.XLSX){
+        status.innerHTML = '<div style="color:#64748B;font-size:13px;"><span class="spinner"></span> Loading Excel library…</div>';
         await new Promise((res,rej)=>{
           const s=document.createElement('script');
           s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-          s.onload=res; s.onerror=rej;
+          s.onload=res; s.onerror=()=>rej(new Error('Could not load Excel library — check your connection'));
           document.head.appendChild(s);
         });
       }
@@ -1522,7 +1724,7 @@ function confirmImport(){
   save();
   closeImportModal();
   renderView();
-  alert(`✅ Successfully imported ${_importRows.length} entries!`);
+  toast(`Successfully imported ${_importRows.length} entries.`,'success');
 }
 
 function setDashTab(tab){
@@ -1539,7 +1741,7 @@ function togglePropType(){
 function togglePF(){showPropForm=!showPropForm;renderView();}
 function addProp(){
   const nm=document.getElementById('p-nm')?.value?.trim();
-  if(!nm){alert('Please enter a property name.');return;}
+  if(!nm){toast('Please enter a property name.','warn');return;}
   const tp=document.getElementById('p-tp')?.value||'STR';
   const street=document.getElementById('p-street')?.value?.trim()||'';
   const city=document.getElementById('p-city')?.value?.trim()||'';
@@ -1549,20 +1751,45 @@ function addProp(){
   state.properties.push({id:uid(),name:nm,address,street,city,state:state2,zip,type:tp,avgRentalDays:parseFloat(document.getElementById('p-dy')?.value)||null,otherHours:parseFloat(document.getElementById('p-ot')?.value)||0,bookings:[]});
   save();showPropForm=false;renderView();
 }
-function rmProp(id){
+async function rmProp(id){
   const prop=state.properties.find(p=>p.id===id);
-  const entryCount=state.entries.filter(e=>e.propertyId===id).length;
-  if(!confirm(`Delete property "${prop?.name}"?\n\nThis cannot be undone.`))return;
+  if(!prop)return;
+  const affectedIds=state.entries.filter(e=>e.propertyId===id).map(e=>e.id);
+  const entryCount=affectedIds.length;
+  const ok=await dlgConfirm({title:'Delete property',body:`Delete property "${prop.name}"?`,confirmLabel:'Delete',danger:true});
+  if(!ok)return;
+  const removedProp=JSON.parse(JSON.stringify(prop));
+  let keepEntries=true;
+  let removedEntries=null;
   state.properties=state.properties.filter(p=>p.id!==id);
   if(entryCount>0){
-    const keepEntries=confirm(`This property has ${entryCount} time ${entryCount===1?'entry':'entries'}.\n\nClick OK to keep the entries (they will become "General RE").\nClick Cancel to permanently delete all ${entryCount} ${entryCount===1?'entry':'entries'}.`);
-    if(!keepEntries){
-      state.entries=state.entries.filter(e=>e.propertyId!==id);
-    } else {
+    // confirmLabel ("Keep entries") → keep; cancelLabel ("Delete entries") is the destructive option (intentional UX)
+    keepEntries=await dlgConfirm({
+      title:'Keep this property\u2019s entries?',
+      body:`This property has ${entryCount} time ${entryCount===1?'entry':'entries'}.\n\n"Keep entries" reassigns them to General RE.\n"Delete entries" permanently removes all ${entryCount}.`,
+      confirmLabel:'Keep entries',
+      cancelLabel:'Delete entries'
+    });
+    if(keepEntries){
       state.entries=state.entries.map(e=>e.propertyId===id?{...e,propertyId:null}:e);
+    } else {
+      removedEntries=state.entries.filter(e=>e.propertyId===id).map(e=>JSON.parse(JSON.stringify(e)));
+      state.entries=state.entries.filter(e=>e.propertyId!==id);
     }
   }
   save();renderView();
+  toast(`Property "${prop.name}" deleted.`,'info',{duration:6000,action:'Undo',onAction:()=>{
+    state.properties.push(removedProp);
+    if(entryCount>0){
+      if(keepEntries){
+        // re-attribute the General-RE'd entries back to this property
+        state.entries=state.entries.map(e=>affectedIds.includes(e.id)?{...e,propertyId:id}:e);
+      } else if(removedEntries){
+        state.entries.push(...removedEntries);
+      }
+    }
+    save();renderView();toast('Property restored.','success');
+  }});
 }
 
 
@@ -1584,8 +1811,8 @@ function toggleBookingLog(pid){
 function addBooking(pid){
   const cin=document.getElementById('bk-in-'+pid)?.value;
   const cout=document.getElementById('bk-out-'+pid)?.value;
-  if(!cin||!cout){alert('Please enter both check-in and check-out dates.');return;}
-  if(new Date(cout)<=new Date(cin)){alert('Check-out must be after check-in.');return;}
+  if(!cin||!cout){toast('Please enter both check-in and check-out dates.','warn');return;}
+  if(new Date(cout)<=new Date(cin)){toast('Check-out must be after check-in.','warn');return;}
   const p=state.properties.find(x=>x.id===pid);
   if(!p)return;
   if(!p.bookings)p.bookings=[];
@@ -1595,13 +1822,25 @@ function addBooking(pid){
   if(avg!==null)p.avgRentalDays=avg;
   save();renderView();
 }
-function delBooking(pid,bid){
+async function delBooking(pid,bid){
   const p=state.properties.find(x=>x.id===pid);
   if(!p)return;
+  const removed=(p.bookings||[]).find(b=>b.id===bid);
+  if(!removed)return;
+  const prevAvg=p.avgRentalDays;
   p.bookings=(p.bookings||[]).filter(b=>b.id!==bid);
   const avg=calcAvgFromBookings(pid);
   if(avg!==null)p.avgRentalDays=avg;
   save();renderView();
+  toast('Booking deleted.','info',{duration:5000,action:'Undo',onAction:()=>{
+    const pp=state.properties.find(x=>x.id===pid);
+    if(!pp)return;
+    if(!pp.bookings)pp.bookings=[];
+    pp.bookings.push(removed);
+    const a=calcAvgFromBookings(pid);
+    pp.avgRentalDays = (a!==null?a:prevAvg);
+    save();renderView();toast('Booking restored.','success');
+  }});
 }
 
 // ── MP TESTS ──
@@ -1837,12 +2076,14 @@ function vSettings(){
 }
 
 function setSetting(k,v){state.settings[k]=v;save();updateSB();}
-function resetAll(){
-  if(!confirm('Reset all data? This will permanently delete all entries, properties, and settings.\n\nThis CANNOT be undone.'))return;
-  const code=prompt('Type RESET to confirm:');
-  if(code!=='RESET'){alert('Reset cancelled — text did not match.');return;}
+async function resetAll(){
+  const ok=await dlgConfirm({title:'Reset all data?',body:'This permanently deletes all entries, properties, and settings. This cannot be undone.',confirmLabel:'Continue',danger:true});
+  if(!ok)return;
+  const code=await dlgPrompt({title:'Confirm reset',body:'Type RESET to permanently erase all data.',placeholder:'RESET',confirmLabel:'Reset everything',danger:true,expectedText:'RESET'});
+  if(code===null)return;
   state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:false,personalUseDays:0,filingStatus:'MFJ',spouseHoursPolicy:'conservative'},properties:[],entries:[],manualMP:{}};
   save();renderView();
+  toast('All data reset.','success');
 }
 
 
@@ -2160,12 +2401,14 @@ function clearRemyHistory(){
 
 // ── EXCEL EXPORT ──
 async function exportXLSX(){
+  const _done=toast('Preparing Excel file…','info',{duration:0});
+  try{
   // Load SheetJS if not already present
   if(!window.XLSX){
     await new Promise((res,rej)=>{
       const sc=document.createElement('script');
       sc.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-      sc.onload=res;sc.onerror=rej;
+      sc.onload=res;sc.onerror=()=>rej(new Error('Could not load Excel library — check your connection'));
       document.head.appendChild(sc);
     });
   }
@@ -2298,6 +2541,13 @@ async function exportXLSX(){
   // ─── Download ───
   const filename=`RepsRecord_${activeYear}_AuditLog_${new Date().toISOString().slice(0,10)}.xlsx`;
   XLSX.writeFile(wb,filename);
+  _done();
+  toast('Excel file downloaded.','success');
+  }catch(err){
+    _done();
+    console.error('[exportXLSX]',err);
+    toast(err.message||'Could not export Excel file.','error');
+  }
 }
 
 // ── App init — async to support cloud-first data load ──
