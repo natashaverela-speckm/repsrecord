@@ -8,7 +8,7 @@
      the hash (sha256 of the exact UTF-8 bytes of that element's contents, base64) and update it below.
      Note: frame-ancestors is intentionally omitted here — it is ignored in a meta CSP and should be
      set as an HTTP response header (e.g. frame-ancestors 'none') at the host instead. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-mAjmQJcFJY0e/GY94oGmuzUFRA/6vE8sSIA9mwGek0Y=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-1os5eDAQe8fMVeYag189KmRi8eEj+a4StweFGfWCTWQ=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>RepsRecord — REPS & STR Hour Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -804,8 +804,8 @@ function pH(pid){
 
 // AUDIT FIX (Pass 4 #1): Test 7 — corrected to reflect §1.469-5T(b)(2)(iii) which DOES
 // impose a >100-hour minimum and disqualifying conditions in §1.469-5T(b)(2)(ii).
-// AUDIT FIX (Pass 4): Test 1/3/7 comparison operators changed from >= to > to match
-// the regulatory text ("more than 500/100 hours").
+// AUDIT FIX (Pass 4): hour thresholds use > ("more than 500/100 hours"). AUDIT FIX (Pass 5):
+// the Test 3/7 "not less than any other individual" comparison uses >= (a tie qualifies), per §1.469-5T(a)(3)/(b)(2)(ii).
 // BATCH 2 (Pass 4 #2): spouseHoursPolicy controls Test 3/7 spouse treatment.
 //   'majority'    — §469(h)(5) view: spouse hours add to taxpayer's; spouse is NOT
 //                    "any other individual". Other-individuals = p.otherHours only.
@@ -822,11 +822,11 @@ function mpT(pid){
   return[
     {id:1,name:'Test 1',label:'500 Hours',cite:'§1.469-5T(a)(1)',desc:'More than 500 hours in this activity during the year.',auto:true,met:ownerEff>TAX.MP_TEST1_HOURS},
     {id:2,name:'Test 2',label:'Substantially All',cite:'§1.469-5T(a)(2)',desc:'Substantially all participation in the activity was yours. "Substantially all" is not quantified in the regulation; practitioners commonly use a 95%+ safe harbor (others combined < 5%).',auto:false,met:!!mn[2]},
-    {id:3,name:'Test 3',label:'100 Hrs + Most',cite:'§1.469-5T(a)(3)',desc:'More than 100 hours AND not less than any other individual\u2019s participation in the activity (including paid staff).',auto:true,met:ownerEff>TAX.MP_TEST3_HOURS&&ownerEff>mo},
+    {id:3,name:'Test 3',label:'100 Hrs + Most',cite:'§1.469-5T(a)(3)',desc:'More than 100 hours AND not less than any other individual\u2019s participation in the activity (including paid staff).',auto:true,met:ownerEff>TAX.MP_TEST3_HOURS&&ownerEff>=mo},
     {id:4,name:'Test 4',label:'SPA Aggregate',cite:'§1.469-5T(a)(4)',desc:'Activity is a Significant Participation Activity (>100 hrs in a trade or business in which you do not otherwise materially participate) and all your SPAs aggregate to more than 500 hours for the year. SPAs are non-rental trade-or-business activities only; LTR rental activities cannot generate SPAs.',auto:false,met:!!mn[4]},
     {id:5,name:'Test 5',label:'5 of Last 10 Yrs',cite:'§1.469-5T(a)(5)',desc:'Materially participated in this activity in any 5 of the last 10 taxable years.',auto:false,met:!!mn[5]},
     {id:6,name:'Test 6',label:'3 Prior Yrs (Personal Service Activity)',cite:'§1.469-5T(a)(6)',desc:'Materially participated 3 prior years when the activity was a personal service activity. Does not apply to most STRs — STR properties are almost never personal service activities (medical, law, engineering, etc.).',auto:false,met:!!mn[6]},
-    {id:7,name:'Test 7',label:'Facts & Circumstances',cite:'§1.469-5T(a)(7)',desc:'Participate on a regular, continuous, and substantial basis. Requires more than 100 hours of participation (§1.469-5T(b)(2)(iii)). Does NOT apply if any other person is compensated for managing the activity, or if any other individual performs more management hours than you (§1.469-5T(b)(2)(ii)). Document frequency, duration, and nature of involvement.',auto:true,met:ownerEff>TAX.MP_TEST7_MIN&&ownerEff>mo},
+    {id:7,name:'Test 7',label:'Facts & Circumstances',cite:'§1.469-5T(a)(7)',desc:'Participate on a regular, continuous, and substantial basis. Requires more than 100 hours of participation (§1.469-5T(b)(2)(iii)). Does NOT apply if any other person is compensated for managing the activity, or if any other individual performs more management hours than you (§1.469-5T(b)(2)(ii)). Document frequency, duration, and nature of involvement.',auto:true,met:ownerEff>TAX.MP_TEST7_MIN&&ownerEff>=mo},
   ];
 }
 
@@ -1077,8 +1077,8 @@ function vDashboard(){
   const _failGate=strPs.filter(p=>strQualifies(p)==='no'&&mpT(p.id).some(t=>t.met));
   const strGateNote=(_condProps.length||_failGate.length)?
     '<div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;font-size:12px;color:#92400E;line-height:1.6;margin-bottom:14px;">'+
-      (_condProps.length?'<div>⚠ <strong>'+_condProps.length+' '+(_condProps.length===1?'property':'properties')+'</strong> with an 8–30 day average meet material participation but qualify <strong>only if significant personal services are provided</strong> (Reg. §1.469-1T(e)(3)(ii)(B)). Not counted as qualifying until confirmed with your tax professional.</div>':'')+
-      (_failGate.length?'<div'+(_condProps.length?' style="margin-top:6px;"':'')+'>⚠ <strong>'+_failGate.length+' '+(_failGate.length===1?'property':'properties')+'</strong> materially participate but the average rental period is over 30 days (or not set), so the STR exception does not apply — these need REPS for non-passive treatment.</div>':'')+
+      (_condProps.length?'<div>⚠ <strong>'+_condProps.length+' '+(_condProps.length===1?'property':'properties')+'</strong> with an 8–30 day average '+(_condProps.length===1?'meets':'meet')+' material participation but '+(_condProps.length===1?'qualifies':'qualify')+' <strong>only if significant personal services are provided</strong> (Reg. §1.469-1T(e)(3)(ii)(B)). Not counted as qualifying until confirmed with your tax professional.</div>':'')+
+      (_failGate.length?'<div'+(_condProps.length?' style="margin-top:6px;"':'')+'>⚠ <strong>'+_failGate.length+' '+(_failGate.length===1?'property':'properties')+'</strong> materially '+(_failGate.length===1?'participates':'participate')+' but the average rental period is over 30 days (or not set), so the STR exception does not apply — these need REPS for non-passive treatment.</div>':'')+
     '</div>':'';
   const strSection=hasSTR?
     '<div style="margin-bottom:32px;">'+
@@ -1566,9 +1566,8 @@ ${state.properties.map(p=>{
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
       <div class="field"><label class="fl">Date</label><input type="date" id="ql-date-${p.id}" value="${todayStr()}" max="${todayStr()}"/></div>
       <div class="field"><label class="fl">Track Type</label>
-        <select id="ql-tt-${p.id}" data-chg="updateQLCats" data-id="${p.id}">
-          <option value="${p.type==='LTR'?'REPS':p.type}" selected>${p.type==='LTR'?'REPS — Real Estate Professional':'STR — Short-Term Rental'}</option>
-          ${p.type==='STR'?'<option value="REPS">REPS — Real Estate Professional</option>':'<option value="STR">STR — Short-Term Rental</option>'}
+        <select id="ql-tt-${p.id}" disabled aria-label="Track type — locked to property type" style="background:#F1F5F9;color:#64748B;cursor:not-allowed;">
+          <option value="${p.type==='LTR'?'REPS':'STR'}" selected>${p.type==='LTR'?'REPS — Real Estate Professional':'STR — Short-Term Rental'}</option>
         </select>
       </div>
     </div>
@@ -1654,7 +1653,7 @@ ${state.properties.map(p=>{
       </table>
     </div>
     <div style="font-size:11px;color:#92400E;background:#FFFBEB;border:1px solid #FDE68A;border-radius:6px;padding:8px 12px;">
-      📐 IRS calculation: ${(p.bookings||[]).reduce((s,b)=>s+Math.max(0,Math.round((new Date(b.checkOut)-new Date(b.checkIn))/(1000*60*60*24))),0)} total nights ÷ ${(p.bookings||[]).length} bookings = <strong>${calcAvgFromBookings(p.id)||'—'} day average</strong> — Property ${(calcAvgFromBookings(p.id)||0)<=7?'✓ qualifies':'⚠ does not qualify'} for §469 STR exception
+      📐 IRS calculation: ${(p.bookings||[]).reduce((s,b)=>s+Math.max(0,Math.round((new Date(b.checkOut)-new Date(b.checkIn))/(1000*60*60*24))),0)} total nights ÷ ${(p.bookings||[]).length} booking${(p.bookings||[]).length===1?'':'s'} = <strong>${calcAvgFromBookings(p.id)||'—'} day average</strong> — Property ${(calcAvgFromBookings(p.id)||0)<=7?'✓ qualifies':'⚠ does not qualify'} for §469 STR exception
     </div>`}
     `:'<div style="color:#94A3B8;font-size:12px;">Booking log is only available for STR properties.</div>'}
   </div>
@@ -2143,7 +2142,7 @@ function vMP(){
     <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;grid-column:1/-1;"><span style="font-weight:700;color:#0D1F3C;">Test 7</span> <span style="color:#64748B;">Regular, continuous & substantial basis (facts & circumstances)</span></div>
   </div>
   <div style="margin-top:12px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E;">
-    ⚠️ <strong>Tests 5, 6, and 7</strong> require historical data across multiple tax years. RepsRecord evaluates these based only on data logged within the app. You may manually override test results below if you have prior year documentation. Always consult your tax professional for final determination.
+    ⚠️ <strong>Tests 5 and 6</strong> require historical data across multiple tax years. RepsRecord evaluates these based only on data logged within the app. You may manually override test results below if you have prior year documentation. Always consult your tax professional for final determination.
   </div>
 </div>
 
@@ -2178,12 +2177,13 @@ ${sps.map(p=>{
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <div class="mp-name">${t.name} — ${t.label}</div>
           <span style="font-size:10px;color:#94A3B8;font-family:ui-monospace,monospace;padding:1px 6px;background:#F0FDFA;border-radius:4px;">${t.cite}</span>
-          ${t.met?'<span style="font-size:11px;font-weight:700;color:#10B981;">✓ Met</span>':''}
+          ${t.met?(t.id===7?'<span style="font-size:11px;font-weight:700;color:#B45309;">✓ Likely met</span>':'<span style="font-size:11px;font-weight:700;color:#10B981;">✓ Met</span>'):''}
         </div>
         <div class="mp-desc">${t.desc}</div>
         ${!t.auto?`<label class="mp-man"><input type="checkbox" ${t.met?'checked':''} data-chg="togMP" data-id="${p.id}" data-tid="${t.id}"/><span>Mark as met for ${activeYear} — requires supporting documentation</span></label>`:''}
-        ${t.auto&&!t.met&&t.id===3?`<div style="font-size:11px;color:#0F766E;margin-top:6px;">Need ${Math.max(0,Math.ceil(100-(state.settings.spouseHoursPolicy==='majority'?(ph.owner+(ph.spouse||0)):ph.owner)+0.01))} more hours${state.settings.spouseHoursPolicy==='majority'?'':' & must exceed all other participants ('+Math.round(Math.max(ph.spouse||0,p.otherHours||0))+' hrs)'}</div>`:''}
+        ${t.auto&&!t.met&&t.id===3?`<div style="font-size:11px;color:#0F766E;margin-top:6px;">Need ${Math.max(0,Math.ceil(100-(state.settings.spouseHoursPolicy==='majority'?(ph.owner+(ph.spouse||0)):ph.owner)+0.01))} more hours${state.settings.spouseHoursPolicy==='majority'?'':' & must equal or exceed all other participants ('+Math.round(Math.max(ph.spouse||0,p.otherHours||0))+' hrs)'}</div>`:''}
         ${t.auto&&!t.met&&t.id===1?`<div style="font-size:11px;color:#0F766E;margin-top:6px;">Need ${Math.max(0,Math.ceil(500-(state.settings.spouseHoursPolicy==='majority'?(ph.owner+(ph.spouse||0)):ph.owner)+0.01))} more hours for this property</div>`:''}
+        ${t.auto&&t.met&&t.id===7?`<div style="font-size:11px;color:#B45309;margin-top:6px;background:#FFF7ED;border:1px solid #FDE68A;border-radius:6px;padding:6px 9px;line-height:1.5;">⚠ Facts-and-circumstances test — the app checks only your hours. Confirm you participate on a regular, continuous, and substantial basis and that <strong>no other person is compensated to manage</strong> this property (§1.469-5T(b)(2)(ii)).</div>`:''}
       </div>
     </div>`).join('')}
   </div>`;}).join('')}`:''}
