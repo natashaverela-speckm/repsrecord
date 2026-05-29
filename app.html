@@ -8,7 +8,7 @@
      the hash (sha256 of the exact UTF-8 bytes of that element's contents, base64) and update it below.
      Note: frame-ancestors is intentionally omitted here — it is ignored in a meta CSP and should be
      set as an HTTP response header (e.g. frame-ancestors 'none') at the host instead. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-+jdkL0LOpnJTPqrX9igfxYD4IPv07vM9pF50Id6o7PE=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-dBl49Fm1b0GmLPad7feU3qOAv+6FVLKampe5maKbvnk=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>RepsRecord — REPS & STR Hour Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -399,6 +399,7 @@ function _dlgOpen(o){
   const isPrompt=!!o.prompt;
   if(_dlgActive){ const a=_dlgActive; _dlgActive=null; a.cleanup(); a.resolve(a.isPrompt?null:false); }
   return new Promise(function(resolve){
+    const _prevFocus=document.activeElement;
     const bd=document.getElementById('dlg-backdrop');
     const tEl=document.getElementById('dlg-title');
     const bEl=document.getElementById('dlg-body');
@@ -420,7 +421,9 @@ function _dlgOpen(o){
     }
     function finish(val){
       if(_dlgActive&&_dlgActive.resolve===resolve)_dlgActive=null;
-      cleanup(); resolve(val);
+      cleanup();
+      if(_prevFocus&&_prevFocus.focus){ try{_prevFocus.focus();}catch(_){} }
+      resolve(val);
     }
     function doConfirm(){
       if(isPrompt){
@@ -431,8 +434,15 @@ function _dlgOpen(o){
     }
     function doCancel(){ finish(isPrompt?null:false); }
     function onKey(e){
-      if(e.key==='Escape'){ e.preventDefault(); finish(isPrompt?null:false); }
-      else if(e.key==='Enter'&&isPrompt){ e.preventDefault(); doConfirm(); }
+      if(e.key==='Escape'){ e.preventDefault(); finish(isPrompt?null:false); return; }
+      if(e.key==='Enter'&&isPrompt){ e.preventDefault(); doConfirm(); return; }
+      if(e.key==='Tab'){
+        const f=[...bd.querySelectorAll('button,input,[tabindex]')].filter(el=>el.getClientRects().length>0&&!el.disabled);
+        if(!f.length)return;
+        const first=f[0],last=f[f.length-1];
+        if(e.shiftKey&&document.activeElement===first){ e.preventDefault(); last.focus(); }
+        else if(!e.shiftKey&&document.activeElement===last){ e.preventDefault(); first.focus(); }
+      }
     }
     ok.onclick=doConfirm; cancel.onclick=doCancel;
     document.addEventListener('keydown',onKey,true);
@@ -747,8 +757,17 @@ async function load(){
   }
 }
 
+let _localFailCount=0;
 function save(){
-  try{localStorage.setItem(SK,JSON.stringify(state));}catch(e){}
+  try{
+    localStorage.setItem(SK,JSON.stringify(state));
+    _localFailCount=0;
+  }catch(e){
+    _localFailCount++;
+    console.error('[save] localStorage write failed',e);
+    // Surface only after repeated failures to avoid noise on a transient hiccup.
+    if(_localFailCount===3) toast('Couldn\u2019t save to this device\u2019s storage (it may be full or in private mode). '+(_sbUser?'Your data is still syncing to the cloud.':'Sign in to back up your data so nothing is lost.'),'warn',{duration:8000});
+  }
   // Debounce cloud push — wait 1.5s after last change
   clearTimeout(_syncTimer);
   _syncTimer=setTimeout(cloudSave,1500);
@@ -815,7 +834,7 @@ function updateSB(){
   document.getElementById('sb-val').style.color=r.ok?'#14B8A6':'#fff';
   document.getElementById('sb-fill').style.width=pct+'%';
   document.getElementById('sb-fill').style.background=r.ok?'#10B981':'#14B8A6';
-  const strHrs=state.entries.filter(e=>!e.isSpouse&&e.trackType==='STR').reduce((s,e)=>s+(e.hours||0),0);
+  const strHrs=yearEntries().filter(e=>!e.isSpouse&&e.trackType==='STR').reduce((s,e)=>s+(e.hours||0),0);
   const strPs=state.properties.filter(p=>p.type==='STR');
   const strQual=strPs.filter(p=>mpT(p.id).some(t=>t.met));
   const strEl=document.getElementById('sb-str-val');
@@ -1447,7 +1466,7 @@ ${showPropForm?`
 </div></div>`:''}
 ${state.properties.length===0?`<div class="empty"><div class="empty-ic">🏠</div><div class="empty-tx">No properties yet — add your first LTR or STR above.</div></div>`:''}
 ${state.properties.map(p=>{
-  const hrs=state.entries.filter(e=>e.propertyId===p.id&&!e.isSpouse).reduce((s,e)=>s+e.hours,0);
+  const hrs=yearEntries().filter(e=>e.propertyId===p.id&&!e.isSpouse).reduce((s,e)=>s+(e.hours||0),0);
   const propEntries=yearEntries().filter(e=>e.propertyId===p.id).sort((a,b)=>new Date(b.date)-new Date(a.date));
   return`<div class="prop-c ${p.type==='LTR'?'ltr':''}" style="flex-direction:column;gap:0;position:relative;">
   <div style="position:absolute;top:0;right:0;">
@@ -1455,7 +1474,7 @@ ${state.properties.map(p=>{
   </div>
   <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-right:90px;">
     <div>
-      <div class="prop-nm">${esc(p.name)}</div>${p.address?`<div class="prop-addr">${p.address}</div>`:''}
+      <div class="prop-nm">${esc(p.name)}</div>${p.address?`<div class="prop-addr">${esc(p.address)}</div>`:''}
       <div class="prop-tags">
         <span class="badge ${p.type==='STR'?'b-blue':'b-amber'}">${p.type}</span>
         ${p.type==='STR'&&p.avgRentalDays?`<span class="badge ${p.avgRentalDays<=7?'b-met':'b-no'}">Avg ${p.avgRentalDays}d ${p.avgRentalDays<=7?'✓':'⚠'}${p.bookings&&p.bookings.length?' 📅':''}</span>`:''}
@@ -1734,9 +1753,24 @@ function togglePropEntries(id){
 // ── IMPORT FROM EXCEL ──
 let _importRows = [];
 
+let _importPrevFocus=null,_importKeyHandler=null;
 function showImportModal(){
   const m = document.getElementById('import-modal');
-  if(m){ m.style.display='flex'; }
+  if(!m) return;
+  _importPrevFocus=document.activeElement;
+  m.style.display='flex';
+  _importKeyHandler=function(e){
+    if(e.key==='Escape'){ e.preventDefault(); closeImportModal(); return; }
+    if(e.key==='Tab'){
+      const f=[...m.querySelectorAll('button,input,[tabindex]')].filter(el=>el.getClientRects().length>0&&!el.disabled);
+      if(!f.length)return;
+      const first=f[0],last=f[f.length-1];
+      if(e.shiftKey&&document.activeElement===first){ e.preventDefault(); last.focus(); }
+      else if(!e.shiftKey&&document.activeElement===last){ e.preventDefault(); first.focus(); }
+    }
+  };
+  document.addEventListener('keydown',_importKeyHandler,true);
+  setTimeout(function(){ const f=m.querySelector('button,input,[tabindex]'); if(f)f.focus(); },50);
 }
 
 function downloadImportTemplate(){
@@ -1754,6 +1788,7 @@ function downloadImportTemplate(){
 function closeImportModal(){
   const m = document.getElementById('import-modal');
   if(m){ m.style.display='none'; }
+  if(_importKeyHandler){ document.removeEventListener('keydown',_importKeyHandler,true); _importKeyHandler=null; }
   _importRows = [];
   const s = document.getElementById('import-status');
   if(s){ s.style.display='none'; s.innerHTML=''; }
@@ -1761,6 +1796,7 @@ function closeImportModal(){
   if(btn) btn.style.display='none';
   const fi = document.getElementById('import-file');
   if(fi) fi.value='';
+  if(_importPrevFocus&&_importPrevFocus.focus){ try{_importPrevFocus.focus();}catch(_){} _importPrevFocus=null; }
 }
 
 async function handleImportFile(input){
@@ -2094,11 +2130,13 @@ function togMP(pid,tid,val){if(!state.manualMP)state.manualMP={};if(!state.manua
 
 // ── REPORTS ──
 function vReports(){
-  const r=calcREPS(),tot=state.entries.reduce((s,e)=>s+e.hours,0);
+  const r=calcREPS();
+  const ye=yearEntries();
+  const tot=ye.reduce((s,e)=>s+(e.hours||0),0);
   const byCat={};
-  state.entries.forEach(e=>{const k=`${e.trackType}|${e.category}`;if(!byCat[k])byCat[k]={trackType:e.trackType,category:e.category,hours:0,count:0};byCat[k].hours+=e.hours||0;byCat[k].count++;});
+  ye.forEach(e=>{const k=`${e.trackType}|${e.category}`;if(!byCat[k])byCat[k]={trackType:e.trackType,category:e.category,hours:0,count:0};byCat[k].hours+=e.hours||0;byCat[k].count++;});
   const cats=Object.values(byCat).sort((a,b)=>b.hours-a.hours);
-  const sorted=[...yearEntries()].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const sorted=[...ye].sort((a,b)=>new Date(b.date)-new Date(a.date));
   const sps=state.properties.filter(p=>p.type==='STR');
   return`
 <div class="ph">
@@ -2134,7 +2172,7 @@ ${sps.length?`
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:14px;">Hours by Activity Category</div>
   <table><thead><tr><th>Type</th><th>Activity</th><th>Entries</th><th>Total Hours</th></tr></thead><tbody>
-  ${cats.map(c=>`<tr><td><span class="tb tb-${c.trackType==='STR'?'s':'r'}">${c.trackType}</span></td><td>${c.category}</td><td style="color:#64748B;">${c.count}</td><td><strong>${fmtH(c.hours)}</strong></td></tr>`).join('')}
+  ${cats.map(c=>`<tr><td><span class="tb tb-${c.trackType==='STR'?'s':'r'}">${c.trackType}</span></td><td>${esc(c.category)}</td><td style="color:#64748B;">${c.count}</td><td><strong>${fmtH(c.hours)}</strong></td></tr>`).join('')}
   <tr style="border-top:1.5px solid #CCFBF1;"><td colspan="3"><strong>TOTAL</strong></td><td><strong style="font-size:15px;">${fmtH(tot)}</strong></td></tr>
   </tbody></table>
 </div>
