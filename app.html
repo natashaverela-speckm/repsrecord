@@ -8,7 +8,7 @@
      the hash (sha256 of the exact UTF-8 bytes of that element's contents, base64) and update it below.
      Note: frame-ancestors is intentionally omitted here — it is ignored in a meta CSP and should be
      set as an HTTP response header (e.g. frame-ancestors 'none') at the host instead. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-dBl49Fm1b0GmLPad7feU3qOAv+6FVLKampe5maKbvnk=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4FWSEZ76zkG/GiOlDM09bL7a+ydj4GTkw/FZ/8SUG48=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>RepsRecord — REPS & STR Hour Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1383,7 +1383,7 @@ async function submitEntry(){
   save();
   pendingFiles=[];
   const _newRH=calcREPS().rh;
-  const _propHrs=propId?state.entries.filter(e=>e.propertyId===propId&&!e.isSpouse&&e.trackType==='STR').reduce((s,e)=>s+(e.hours||0),0):0;
+  const _propHrs=propId?yearEntries().filter(e=>e.propertyId===propId&&!e.isSpouse&&e.trackType==='STR').reduce((s,e)=>s+(e.hours||0),0):0;
   const _saveMsg=trackType==='STR'?`✓ Saved! This property: ${Math.round(_propHrs)} hrs`:`✓ Saved! REPS total: ${Math.round(_newRH)} / >750 hrs`;
   if(btn){btn.textContent=_saveMsg;btn.style.background='#10B981';}
   setTimeout(()=>renderView(),1200);
