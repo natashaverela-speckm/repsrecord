@@ -8,7 +8,7 @@
      the hash (sha256 of the exact UTF-8 bytes of that element's contents, base64) and update it below.
      Note: frame-ancestors is intentionally omitted here — it is ignored in a meta CSP and should be
      set as an HTTP response header (e.g. frame-ancestors 'none') at the host instead. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-JwZbn6b0fyBYQwO5M3243N7c2GhgP2QyO5xwwYpJ2U4=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-NGIuWZb2+PdtuDWIOPvgaqNN3ziNBVQ2SYNO2GK7ZJg=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>RepsRecord — REPS & STR Hour Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -776,7 +776,7 @@ function save(){
 function yearEntries(){return state.entries.filter(e=>e.date&&e.date.startsWith(String(activeYear)));}
 
 function calcREPS(){
-  const inc=state.settings.includeSTRinREPS!==false;
+  const inc=state.settings.includeSTRinREPS===true;
   const ye=yearEntries();
   // L8 fix: count all qualifying hours regardless of whether the property still
   // exists. Entries can become orphaned (propertyId points to a deleted property)
@@ -785,7 +785,13 @@ function calcREPS(){
   const rh=ye.filter(e=>!e.isSpouse&&(e.trackType==='REPS'||e.trackType==='LTR'||(inc&&e.trackType==='STR'))).reduce((s,e)=>s+(e.hours||0),0);
   const th=rh+(state.settings.nonREPSHours||0);
   const pct=th>0?rh/th*100:0;
-  return{rh,pct,m750:rh>750,m50:pct>50,ok:rh>750&&pct>50};
+  // AUDIT FIX (Critical #2): the 50% personal-services test cannot be verified until the
+  // user enters their non-RE hours. A zero/blank figure (with RE hours present) is treated
+  // as UNVERIFIED, not an automatic pass — otherwise REPS reports "Qualified" when it may
+  // not be. m50 keeps the raw math (so the dashboard "UNVERIFIED" badge still renders);
+  // only the overall qualification verdict (ok) is gated on the test being verifiable.
+  const incomplete50=(state.settings.nonREPSHours||0)===0&&rh>0;
+  return{rh,pct,m750:rh>750,m50:pct>50,incomplete50,ok:rh>750&&pct>50&&!incomplete50};
 }
 
 function pH(pid){
@@ -824,6 +830,31 @@ function mpT(pid){
   ];
 }
 
+// AUDIT FIX (Critical #4): Average-rental-period gate, Reg. §1.469-1T(e)(3)(ii).
+// An STR escapes "rental activity" treatment (so material participation can make losses
+// non-passive) ONLY if (A) the average period of customer use is ≤7 days, OR (B) it is
+// ≤30 days AND significant personal services are provided. Material participation is
+// necessary but NOT sufficient. We do not yet capture "significant personal services",
+// so the 8–30-day band is reported as CONDITIONAL rather than auto-qualifying, and
+// >30-day / unset properties do not qualify on material participation alone.
+function strGate(p){
+  const d=(p&&p.avgRentalDays!=null&&p.avgRentalDays!=='')?Number(p.avgRentalDays):null;
+  if(d==null||isNaN(d))return'unknown';        // average not set yet
+  if(d<=TAX.STR_AVG_DAYS)return'exempt';        // ≤7   → §(ii)(A): not a rental activity
+  if(d<=TAX.STR_MID_DAYS)return'services';      // 8–30 → §(ii)(B): needs significant personal services
+  return'rental';                               // >30  → standard rental rules (needs REPS)
+}
+// 'yes'         → non-passive: period exception met AND materially participates
+// 'conditional' → 8–30-day band + MP met, pending significant-services confirmation
+// 'no'          → MP not met, or period gate fails (>30 days / not set)
+function strQualifies(p){
+  if(!mpT(p.id).some(t=>t.met))return'no';
+  const g=strGate(p);
+  if(g==='exempt')return'yes';
+  if(g==='services')return'conditional';
+  return'no';
+}
+
 function renderNav(){
   document.getElementById('sb-nav').innerHTML=NAV.map(n=>{
     if(n.id==='divider')return`<div role="separator" style="height:.5px;background:#1E3A5F;margin:8px 10px;"></div>`;
@@ -839,14 +870,18 @@ function updateSB(){
   document.getElementById('sb-fill').style.background=r.ok?'#10B981':'#14B8A6';
   const strHrs=yearEntries().filter(e=>!e.isSpouse&&e.trackType==='STR').reduce((s,e)=>s+(e.hours||0),0);
   const strPs=state.properties.filter(p=>p.type==='STR');
-  const strQual=strPs.filter(p=>mpT(p.id).some(t=>t.met));
+  const strQ=strPs.map(p=>strQualifies(p));
+  const strQual=strQ.filter(v=>v==='yes').length;
   const strEl=document.getElementById('sb-str-val');
   const strPropsEl=document.getElementById('sb-str-props');
-  if(strEl)strEl.textContent=strPs.length?`${Math.round(strHrs)} hrs · ${strQual.length}/${strPs.length} MP met`:`${Math.round(strHrs)} hrs logged`;
-  if(strEl)strEl.style.color=strPs.length&&strQual.length===strPs.length&&strPs.length>0?'#14B8A6':'#fff';
+  if(strEl)strEl.textContent=strPs.length?`${Math.round(strHrs)} hrs · ${strQual}/${strPs.length} qualifying`:`${Math.round(strHrs)} hrs logged`;
+  if(strEl)strEl.style.color=strPs.length&&strQual===strPs.length&&strPs.length>0?'#14B8A6':'#fff';
   if(strPropsEl)strPropsEl.innerHTML=strPs.map(p=>{
-    const any=mpT(p.id).some(t=>t.met);
-    return`<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;background:${any?'#14B8A622':'#1E4A6E'};color:${any?'#14B8A6':'#7DD3FC'};white-space:nowrap;">${any?'✓':''} ${esc(p.name.length>10?p.name.slice(0,10)+'…':p.name)}</span>`;
+    const q=strQualifies(p);
+    const ic=q==='yes'?'✓':q==='conditional'?'⚠':'';
+    const bg=q==='yes'?'#14B8A622':q==='conditional'?'#F59E0B22':'#1E4A6E';
+    const fg=q==='yes'?'#14B8A6':q==='conditional'?'#FBBF24':'#7DD3FC';
+    return`<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;background:${bg};color:${fg};white-space:nowrap;">${ic} ${esc(p.name.length>10?p.name.slice(0,10)+'…':p.name)}</span>`;
   }).join('');
 }
 function go(v){view=v;if(chartInst){chartInst.destroy();chartInst=null;}renderNav();updateSB();renderView();}
@@ -865,7 +900,8 @@ function vDashboard(){
   const repsHrs=rh;
   const propIds=new Set(state.properties.map(p=>p.id));
   const strHrs=yearEntries().filter(e=>!e.isSpouse&&e.trackType==='STR'&&propIds.has(e.propertyId)).reduce((s,e)=>s+(e.hours||0),0);
-  const strQual=strPs.filter(p=>mpT(p.id).some(t=>t.met)).length;
+  const _strQ=strPs.map(p=>strQualifies(p));
+  const strQual=_strQ.filter(v=>v==='yes').length;
   const strTotal=strPs.length;
   const grouped=state.settings.groupingElection;
   const _50incomplete=(state.settings.nonREPSHours||0)===0&&repsHrs>0;
@@ -967,7 +1003,7 @@ function vDashboard(){
             const yearStart=new Date(activeYear,0,1);
             const yearEnd=new Date(activeYear,11,31);
             // Find earliest entry in active year for REPS-counting entries
-            const inc=state.settings.includeSTRinREPS!==false;
+            const inc=state.settings.includeSTRinREPS===true;
             const yEntries=yearEntries().filter(e=>!e.isSpouse&&(e.trackType==='REPS'||e.trackType==='LTR'||(inc&&e.trackType==='STR')));
             let earliest=null;
             yEntries.forEach(e=>{const d=new Date(e.date);if(!earliest||d<earliest)earliest=d;});
@@ -1035,16 +1071,26 @@ function vDashboard(){
 
   // ── STR section ──
   const strStatusOk=strTotal>0&&strQual===strTotal;
+  // AUDIT FIX (Critical #4): surface properties that materially participate but fail the
+  // average-rental-period gate (8–30 days needs significant services; >30 / unset = not exempt).
+  const _condProps=strPs.filter(p=>strQualifies(p)==='conditional');
+  const _failGate=strPs.filter(p=>strQualifies(p)==='no'&&mpT(p.id).some(t=>t.met));
+  const strGateNote=(_condProps.length||_failGate.length)?
+    '<div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;font-size:12px;color:#92400E;line-height:1.6;margin-bottom:14px;">'+
+      (_condProps.length?'<div>⚠ <strong>'+_condProps.length+' '+(_condProps.length===1?'property':'properties')+'</strong> with an 8–30 day average meet material participation but qualify <strong>only if significant personal services are provided</strong> (Reg. §1.469-1T(e)(3)(ii)(B)). Not counted as qualifying until confirmed with your tax professional.</div>':'')+
+      (_failGate.length?'<div'+(_condProps.length?' style="margin-top:6px;"':'')+'>⚠ <strong>'+_failGate.length+' '+(_failGate.length===1?'property':'properties')+'</strong> materially participate but the average rental period is over 30 days (or not set), so the STR exception does not apply — these need REPS for non-passive treatment.</div>':'')+
+    '</div>':'';
   const strSection=hasSTR?
     '<div style="margin-bottom:32px;">'+
-    sectionLabel('Short-Term Rental Strategy','Temp. Reg. §1.469-5T — per-property material participation')+
+    sectionLabel('Short-Term Rental Strategy','Reg. §1.469-1T(e)(3)(ii) period test + Temp. Reg. §1.469-5T material participation')+
     '<div style="background:'+(strStatusOk?'#ECFDF5':strTotal>0?'#FFF7ED':'#F0FDFA')+';border:1.5px solid '+(strStatusOk?'#6EE7B7':strTotal>0?'#FDE68A':'#CCFBF1')+';border-radius:14px;padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;gap:14px;">'+
       '<div style="font-size:30px;">'+(strStatusOk?'🏆':'⏳')+'</div>'+
       '<div>'+
-        '<div style="font-size:15px;font-weight:800;color:#0D1F3C;">'+(strStatusOk?'All STR properties materially participating — '+activeYear:strQual+' of '+strTotal+' STR '+(strTotal===1?'property qualifies':'properties qualify')+' — keep logging hours')+'</div>'+
-        '<div style="font-size:12px;color:#64748B;margin-top:3px;">Pass any 1 of 7 material participation tests per property. Losses become non-passive without needing REPS.</div>'+
+        '<div style="font-size:15px;font-weight:800;color:#0D1F3C;">'+(strStatusOk?'All STR properties qualify for non-passive treatment — '+activeYear:strQual+' of '+strTotal+' STR '+(strTotal===1?'property qualifies':'properties qualify')+' — keep logging hours')+'</div>'+
+        '<div style="font-size:12px;color:#64748B;margin-top:3px;">A property qualifies when its average rental period is ≤7 days <strong>and</strong> you pass any 1 of 7 material participation tests. Then losses are non-passive without needing REPS.</div>'+
       '</div>'+
     '</div>'+
+    strGateNote+
     '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">'+
       '<div class="card" style="text-align:center;padding:16px 12px;"><div style="font-size:28px;font-weight:900;color:#38BDF8;">'+Math.round(strHrs)+'</div><div style="font-size:12px;font-weight:600;color:#64748B;margin-top:2px;">STR Hours Logged</div></div>'+
       '<div class="card" style="text-align:center;padding:16px 12px;"><div style="font-size:28px;font-weight:900;color:#10B981;">'+strQual+' / '+strTotal+'</div><div style="font-size:12px;font-weight:600;color:#64748B;margin-top:2px;">Properties Qualifying</div></div>'+
@@ -2105,14 +2151,26 @@ ${sps.length>0?`
 <h2 class="sec-lbl" style="margin-bottom:12px;">🏖 Short-Term Rental Properties — Material Participation Tests</h2>
 ${sps.map(p=>{
   const ph=pH(p.id),ts=mpT(p.id),any=ts.some(t=>t.met);
+  const gate=strGate(p),q=strQualifies(p);
+  const badgeSpan=q==='yes'
+    ?'<span class="badge b-met" style="font-size:12px;padding:5px 13px;">✅ Qualifies (≤7-day + MP)</span>'
+    :any
+      ?'<span class="badge" style="font-size:12px;padding:5px 13px;background:#FEF3C7;color:#92400E;">'+(q==='conditional'?'⚠ MP met · 8–30-day avg':'⚠ MP met · period gate not met')+'</span>'
+      :'<span class="badge b-no" style="font-size:12px;padding:5px 13px;">❌ Does Not Currently Qualify</span>';
+  const gateMsg=any&&q!=='yes'?(gate==='services'
+      ?'Average rental period is 8–30 days. This property is non-rental <strong>only if significant personal services are provided</strong> (Reg. §1.469-1T(e)(3)(ii)(B)) — material participation alone is not enough.'
+      :gate==='rental'
+      ?'Average rental period exceeds 30 days, so the STR exception does not apply. These losses need REPS for non-passive treatment.'
+      :'Set this property\u2019s average rental period (use the Booking Log) to confirm the ≤7-day STR exception — material participation alone does not make losses non-passive.'):'';
   return`<div class="card card-mb">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
       <div>
-        <div style="font-size:16px;font-weight:800;color:#0D1F3C;">${esc(p.name)}</div>
+        <div style="font-size:16px;font-weight:800;color:#0D1F3C;">${esc(p.name)}${p.avgRentalDays?` <span style="font-size:11px;font-weight:600;color:${gate==='exempt'?'#10B981':'#F59E0B'};">· Avg ${p.avgRentalDays}d</span>`:''}</div>
         <div style="font-size:12px;color:#64748B;margin-top:2px;">Your hours: <strong>${Math.round(ph.owner)}</strong>${state.settings.spouseEnabled?` · ${state.settings.spouseName||'Spouse'}: <strong>${Math.round(ph.spouse)}</strong>`:''}${p.otherHours>0?` · Others: <strong>${p.otherHours}</strong>`:''}</div>
       </div>
-      <span class="badge ${any?'b-met':'b-no'}" style="font-size:12px;padding:5px 13px;">${any?'✅ Materially Participates':'❌ Does Not Currently Qualify'}</span>
+      ${badgeSpan}
     </div>
+    ${gateMsg?`<div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;font-size:11.5px;color:#92400E;line-height:1.55;margin-bottom:14px;">${gateMsg}</div>`:''}
     ${ts.map(t=>`
     <div class="mp-row">
       <div class="mp-num ${t.met?'met':'unm'}">${t.met?'✓':t.id}</div>
@@ -2178,18 +2236,18 @@ function vReports(){
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:14px;">REPS Qualification Summary — IRC §469(c)(7)</div>
   <div class="g3">
     <div class="rstat"><div class="rstat-num">${Math.round(r.rh)}</div><div class="rstat-lbl">RE hours logged</div><div class="rstat-req">Required: > 750 hrs</div><span class="badge ${r.m750?'b-met':'b-no'}" style="margin-top:6px;display:inline-block;">${r.m750?'MET ✓':'NOT MET'}</span></div>
-    <div class="rstat"><div class="rstat-num">${Math.round(r.pct)}%</div><div class="rstat-lbl">% of personal services</div><div class="rstat-req">Required: > 50%</div><span class="badge ${r.m50?'b-met':'b-no'}" style="margin-top:6px;display:inline-block;">${r.m50?'MET ✓':'NOT MET'}</span></div>
-    <div class="rstat"><div class="rstat-num" style="color:${r.ok?'#10B981':'#EF4444'}">${r.ok?'YES':'NO'}</div><div class="rstat-lbl">REPS qualified</div><div class="rstat-req">Both tests required</div><span class="badge ${r.ok?'b-met':'b-no'}" style="margin-top:6px;display:inline-block;">${r.ok?'QUALIFIED':'NOT YET'}</span></div>
+    <div class="rstat"><div class="rstat-num">${Math.round(r.pct)}%</div><div class="rstat-lbl">% of personal services</div><div class="rstat-req">Required: > 50%</div><span class="badge ${r.m50?'b-met':'b-no'}" style="margin-top:6px;display:inline-block;${r.incomplete50?'background:#FEF3C7;color:#92400E;':''}">${r.incomplete50?'UNVERIFIED':r.m50?'MET ✓':'NOT MET'}</span></div>
+    <div class="rstat"><div class="rstat-num" style="color:${r.ok?'#10B981':r.incomplete50?'#F59E0B':'#EF4444'}">${r.ok?'YES':r.incomplete50?'PENDING':'NO'}</div><div class="rstat-lbl">REPS qualified</div><div class="rstat-req">Both tests required</div><span class="badge ${r.ok?'b-met':'b-no'}" style="margin-top:6px;display:inline-block;${r.incomplete50?'background:#FEF3C7;color:#92400E;':''}">${r.ok?'QUALIFIED':r.incomplete50?'VERIFY NON-RE HRS':'NOT YET'}</span></div>
   </div>
 </div>
 ${sps.length?`
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:14px;">STR Material Participation — Temp. Reg. §1.469-5T</div>
-  ${sps.map(p=>{const ph=pH(p.id),ts=mpT(p.id),any=ts.some(t=>t.met),best=ts.find(t=>t.met);return`
+  ${sps.map(p=>{const ph=pH(p.id),ts=mpT(p.id),any=ts.some(t=>t.met),best=ts.find(t=>t.met),q=strQualifies(p);const bl=best?best.label:'';const badgeSpan=q==='yes'?`<span class="badge b-met">✓ Qualifies — MP via ${bl}</span>`:any?`<span class="badge" style="background:#FEF3C7;color:#92400E;">${q==='conditional'?'⚠ MP via '+bl+' · 8–30-day avg (needs significant services)':'⚠ MP via '+bl+' · period gate not met'}</span>`:'<span class="badge b-no">Does Not Qualify</span>';return`
   <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:.5px solid #F0FDFA;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
       <div><strong>${esc(p.name)}</strong>${p.address?` <span style="font-size:11px;color:#64748B;">· ${esc(p.address)}</span>`:''} ${p.avgRentalDays?`<span style="font-size:11px;color:${p.avgRentalDays<=7?'#10B981':'#F59E0B'};">· Avg ${p.avgRentalDays}d</span>`:''}</div>
-      <span class="badge ${any?'b-met':'b-no'}">${any?`✓ MP via ${best?.label}`:'Does Not Qualify'}</span>
+      ${badgeSpan}
     </div>
     <div style="font-size:12px;color:#64748B;margin-bottom:8px;">Your hours: <strong style="color:#0D1F3C">${Math.round(ph.owner)}</strong>${state.settings.spouseEnabled?` · ${state.settings.spouseName||'Spouse'}: <strong>${Math.round(ph.spouse)}</strong>`:''}</div>
     <div class="tcs">${ts.map(t=>`<span class="tc ${t.met?'tc-y':'tc-n'}">${t.name} — ${t.label}${t.met?' ✓':''}</span>`).join('')}</div>
@@ -2271,7 +2329,7 @@ function vSettings(){
   <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:11px 14px;margin-bottom:12px;font-size:12px;color:#991B1B;line-height:1.7;">
     ⚠ <strong>Important — adverse case law:</strong> The Tax Court has held in <em>Bailey v. Comm'r</em>, T.C. Memo 2001-296 and <em>Bailey v. Comm'r</em>, T.C. Summary 2011-22 that hours spent on short-term rentals (≤7-day average rental period) do <strong>not</strong> count toward the §469(c)(7)(B)(ii) 750-hour REPS test, because STRs are not "rental" activities under §469. Under that reading, this toggle should be <strong>off</strong>. Some practitioners take the contrary view that STR hours qualify as services in a real property trade or business under §469(c)(7)(C). Discuss with your CPA before relying on this setting.
   </div>
-  <label class="tog-row"><input type="checkbox" ${s.includeSTRinREPS!==false?'checked':''} data-chg="setBool" data-key="includeSTRinREPS"/><span class="tog-lbl">Include STR hours in REPS 750-hr total</span></label>
+  <label class="tog-row"><input type="checkbox" ${s.includeSTRinREPS===true?'checked':''} data-chg="setBool" data-key="includeSTRinREPS"/><span class="tog-lbl">Include STR hours in REPS 750-hr total</span></label>
 </div>
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">Suspended Passive Activity Losses (PAL Carryforwards)</div>
@@ -2536,10 +2594,10 @@ function buildRemyCtx(){
   const ye=yearEntries();
   return{
     year:activeYear,
-    rh:r.rh,pct:r.pct,m750:r.m750,m50:r.m50,ok:r.ok,
+    rh:r.rh,pct:r.pct,m750:r.m750,m50:r.m50,incomplete50:r.incomplete50,ok:r.ok,
     nonREPSHours:state.settings.nonREPSHours||0,
     groupingElection:!!state.settings.groupingElection,
-    includeSTRinREPS:state.settings.includeSTRinREPS!==false,
+    includeSTRinREPS:state.settings.includeSTRinREPS===true,
     spouseEnabled:!!state.settings.spouseEnabled,
     spouseName:state.settings.spouseName||'',
     properties:state.properties.map(p=>{
@@ -2651,7 +2709,7 @@ async function exportXLSX(){
   const r=calcREPS();
   const ye=yearEntries();
   const sps=state.properties.filter(p=>p.type==='STR');
-  const repsEntries=[...ye].filter(e=>e.trackType!=='STR'||state.settings.includeSTRinREPS!==false).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const repsEntries=[...ye].filter(e=>e.trackType!=='STR'||state.settings.includeSTRinREPS===true).sort((a,b)=>new Date(b.date)-new Date(a.date));
   const strEntries=[...ye].filter(e=>e.trackType==='STR').sort((a,b)=>new Date(b.date)-new Date(a.date));
   const allEntries=[...ye].sort((a,b)=>new Date(b.date)-new Date(a.date));
 
@@ -2677,7 +2735,7 @@ async function exportXLSX(){
     ['Test','Result','Your Value','Required'],
     ['750-Hour Test', r.m750?'✓ MET':'✗ NOT MET', Math.round(r.rh)+' hrs','> 750 hrs'],
     ['50% Services Test', r.m50?'✓ MET':'✗ NOT MET', Math.round(r.pct)+'%','> 50%'],
-    ['Overall REPS Status', r.ok?'✓ QUALIFIED':'✗ NOT QUALIFIED','','Both tests required'],
+    ['Overall REPS Status', r.ok?'✓ QUALIFIED':(r.incomplete50?'PENDING — verify non-RE hours':'✗ NOT QUALIFIED'),'','Both tests required'],
     ['Non-RE Hours Entered',(state.settings.nonREPSHours||0)>0?'Yes — '+state.settings.nonREPSHours+' hrs':'⚠ Not entered — 50% test unverified','',''],
     ['Grouping Election',state.settings.groupingElection?'Filed — §469(c)(7)(A)':'Not filed','',''],
     ['','','',''],
