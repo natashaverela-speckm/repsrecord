@@ -3,6 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Content Security Policy (Batch 5). Strict script-src: inline app code is allowed only by its
+     SHA-256 hash; no 'unsafe-inline' or 'unsafe-eval'. If you edit the inline script element, recompute
+     the hash (sha256 of the exact UTF-8 bytes of that element's contents, base64) and update it below.
+     Note: frame-ancestors is intentionally omitted here — it is ignored in a meta CSP and should be
+     set as an HTTP response header (e.g. frame-ancestors 'none') at the host instead. -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4W1YAMLMH5J5a7lBshbwrrW28DyCSjN2UYTjsEUftrc=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>RepsRecord — REPS & STR Hour Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -2722,20 +2728,27 @@ async function appInit(){
     }catch(e){_sb=null;}
   }
   // Load data: cloud first, localStorage fallback
-  await load();
-  // Populate year dropdown
-  const yrSel=document.getElementById('year-sel');
-  if(yrSel){
-    YEARS.forEach(y=>{
-      const o=document.createElement('option');
-      o.value=y;o.textContent=y+' Tax Year';
-      o.style.background='#0D1F3C';
-      if(y===activeYear)o.selected=true;
-      yrSel.appendChild(o);
-    });
+  try{
+    await load();
+    // Populate year dropdown
+    const yrSel=document.getElementById('year-sel');
+    if(yrSel){
+      YEARS.forEach(y=>{
+        const o=document.createElement('option');
+        o.value=y;o.textContent=y+' Tax Year';
+        o.style.background='#0D1F3C';
+        if(y===activeYear)o.selected=true;
+        yrSel.appendChild(o);
+      });
+    }
+    renderView();
+    setTimeout(showWalkthrough,800);
+  }catch(e){
+    // Never strand the user on the loading spinner — surface the failure and render what we can.
+    console.error('[appInit]',e);
+    try{ renderView(); }catch(_){}
+    toast('Something went wrong while starting up. Your data is safe on this device — try reloading the page.','error',{duration:0});
   }
-  renderView();
-  setTimeout(showWalkthrough,800);
 }
 initDelegation();
 appInit();
