@@ -8,7 +8,7 @@
      the hash (sha256 of the exact UTF-8 bytes of that element's contents, base64) and update it below.
      Note: frame-ancestors is intentionally omitted here — it is ignored in a meta CSP and should be
      set as an HTTP response header (e.g. frame-ancestors 'none') at the host instead. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-LqyHmhw4TChCqISk8Qe9JEJ0V0yfYvq6yuB6sJHPk0Q=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-t6y99IU/CN4sX/jYNFwHHAGxJKFve2VgqYQ1VFpQV34=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>RepsRecord — REPS & STR Hour Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1345,13 +1345,13 @@ async function uploadFiles(entryId,files){
       const path=`${entryId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
       const sess=_sb?await _sb.auth.getSession():null;
       const token=sess?.data?.session?.access_token||SUPABASE_ANON_KEY;
-      const res=await fetch(`${SUPABASE_URL}/storage/v1/object/evidence/${path}`,{
+      const res=await fetch(`${SUPABASE_URL}/storage/v1/object/Evidence/${path}`,{
         method:'POST',
         headers:{'Authorization':`Bearer ${token}`,'Content-Type':file.type||'application/octet-stream','x-upsert':'true'},
         body:file
       });
       if(res.ok){
-        const url=`${SUPABASE_URL}/storage/v1/object/public/evidence/${path}`;
+        const url=`${SUPABASE_URL}/storage/v1/object/public/Evidence/${path}`;
         attachments.push({name:file.name,url,path});
       } else { failed++; console.error('[uploadFiles] HTTP',res.status,file.name); }
     }catch(err){ failed++; console.error('[uploadFiles]',file?.name,err); }
