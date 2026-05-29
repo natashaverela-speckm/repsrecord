@@ -286,6 +286,14 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
 /* ── Interactive sync pill ── */
 #sync-indicator{cursor:pointer;transition:opacity .15s;}
 #sync-indicator:hover{opacity:.75;}
+
+/* ════════ BATCH 4 ════════ */
+/* Hover utilities (replace former inline onmouseover/onmouseout) */
+.hov-blue,.hov-teal{transition:border-color .15s;}
+.hov-blue:hover{border-color:#38BDF8 !important;}
+.hov-teal:hover{border-color:#14B8A6 !important;}
+.hov-drop:hover{border-color:#14B8A6 !important;background:#F0FDFA !important;}
+.hov-row:hover{background:#F0FDFA !important;}
 </style>
 </head>
 <body>
@@ -294,7 +302,7 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
   <div class="sb" role="navigation" aria-label="Main navigation">
     <div class="sb-head">
       <div class="sb-logo">REPS<span>Record</span></div>
-      <select id="year-sel" aria-label="Select tax year" onchange="activeYear=parseInt(this.value);renderView()" style="font-size:10px;color:#7DD3FC;background:transparent;border:none;outline:none;cursor:pointer;font-family:inherit;font-weight:700;letter-spacing:.03em;margin-top:3px;"></select>
+      <select id="year-sel" aria-label="Select tax year" data-chg="setYear" style="font-size:10px;color:#7DD3FC;background:transparent;border:none;outline:none;cursor:pointer;font-family:inherit;font-weight:700;letter-spacing:.03em;margin-top:3px;"></select>
     </div>
     <div class="sb-nav" id="sb-nav"></div>
     <div class="sb-foot" role="complementary" aria-label="REPS qualification status">
@@ -306,9 +314,9 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
       <div class="sf-val" id="sb-str-val">0 hrs logged</div>
       <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;" id="sb-str-props"></div>
       <div style="height:.5px;background:#1E4A6E;margin:10px 0;"></div>
-      <div id="sync-indicator" role="button" tabindex="0" aria-live="polite" aria-label="Data sync status — click for details" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}" style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#7DD3FC;text-align:center;margin-bottom:8px;">⟳ Loading…</div>
-      <button onclick="toggleRemy()" id="remy-btn" aria-label="Open Remy AI assistant" style="width:100%;margin-bottom:8px;padding:9px 12px;background:linear-gradient(135deg,#14B8A6,#38BDF8);border:none;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border-radius:8px;transition:opacity .15s;text-align:center;letter-spacing:.02em;">✨ Ask Remy</button>
-      <button onclick="signOut()" class="sb-signout" aria-label="Sign out of RepsRecord">🚪 Sign out</button>
+      <div id="sync-indicator" role="button" tabindex="0" aria-live="polite" aria-label="Data sync status — click for details" data-kd="activate" style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#7DD3FC;text-align:center;margin-bottom:8px;">⟳ Loading…</div>
+      <button data-act="toggleRemy" id="remy-btn" aria-label="Open Remy AI assistant" style="width:100%;margin-bottom:8px;padding:9px 12px;background:linear-gradient(135deg,#14B8A6,#38BDF8);border:none;color:#fff;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;border-radius:8px;transition:opacity .15s;text-align:center;letter-spacing:.02em;">✨ Ask Remy</button>
+      <button data-act="signOut" class="sb-signout" aria-label="Sign out of RepsRecord">🚪 Sign out</button>
     </div>
   </div>
   <div class="main" role="main"><div class="content" id="content"><div style="padding:60px 20px;text-align:center;color:#94A3B8;"><div class="spinner spinner-lg" style="margin:0 auto 14px;"></div><div style="font-size:13px;">Loading your data…</div></div></div></div>
@@ -434,6 +442,150 @@ function dlgPrompt(opts){ return _dlgOpen(Object.assign({},opts||{},{prompt:true
 async function safeAwait(promise, label){
   try{ return await promise; }
   catch(e){ console.error('['+(label||'async')+']', e); toast('Something went wrong'+(label?' ('+label+')':'')+'. Your changes are saved locally.', 'error'); return undefined; }
+}
+
+// ════════ BATCH 4: Event delegation (replaces all inline on* handlers) ════════
+// Listeners are attached ONCE to document, so they survive every renderView() rebuild.
+const CLICK_ACTIONS={
+  nav:el=>go(el.dataset.target),
+  toggleRemy:()=>toggleRemy(),
+  signOut:()=>signOut(),
+  togglePF:()=>togglePF(),
+  showEditEntry:el=>showEditEntry(el.dataset.id),
+  delEntry:el=>delEntry(el.dataset.id),
+  saveEditEntry:el=>saveEditEntry(el.dataset.id),
+  hideEditEntry:el=>{const x=document.getElementById('edit-entry-'+el.dataset.id);if(x)x.style.display='none';},
+  toggleEditProp:el=>toggleEditProp(el.dataset.id),
+  dismissSettingsBanner:()=>{const b=document.getElementById('set-banner');if(b)b.style.display='none';try{localStorage.setItem('rr_settings_banner','1');}catch(e){}},
+  chartTab:el=>{_chartTab=el.dataset.tab;renderView();},
+  showImportModal:()=>showImportModal(),
+  downloadImportTemplate:()=>downloadImportTemplate(),
+  triggerClick:el=>{const t=document.getElementById(el.dataset.targetId);if(t)t.click();},
+  closeImportModal:()=>closeImportModal(),
+  confirmImport:()=>confirmImport(),
+  setTT:el=>setTT(el.dataset.arg),
+  toggleTimer:()=>toggleTimer(),
+  submitEntry:()=>submitEntry(),
+  logFilterType:el=>setLogFilter('type',el.dataset.arg),
+  bulkDelete:()=>bulkDelete(),
+  clearLogFilter:()=>{logFilter={type:'all',propId:'',search:''};renderView();},
+  delAttachment:el=>delAttachment(el.dataset.id,el.dataset.name),
+  dupeEntry:el=>dupeEntry(el.dataset.id),
+  dupePrevDay:()=>dupePrevDay(),
+  addProp:()=>addProp(),
+  openQuickLog:el=>openQuickLog(el.dataset.id),
+  togglePropEntries:el=>togglePropEntries(el.dataset.id),
+  toggleBookingLog:el=>toggleBookingLog(el.dataset.id),
+  rmProp:el=>rmProp(el.dataset.id),
+  saveQuickLog:el=>saveQuickLog(el.dataset.id),
+  hideQuickLog:el=>{const x=document.getElementById('quick-log-'+el.dataset.id);if(x)x.style.display='none';},
+  savePropEdit:el=>savePropEdit(el.dataset.id),
+  addBooking:el=>addBooking(el.dataset.id),
+  delBooking:el=>delBooking(el.dataset.id,el.dataset.id2),
+  fillAddr:el=>fillAddr(parseInt(el.dataset.idx)),
+  printPage:()=>window.print(),
+  exportXLSX:()=>exportXLSX(),
+  exportTimeLog:()=>exportTimeLog(),
+  resetAll:()=>resetAll(),
+  closeWalkthrough:()=>closeWalkthrough(),
+  walkBack:()=>walkBack(),
+  walkNext:()=>walkNext(),
+  remySend:()=>remySend(),
+};
+const CHANGE_ACTIONS={
+  setYear:el=>{activeYear=parseInt(el.value);renderView();},
+  importFile:el=>handleImportFile(el),
+  previewFiles:el=>previewFiles(el),
+  logFilterProp:el=>setLogFilter('propId',el.value),
+  selectAll:el=>selectAllEntries(el.checked),
+  selEntry:el=>toggleSelEntry(el.dataset.id,el.checked),
+  togglePropType:()=>togglePropType(),
+  updateQLCats:el=>updateQLCats(el.dataset.id),
+  toggleEditPropType:el=>toggleEditPropType(el.dataset.id),
+  togMP:el=>togMP(el.dataset.id,parseInt(el.dataset.tid),el.checked),
+  setNum:el=>setSetting(el.dataset.key,parseFloat(el.value)||0),
+  setStr:el=>setSetting(el.dataset.key,el.value),
+  setStrRender:el=>{setSetting(el.dataset.key,el.value);renderView();},
+  setBool:el=>setSetting(el.dataset.key,el.checked),
+  setBoolRender:el=>{setSetting(el.dataset.key,el.checked);renderView();},
+  setStrRenderSB:el=>{setSetting(el.dataset.key,el.value);renderView();updateSB();},
+};
+const INPUT_ACTIONS={
+  logFilterSearch:el=>setLogFilter('search',el.value),
+  addrSearch:el=>addrSearch(el.value),
+};
+function _delegate(type,attr,registry){
+  document.addEventListener(type,function(e){
+    const t=e.target.closest('['+attr+']');
+    if(!t)return;
+    const fn=registry[t.getAttribute(attr)];
+    if(!fn)return;
+    if(t.dataset.prevent==='1')e.preventDefault();
+    try{ fn(t,e); }catch(err){ console.error('[delegate '+type+']',err); }
+  });
+}
+let _delegationReady=false;
+function initDelegation(){
+  if(_delegationReady)return; _delegationReady=true;
+  _delegate('click','data-act',CLICK_ACTIONS);
+  _delegate('change','data-chg',CHANGE_ACTIONS);
+  _delegate('input','data-inp',INPUT_ACTIONS);
+  document.addEventListener('keydown',function(e){
+    const t=e.target.closest('[data-kd]');
+    if(!t)return;
+    const kind=t.getAttribute('data-kd');
+    if(kind==='activate'){ if(e.key==='Enter'||e.key===' '){e.preventDefault();t.click();} }
+    else if(kind==='remyKey'){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();remySend();} }
+  });
+}
+
+// ════════ BATCH 4: §1411 NIIT MAGI thresholds (statutory, not inflation-indexed) ════════
+const NIIT_THRESHOLDS={MFJ:250000,QW:250000,Single:200000,HoH:200000,MFS:125000};
+const FILING_LABELS={MFJ:'Married filing jointly',Single:'Single',MFS:'Married filing separately',HoH:'Head of household',QW:'Qualifying surviving spouse'};
+
+// ════════ BATCH 4: Duplicate previous day ════════
+async function dupePrevDay(){
+  const today=todayStr();
+  const dates=[...new Set(state.entries.map(e=>e.date))].filter(d=>d&&d<today).sort();
+  if(!dates.length){ toast('No earlier day with entries to copy.','warn'); return; }
+  const src=dates[dates.length-1];
+  const dayEntries=state.entries.filter(e=>e.date===src);
+  const ok=await dlgConfirm({title:'Duplicate previous day',body:`Copy all ${dayEntries.length} ${dayEntries.length===1?'entry':'entries'} from ${src} to today (${today})?\n\nEvidence attachments are not copied.`,confirmLabel:'Copy to today'});
+  if(!ok)return;
+  const added=dayEntries.map(e=>({...e,id:uid(),date:today,attachments:[]}));
+  state.entries.push(...added);
+  save();renderView();
+  toast(`Copied ${added.length} ${added.length===1?'entry':'entries'} to today.`,'success',{duration:6000,action:'Undo',onAction:()=>{const ids=new Set(added.map(a=>a.id));state.entries=state.entries.filter(e=>!ids.has(e.id));save();renderView();toast('Copy undone.','info');}});
+}
+
+// ════════ BATCH 4: Time Log export (current filter) ════════
+async function exportTimeLog(){
+  const _done=toast('Preparing time log…','info',{duration:0});
+  try{
+    if(!window.XLSX){
+      await new Promise((res,rej)=>{const sc=document.createElement('script');sc.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';sc.onload=res;sc.onerror=()=>rej(new Error('Could not load Excel library — check your connection'));document.head.appendChild(sc);});
+    }
+    let rows=[...yearEntries()].sort((a,b)=>new Date(b.date)-new Date(a.date));
+    if(logFilter.type!=='all')rows=rows.filter(e=>e.trackType===logFilter.type);
+    if(logFilter.propId)rows=rows.filter(e=>e.propertyId===logFilter.propId);
+    if(logFilter.search){const q=logFilter.search.toLowerCase();rows=rows.filter(e=>(e.notes||'').toLowerCase().includes(q)||(e.category||'').toLowerCase().includes(q));}
+    if(!rows.length){ _done(); toast('No entries match the current filter.','warn'); return; }
+    const pName=e=>state.properties.find(p=>p.id===e.propertyId)?.name||'General RE';
+    const fmtHM=h=>{const a=Math.floor(h),b=Math.round((h-a)*60);return b===0?`${a}h`:`${a}h ${b}m`;};
+    const header=['Date','Property','Type','Category','Hours (decimal)','Hours (formatted)','Spouse','Notes'];
+    const body=rows.map(e=>[e.date,pName(e),e.trackType,e.category||'',Math.round((e.hours||0)*100)/100,fmtHM(e.hours||0),e.isSpouse?'Yes':'',e.notes||'']);
+    const total=rows.reduce((s,e)=>s+(e.hours||0),0);
+    body.push(['','','','','','','','']);
+    body.push(['TOTAL','','','',Math.round(total*100)/100,fmtHM(total),'','']);
+    const ws=XLSX.utils.aoa_to_sheet([header,...body]);
+    ws['!cols']=[{wch:12},{wch:22},{wch:8},{wch:30},{wch:14},{wch:14},{wch:8},{wch:50}];
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Time Log');
+    const fn=`RepsRecord_${activeYear}_TimeLog_${new Date().toISOString().slice(0,10)}.xlsx`;
+    XLSX.writeFile(wb,fn);
+    _done();
+    toast(`Time log downloaded (${rows.length} ${rows.length===1?'entry':'entries'}).`,'success');
+  }catch(err){ _done(); console.error('[exportTimeLog]',err); toast(err.message||'Could not export time log.','error'); }
 }
 
 // ── Tax-law thresholds (centralized — see citations) ──
@@ -645,7 +797,7 @@ function renderNav(){
   document.getElementById('sb-nav').innerHTML=NAV.map(n=>{
     if(n.id==='divider')return`<div role="separator" style="height:.5px;background:#1E3A5F;margin:8px 10px;"></div>`;
     const isActive=view===n.id;
-    return`<div class="ni${isActive?' active':''}" role="menuitem" tabindex="0" aria-current="${isActive?'page':'false'}" aria-label="${n.label}" onclick="go('${n.id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();go('${n.id}');}"><span class="ni-ic" aria-hidden="true">${n.ic}</span>${n.label}</div>`;
+    return`<div class="ni${isActive?' active':''}" role="menuitem" tabindex="0" aria-current="${isActive?'page':'false'}" aria-label="${n.label}" data-act="nav" data-target="${n.id}" data-kd="activate"><span class="ni-ic" aria-hidden="true">${n.ic}</span>${n.label}</div>`;
   }).join('');
 }
 function updateSB(){
@@ -710,12 +862,12 @@ function vDashboard(){
     '<div id="set-banner" style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:flex-start;gap:12px;justify-content:space-between;">'+
       '<div style="font-size:13px;color:#92400E;flex:1;line-height:1.6;"><strong>Have a W-2 job or other non-real-estate income?</strong> Enter your hours in Settings so the 50% Services Test calculates correctly. Without it, your REPS status could show as qualified when it isn\'t.</div>'+
       '<div style="display:flex;gap:8px;flex-shrink:0;margin-top:2px;">'+
-        '<button onclick="go(\'settings\')" style="background:#F59E0B;color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;">Go to Settings</button>'+
-        '<button onclick="document.getElementById(\'set-banner\').style.display=\'none\';localStorage.setItem(\'rr_settings_banner\',\'1\')" style="background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit;">Dismiss</button>'+
+        '<button data-act="nav" data-target="settings" style="background:#F59E0B;color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;">Go to Settings</button>'+
+        '<button data-act="dismissSettingsBanner" style="background:#FEF3C7;color:#92400E;border:1px solid #FDE68A;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;white-space:nowrap;font-family:inherit;">Dismiss</button>'+
       '</div>'+
     '</div>':'';
 
-  const pageHeader='<div class="ph"><div class="ph-row"><div><h1 class="pg-title">'+activeYear+' Dashboard</h1><div class="pg-sub">Your tax year status at a glance</div></div><div style="display:flex;gap:8px;" class="top-acts"><button class="btn btn-outline btn-sm" onclick="go(\'reports\')">📋 Audit Report</button><button class="btn btn-teal btn-sm" onclick="go(\'log\')">+ Log Time</button></div></div></div>';
+  const pageHeader='<div class="ph"><div class="ph-row"><div><h1 class="pg-title">'+activeYear+' Dashboard</h1><div class="pg-sub">Your tax year status at a glance</div></div><div style="display:flex;gap:8px;" class="top-acts"><button class="btn btn-outline btn-sm" data-act="nav" data-target="reports">📋 Audit Report</button><button class="btn btn-teal btn-sm" data-act="nav" data-target="log">+ Log Time</button></div></div></div>';
 
   // ── No properties: clean onboarding ──
   if(hasNeither){
@@ -724,13 +876,13 @@ function vDashboard(){
       '<div style="font-size:16px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">👋 Welcome to RepsRecord</div>'+
       '<div style="font-size:13px;color:#64748B;margin-bottom:20px;line-height:1.6;">Start by adding your rental properties. The type you add determines which tax strategy we track.</div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">'+
-        '<div style="background:#fff;border-radius:12px;padding:20px;border:1.5px solid #CCFBF1;cursor:pointer;" onclick="go(\'properties\')" onmouseover="this.style.borderColor=\'#38BDF8\'" onmouseout="this.style.borderColor=\'#CCFBF1\'">'+
+        '<div style="background:#fff;border-radius:12px;padding:20px;border:1.5px solid #CCFBF1;cursor:pointer;" class="hov-blue" data-act="nav" data-target="properties">'+
           '<div style="font-size:22px;margin-bottom:10px;">🏡</div>'+
           '<div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">Long-Term Rentals</div>'+
           '<div style="font-size:12px;color:#64748B;line-height:1.6;margin-bottom:14px;">Track hours toward Real Estate Professional Status (REPS). Make rental losses non-passive to offset your W-2 or business income.</div>'+
           '<div style="display:inline-block;background:#38BDF8;color:#fff;font-size:12px;font-weight:700;padding:7px 16px;border-radius:8px;">+ Add LTR Property</div>'+
         '</div>'+
-        '<div style="background:#fff;border-radius:12px;padding:20px;border:1.5px solid #CCFBF1;cursor:pointer;" onclick="go(\'properties\')" onmouseover="this.style.borderColor=\'#14B8A6\'" onmouseout="this.style.borderColor=\'#CCFBF1\'">'+
+        '<div style="background:#fff;border-radius:12px;padding:20px;border:1.5px solid #CCFBF1;cursor:pointer;" class="hov-teal" data-act="nav" data-target="properties">'+
           '<div style="font-size:22px;margin-bottom:10px;">🏖</div>'+
           '<div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">Short-Term Rentals</div>'+
           '<div style="font-size:12px;color:#64748B;line-height:1.6;margin-bottom:14px;">Track material participation tests for Airbnb, VRBO, and similar properties. No REPS required — this strategy is available to any investor.</div>'+
@@ -749,7 +901,7 @@ function vDashboard(){
       '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:14px;padding-top:14px;border-top:.5px solid #F0FDFA;">'+
         '<div style="text-align:center;"><div style="font-size:22px;font-weight:900;color:#0D1F3C;">'+ltrPs.length+'</div><div style="font-size:11px;color:#64748B;margin-top:2px;">LTR Properties</div></div>'+
         '<div style="text-align:center;"><div style="font-size:22px;font-weight:900;color:'+( ltrMpMet===ltrPs.length?'#10B981':'#F59E0B')+';">'+ltrMpMet+' / '+ltrPs.length+'</div><div style="font-size:11px;color:#64748B;margin-top:2px;">With MP Met</div><div style="font-size:10px;color:#94A3B8;margin-top:1px;">per-property test</div></div>'+
-        '<div style="text-align:center;"><a href="#" onclick="go(\'mp\');return false;" style="font-size:11px;color:#0F766E;font-weight:700;text-decoration:none;display:block;margin-top:4px;">MP Tests →</a><div style="font-size:10px;color:#94A3B8;margin-top:2px;">view detail</div></div>'+
+        '<div style="text-align:center;"><a href="#" data-act="nav" data-target="mp" data-prevent="1" style="font-size:11px;color:#0F766E;font-weight:700;text-decoration:none;display:block;margin-top:4px;">MP Tests →</a><div style="font-size:10px;color:#94A3B8;margin-top:2px;">view detail</div></div>'+
       '</div>':
       (grouped?'<div style="margin-top:12px;font-size:12px;color:#1D4ED8;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:8px 12px;">📋 <strong>Grouping election on file</strong> — all LTR properties combined for MP testing.</div>':'');
 
@@ -816,7 +968,7 @@ function vDashboard(){
           '<div style="font-size:30px;font-weight:900;color:#0D1F3C;letter-spacing:-0.03em;">'+Math.round(pct)+'%<span style="font-size:13px;font-weight:400;color:#64748B;"> of work hrs</span></div>'+
           bar(pct,100,_50incomplete?'#F59E0B':m50?'#10B981':'#EF4444')+
           '<div style="font-size:12px;color:#64748B;">'+Math.round(repsHrs)+' RE hrs · '+Math.round(tot)+' total hrs this year</div>'+
-          ((state.settings.nonREPSHours||0)===0&&repsHrs>0?'<div style="font-size:11px;margin-top:6px;padding:5px 8px;background:#FFF7ED;border-radius:6px;border:.5px solid #FDE68A;color:#92400E;">⚠ Non-RE hours not entered — result unverified. <a href="#" onclick="go(\'settings\');return false;" style="color:#B45309;font-weight:600;text-decoration:underline;">→ Add in Settings</a></div>':(tot===0?'<div style="font-size:11px;margin-top:6px;"><a href="#" onclick="go(\'settings\');return false;" style="color:#14B8A6;font-weight:600;">→ Enter non-RE hours in Settings to verify this test</a></div>':''))+
+          ((state.settings.nonREPSHours||0)===0&&repsHrs>0?'<div style="font-size:11px;margin-top:6px;padding:5px 8px;background:#FFF7ED;border-radius:6px;border:.5px solid #FDE68A;color:#92400E;">⚠ Non-RE hours not entered — result unverified. <a href="#" data-act="nav" data-target="settings" data-prevent="1" style="color:#B45309;font-weight:600;text-decoration:underline;">→ Add in Settings</a></div>':(tot===0?'<div style="font-size:11px;margin-top:6px;"><a href="#" data-act="nav" data-target="settings" data-prevent="1" style="color:#14B8A6;font-weight:600;">→ Enter non-RE hours in Settings to verify this test</a></div>':''))+
         '</div>'+
       '</div>'+
       (!ok&&state.properties.length>0?'<div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:10px;padding:10px 14px;font-size:12px;color:#92400E;margin-top:14px;">💡 '+(!m750?'Log '+Math.max(0,Math.ceil(750-repsHrs+0.01))+' more qualifying hours to exceed the 750-hr threshold. ':'')+(m750&&!m50?'Your RE hours need to exceed 50% of all hours. Add your non-RE hours in Settings.':'')+'</div>':'')+
@@ -826,7 +978,7 @@ function vDashboard(){
       ((ok&&hasLTR&&!grouped)?(function(){
         const ltrUnmet=ltrPs.filter(lp=>!mpT(lp.id).some(t=>t.met));
         if(ltrUnmet.length===0)return'';
-        return'<div style="background:#FEF3C7;border:1.5px solid #FCD34D;border-radius:10px;padding:12px 14px;font-size:12px;color:#92400E;line-height:1.6;margin-top:14px;">⚠ <strong>Per-property MP not verified for '+ltrUnmet.length+' of '+ltrPs.length+' LTR'+(ltrPs.length>1?' properties':' property')+'.</strong> REPS qualification alone does not make rental losses non-passive — you must also materially participate in each rental activity (or file a §469(c)(7)(A) grouping election). <a href="#" onclick="go(\'mp\');return false;" style="color:#92400E;font-weight:700;text-decoration:underline;">Review MP tests →</a></div>';
+        return'<div style="background:#FEF3C7;border:1.5px solid #FCD34D;border-radius:10px;padding:12px 14px;font-size:12px;color:#92400E;line-height:1.6;margin-top:14px;">⚠ <strong>Per-property MP not verified for '+ltrUnmet.length+' of '+ltrPs.length+' LTR'+(ltrPs.length>1?' properties':' property')+'.</strong> REPS qualification alone does not make rental losses non-passive — you must also materially participate in each rental activity (or file a §469(c)(7)(A) grouping election). <a href="#" data-act="nav" data-target="mp" data-prevent="1" style="color:#92400E;font-weight:700;text-decoration:underline;">Review MP tests →</a></div>';
       })():'')+
     '</div>';
   } else {
@@ -838,7 +990,7 @@ function vDashboard(){
           '<div style="font-size:12px;color:#64748B;line-height:1.5;">Your STR strategy doesn\'t require REPS. If you add long-term rentals, REPS can make those losses non-passive too.</div>'+
         '</div>'+
         '<div style="display:flex;gap:8px;flex-shrink:0;">'+
-          '<a href="#" onclick="go(\'ltr\');return false;" style="font-size:12px;color:#0E7490;font-weight:600;text-decoration:none;white-space:nowrap;">What is REPS? →</a>'+
+          '<a href="#" data-act="nav" data-target="ltr" data-prevent="1" style="font-size:12px;color:#0E7490;font-weight:600;text-decoration:none;white-space:nowrap;">What is REPS? →</a>'+
         '</div>'+
       '</div>';
   }
@@ -867,7 +1019,7 @@ function vDashboard(){
       '<div class="card" style="text-align:center;padding:16px 12px;"><div style="font-size:28px;font-weight:900;color:#10B981;">'+strQual+' / '+strTotal+'</div><div style="font-size:12px;font-weight:600;color:#64748B;margin-top:2px;">Properties Qualifying</div></div>'+
       '<div class="card" style="text-align:center;padding:16px 12px;"><div style="font-size:28px;font-weight:900;color:'+(strTotal-strQual>0?'#EF4444':'#10B981')+';">'+(strTotal-strQual)+'</div><div style="font-size:12px;font-weight:600;color:#64748B;margin-top:2px;">Not Yet Qualifying</div></div>'+
     '</div>'+
-    '<div style="text-align:right;"><a href="#" onclick="go(\'mp\');return false;" style="font-size:12px;color:#0F766E;font-weight:700;text-decoration:none;">View per-property MP tests →</a></div>'+
+    '<div style="text-align:right;"><a href="#" data-act="nav" data-target="mp" data-prevent="1" style="font-size:12px;color:#0F766E;font-weight:700;text-decoration:none;">View per-property MP tests →</a></div>'+
   '</div>':'';
 
   // ── Chart section ──
@@ -879,8 +1031,8 @@ function vDashboard(){
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
       <div style="font-size:13px;font-weight:700;color:#0D1F3C;">${activeYear} Activity</div>
       <div style="display:flex;background:#F0FDFA;border-radius:8px;padding:3px;gap:2px;">
-        <button onclick="_chartTab='monthly';renderView()" style="padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;background:${_chartTab==='monthly'?'#14B8A6':'transparent'};color:${_chartTab==='monthly'?'#fff':'#64748B'};">Monthly</button>
-        <button onclick="_chartTab='property';renderView()" style="padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;background:${_chartTab==='property'?'#14B8A6':'transparent'};color:${_chartTab==='property'?'#fff':'#64748B'};">By Property</button>
+        <button data-act="chartTab" data-tab="monthly" style="padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;background:${_chartTab==='monthly'?'#14B8A6':'transparent'};color:${_chartTab==='monthly'?'#fff':'#64748B'};">Monthly</button>
+        <button data-act="chartTab" data-tab="property" style="padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;background:${_chartTab==='property'?'#14B8A6':'transparent'};color:${_chartTab==='property'?'#fff':'#64748B'};">By Property</button>
       </div>
     </div>
     <div style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
@@ -904,7 +1056,11 @@ function vLog(){
   return`
 <div class="ph" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;">
   <div><h1 class="pg-title">Log Time</h1><div class="pg-sub">Record qualifying hours for REPS (IRC §469(c)(7)) and STR material participation (Temp. Reg. §1.469-5T)</div></div>
-  <button onclick="showImportModal()" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;font-size:13px;font-weight:700;padding:10px 18px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:inherit;">📊 Import from Excel</button>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;">
+    <button data-act="dupePrevDay" title="Copy all of the previous logged day's entries to today" style="background:#F0FDFA;border:1px solid #CCFBF1;color:#0E7490;font-size:13px;font-weight:700;padding:10px 16px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:inherit;">📋 Duplicate previous day</button>
+    <button data-act="exportTimeLog" title="Download the current time-log view as Excel" style="background:#ECFDF5;border:1px solid #6EE7B7;color:#065F46;font-size:13px;font-weight:700;padding:10px 16px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:inherit;">⬇ Export Time Log</button>
+    <button data-act="showImportModal" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;font-size:13px;font-weight:700;padding:10px 18px;border-radius:10px;cursor:pointer;display:flex;align-items:center;gap:6px;white-space:nowrap;font-family:inherit;">📊 Import from Excel</button>
+  </div>
 </div>
 
 <!-- Import Modal -->
@@ -915,7 +1071,7 @@ function vLog(){
     <div style="background:#F0FDFA;border:1px solid #CCFBF1;border-radius:10px;padding:14px 16px;margin-bottom:12px;font-size:12px;font-family:ui-monospace,monospace;color:#0E7490;line-height:2;">
       <strong>date</strong> &nbsp;|&nbsp; <strong>hours</strong> &nbsp;|&nbsp; <strong>minutes</strong> &nbsp;|&nbsp; <strong>property</strong> &nbsp;|&nbsp; <strong>type</strong> &nbsp;|&nbsp; <strong>category</strong> &nbsp;|&nbsp; <strong>notes</strong>
     </div>
-    <div style="margin-bottom:16px;"><button onclick="downloadImportTemplate()" style="background:#ECFDF5;border:1px solid #6EE7B7;color:#065F46;font-size:12px;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;">⬇ Download Template (.csv)</button></div>
+    <div style="margin-bottom:16px;"><button data-act="downloadImportTemplate" style="background:#ECFDF5;border:1px solid #6EE7B7;color:#065F46;font-size:12px;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;">⬇ Download Template (.csv)</button></div>
     <div style="font-size:12px;color:#64748B;margin-bottom:16px;line-height:1.7;">
       <strong>date</strong> — format: YYYY-MM-DD (e.g. 2026-01-15)<br>
       <strong>hours</strong> — whole number (e.g. 2)<br>
@@ -925,28 +1081,28 @@ function vLog(){
       <strong>category</strong> — any activity category<br>
       <strong>notes</strong> — optional description
     </div>
-    <div id="import-drop" onclick="document.getElementById('import-file').click()" style="border:2px dashed #CBD5E1;border-radius:12px;padding:32px;text-align:center;cursor:pointer;background:#F8FAFC;margin-bottom:16px;transition:all .15s;" onmouseover="this.style.borderColor='#14B8A6';this.style.background='#F0FDFA'" onmouseout="this.style.borderColor='#CBD5E1';this.style.background='#F8FAFC'">
+    <div id="import-drop" class="hov-drop" data-act="triggerClick" data-target-id="import-file" style="border:2px dashed #CBD5E1;border-radius:12px;padding:32px;text-align:center;cursor:pointer;background:#F8FAFC;margin-bottom:16px;transition:all .15s;">
       <div style="font-size:28px;margin-bottom:8px;">📂</div>
       <div style="font-size:14px;font-weight:700;color:#0D1F3C;">Click to choose your file</div>
       <div style="font-size:12px;color:#94A3B8;margin-top:4px;">.xlsx or .csv files supported</div>
-      <input type="file" id="import-file" accept=".xlsx,.csv" style="display:none" onchange="handleImportFile(this)"/>
+      <input type="file" id="import-file" accept=".xlsx,.csv" style="display:none" data-chg="importFile"/>
     </div>
     <div id="import-status" style="display:none;margin-bottom:16px;"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end;">
-      <button onclick="closeImportModal()" style="background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0;padding:10px 20px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;">Cancel</button>
-      <button id="import-confirm-btn" onclick="confirmImport()" style="display:none;background:#14B8A6;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Import Entries</button>
+      <button data-act="closeImportModal" style="background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0;padding:10px 20px;border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;">Cancel</button>
+      <button id="import-confirm-btn" data-act="confirmImport" style="display:none;background:#14B8A6;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;">Import Entries</button>
     </div>
   </div>
 </div>
 <div class="card card-mb">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
     <div class="track-bar" style="flex:1;min-width:260px;margin-bottom:0;">
-      <button class="track-btn${trackType==='REPS'?' active-reps':''}" onclick="setTT('REPS')">🏡 REPS Hours (RE Activities)</button>
-      <button class="track-btn${trackType==='STR'?' active-str':''}" onclick="setTT('STR')">🏖 STR Hours (MP)</button>
+      <button class="track-btn${trackType==='REPS'?' active-reps':''}" data-act="setTT" data-arg="REPS">🏡 REPS Hours (RE Activities)</button>
+      <button class="track-btn${trackType==='STR'?' active-str':''}" data-act="setTT" data-arg="STR">🏖 STR Hours (MP)</button>
     </div>
     <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
       ${timerStart?`<span id="timer-display" style="font-size:18px;font-weight:900;color:#EF4444;font-family:ui-monospace,monospace;letter-spacing:.05em;"></span>`:''}
-      <button id="timer-btn" onclick="toggleTimer()" style="padding:9px 14px;border-radius:8px;border:1px solid ${timerStart?'#EF4444':'#CCFBF1'};background:${timerStart?'#EF4444':'#fff'};color:${timerStart?'#fff':'#0D1F3C'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">${timerStart?'⏹ Stop & Fill':'⏱ Start Timer'}</button>
+      <button id="timer-btn" data-act="toggleTimer" style="padding:9px 14px;border-radius:8px;border:1px solid ${timerStart?'#EF4444':'#CCFBF1'};background:${timerStart?'#EF4444':'#fff'};color:${timerStart?'#fff':'#0D1F3C'};font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;">${timerStart?'⏹ Stop & Fill':'⏱ Start Timer'}</button>
     </div>
   </div>
   <div class="info-box ${trackType==='STR'?'ib-blue':'ib-teal'}">
@@ -966,8 +1122,8 @@ function vLog(){
             lp.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
         }
       })()}</select>
-      ${trackType==='STR'&&!state.properties.some(p=>p.type==='STR')?'<div class="hint" style="color:#F59E0B;margin-top:4px;">No STR properties yet. <a href="#" onclick="go(\'properties\');return false;" style="color:#14B8A6;font-weight:600;">Add one in Properties →</a></div>':''}
-      ${trackType==='REPS'&&!state.properties.some(p=>p.type==='LTR')?'<div class="hint" style="margin-top:4px;">No LTR properties yet — <a href="#" onclick="go(\'properties\');return false;" style="color:#14B8A6;font-weight:600;">add one in Properties →</a> or select general above.</div>':''}
+      ${trackType==='STR'&&!state.properties.some(p=>p.type==='STR')?'<div class="hint" style="color:#F59E0B;margin-top:4px;">No STR properties yet. <a href="#" data-act="nav" data-target="properties" data-prevent="1" style="color:#14B8A6;font-weight:600;">Add one in Properties →</a></div>':''}
+      ${trackType==='REPS'&&!state.properties.some(p=>p.type==='LTR')?'<div class="hint" style="margin-top:4px;">No LTR properties yet — <a href="#" data-act="nav" data-target="properties" data-prevent="1" style="color:#14B8A6;font-weight:600;">add one in Properties →</a> or select general above.</div>':''}
     </div>
   </div>
   <div class="field"><label class="fl">Activity Category</label>
@@ -985,28 +1141,28 @@ function vLog(){
   </div>
   <div class="field">
     <label class="fl">Evidence / Attachments <span style="font-weight:400;text-transform:none;color:#94A3B8;">— receipts, photos, invoices, contracts</span></label>
-    <div class="upload-zone" onclick="document.getElementById('f-files').click()">
-      <input type="file" id="f-files" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" onchange="previewFiles(this)"/>
+    <div class="upload-zone" data-act="triggerClick" data-target-id="f-files">
+      <input type="file" id="f-files" multiple accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt" data-chg="previewFiles"/>
       <div class="upload-zone-label">📎 Click to attach files — images, PDFs, docs</div>
       <div id="f-file-preview" style="margin-top:6px;display:flex;flex-wrap:wrap;gap:5px;justify-content:center;"></div>
     </div>
   </div>
   ${state.settings.spouseEnabled?`<label class="tog-row"><input type="checkbox" id="f-spouse"/><span class="tog-lbl">Log as ${state.settings.spouseName||'Spouse'}'s hours (tracked separately)</span></label>`:''}
-  <button class="btn btn-block" id="sub-btn" onclick="submitEntry()" style="background:${trackType==='STR'?'#38BDF8':'#14B8A6'};color:#fff;">+ Log ${trackType} Entry</button>
+  <button class="btn btn-block" id="sub-btn" data-act="submitEntry" style="background:${trackType==='STR'?'#38BDF8':'#14B8A6'};color:#fff;">+ Log ${trackType} Entry</button>
 </div>
 ${all.length?`
 <!-- Filter bar --><div role="search" aria-label="Filter and search entries">
 <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">
   <div style="display:flex;background:#F0FDFA;border-radius:8px;padding:3px;gap:2px;">
-    ${['all','REPS','STR'].map(t=>`<button onclick="setLogFilter('type','${t}')" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;background:${logFilter.type===t?(t==='STR'?'#38BDF8':'#14B8A6'):'transparent'};color:${logFilter.type===t?'#fff':'#64748B'};">${t==='all'?'All':t}</button>`).join('')}
+    ${['all','REPS','STR'].map(t=>`<button data-act="logFilterType" data-arg="${t}" style="padding:5px 12px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:inherit;background:${logFilter.type===t?(t==='STR'?'#38BDF8':'#14B8A6'):'transparent'};color:${logFilter.type===t?'#fff':'#64748B'};">${t==='all'?'All':t}</button>`).join('')}
   </div>
-  <select onchange="setLogFilter('propId',this.value)" style="padding:6px 10px;border-radius:8px;border:1px solid #CBD5E1;font-size:12px;font-family:inherit;color:#0D1F3C;background:#fff;cursor:pointer;">
+  <select data-chg="logFilterProp" style="padding:6px 10px;border-radius:8px;border:1px solid #CBD5E1;font-size:12px;font-family:inherit;color:#0D1F3C;background:#fff;cursor:pointer;">
     <option value="">All properties</option>
     ${state.properties.map(p=>`<option value="${p.id}" ${logFilter.propId===p.id?'selected':''}>${esc(p.name)}</option>`).join('')}
   </select>
-  <input value="${logFilter.search}" oninput="setLogFilter('search',this.value)" placeholder="Search notes…" style="flex:1;min-width:140px;padding:6px 10px;border-radius:8px;border:1px solid #CBD5E1;font-size:12px;font-family:inherit;"/>
+  <input value="${logFilter.search}" data-inp="logFilterSearch" placeholder="Search notes…" style="flex:1;min-width:140px;padding:6px 10px;border-radius:8px;border:1px solid #CBD5E1;font-size:12px;font-family:inherit;"/>
   <div id="bulk-bar" style="display:${selEntries.size>0?'flex':'none'};gap:8px;align-items:center;">
-    <button id="bulk-cnt" onclick="bulkDelete()" style="background:#EF4444;color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Delete selected (${selEntries.size})</button>
+    <button id="bulk-cnt" data-act="bulkDelete" style="background:#EF4444;color:#fff;border:none;padding:6px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">Delete selected (${selEntries.size})</button>
   </div>
 </div></div>
 ${(()=>{
@@ -1014,24 +1170,24 @@ ${(()=>{
   if(logFilter.type!=='all')filtered=filtered.filter(e=>e.trackType===logFilter.type);
   if(logFilter.propId)filtered=filtered.filter(e=>e.propertyId===logFilter.propId);
   if(logFilter.search){const q=logFilter.search.toLowerCase();filtered=filtered.filter(e=>(e.notes||'').toLowerCase().includes(q)||(e.category||'').toLowerCase().includes(q));}
-  if(!filtered.length)return`<div style="text-align:center;padding:32px;color:#94A3B8;font-size:13px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;">No entries match your filter — <a href="#" onclick="logFilter={type:'all',propId:'',search:''};renderView();return false;" style="color:#14B8A6;font-weight:600;">clear filters</a></div>`;
-  return`<h2 class="sec-lbl" style="margin-bottom:8px;">Entries (${filtered.length}${filtered.length<all.length?' of '+all.length:''})<label style="float:right;font-size:10px;font-weight:700;color:#64748B;cursor:pointer;display:flex;align-items:center;gap:5px;"><input type="checkbox" class="entry-cb" onchange="selectAllEntries(this.checked)" style="accent-color:#14B8A6;"/> Select all</label></h2>
+  if(!filtered.length)return`<div style="text-align:center;padding:32px;color:#94A3B8;font-size:13px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;">No entries match your filter — <a href="#" data-act="clearLogFilter" data-prevent="1" style="color:#14B8A6;font-weight:600;">clear filters</a></div>`;
+  return`<h2 class="sec-lbl" style="margin-bottom:8px;">Entries (${filtered.length}${filtered.length<all.length?' of '+all.length:''})<label style="float:right;font-size:10px;font-weight:700;color:#64748B;cursor:pointer;display:flex;align-items:center;gap:5px;"><input type="checkbox" class="entry-cb" data-chg="selectAll" style="accent-color:#14B8A6;"/> Select all</label></h2>
 <div class="card">
 ${filtered.map(e=>{const pr=state.properties.find(p=>p.id===e.propertyId);const cats=e.trackType==='STR'?STR_CATS:REPS_CATS;const isSel=selEntries.has(e.id);return`
 <div class="ei" style="flex-wrap:wrap;${isSel?'background:#F0FDFA;border-radius:8px;':''}">
-  <input type="checkbox" class="entry-cb" data-id="${e.id}" ${isSel?'checked':''} onchange="toggleSelEntry('${e.id}',this.checked)" style="accent-color:#14B8A6;width:16px;height:16px;flex-shrink:0;margin-top:11px;"/>
+  <input type="checkbox" class="entry-cb" data-id="${e.id}" ${isSel?'checked':''} data-chg="selEntry" style="accent-color:#14B8A6;width:16px;height:16px;flex-shrink:0;margin-top:11px;"/>
   <div class="ei-ic" style="background:${e.trackType==='STR'?'#E0F7FA':'#F0FDFA'};">${e.trackType==='STR'?'🏖':'🏡'}</div>
   <div style="flex:1;min-width:0;">
     <div class="ei-cat">${esc(e.category)}<span class="tb tb-${e.trackType==='STR'?'s':'r'}">${e.trackType}</span>${e.isSpouse?'<span class="tb tb-sp">SPOUSE</span>':''}${e.attachments&&e.attachments.length?`<span class="attach-badge">📎 ${e.attachments.length}</span>`:''}</div>
     <div class="ei-meta">${e.date} · ${pr?.name||'General RE'} · ${fmtH(e.hours)}</div>
     ${e.notes?`<div class="ei-note">"${esc(e.notes)}"</div>`:''}
-    ${e.attachments&&e.attachments.length?`<div class="attach-list">${e.attachments.map(a=>`<span class="attach-chip"><a href="${esc(a.url)}" target="_blank" title="${esc(a.name)}">📄 ${esc(a.name.length>20?a.name.slice(0,20)+'…':a.name)}</a><button onclick="delAttachment('${e.id}',${JSON.stringify(a.name)})" title="Remove">×</button></span>`).join('')}</div>`:''}
+    ${e.attachments&&e.attachments.length?`<div class="attach-list">${e.attachments.map(a=>`<span class="attach-chip"><a href="${esc(a.url)}" target="_blank" title="${esc(a.name)}">📄 ${esc(a.name.length>20?a.name.slice(0,20)+'…':a.name)}</a><button data-act="delAttachment" data-id="${e.id}" data-name="${esc(a.name)}" title="Remove">×</button></span>`).join('')}</div>`:''}
   </div>
   <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
     <div class="ei-hrs">${fmtH(e.hours)}</div>
-    <button onclick="dupeEntry('${e.id}')" aria-label="Copy ${esc(e.category)} entry to new entry" title="Copy to new entry" style="background:#F0FDFA;border:1px solid #CCFBF1;color:#0E7490;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;font-weight:600;">📋 Copy</button>
-    <button onclick="showEditEntry('${e.id}')" aria-label="Edit ${esc(e.category)} entry from ${esc(e.date)}" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;font-weight:600;">✏️ Edit</button>
-    <button class="ei-del" onclick="delEntry('${e.id}')" aria-label="Delete ${esc(e.category)} entry from ${esc(e.date)}" title="Delete entry">🗑</button>
+    <button data-act="dupeEntry" data-id="${e.id}" aria-label="Copy ${esc(e.category)} entry to new entry" title="Copy to new entry" style="background:#F0FDFA;border:1px solid #CCFBF1;color:#0E7490;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;font-weight:600;">📋 Copy</button>
+    <button data-act="showEditEntry" data-id="${e.id}" aria-label="Edit ${esc(e.category)} entry from ${esc(e.date)}" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;font-size:11px;padding:5px 10px;border-radius:6px;cursor:pointer;font-weight:600;">✏️ Edit</button>
+    <button class="ei-del" data-act="delEntry" data-id="${e.id}" aria-label="Delete ${esc(e.category)} entry from ${esc(e.date)}" title="Delete entry">🗑</button>
   </div>
   <div id="edit-entry-${e.id}" style="display:none;width:100%;margin-top:12px;background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:10px;padding:14px;">
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#14B8A6;margin-bottom:12px;">Edit Entry</div>
@@ -1047,8 +1203,8 @@ ${filtered.map(e=>{const pr=state.properties.find(p=>p.id===e.propertyId);const 
       <textarea id="ee-note-${e.id}" rows="2" placeholder="Describe what you did...">${esc(e.notes||'')}</textarea>
     </div>
     <div style="display:flex;gap:8px;">
-      <button onclick="saveEditEntry('${e.id}')" style="background:#14B8A6;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Save changes</button>
-      <button onclick="document.getElementById('edit-entry-${e.id}').style.display='none'" style="background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0;padding:9px 14px;border-radius:8px;font-size:13px;cursor:pointer;">Cancel</button>
+      <button data-act="saveEditEntry" data-id="${e.id}" style="background:#14B8A6;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Save changes</button>
+      <button data-act="hideEditEntry" data-id="${e.id}" style="background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0;padding:9px 14px;border-radius:8px;font-size:13px;cursor:pointer;">Cancel</button>
     </div>
   </div>
 </div>`;}).join('')}
@@ -1246,7 +1402,7 @@ function vProps(){
 <div class="ph">
   <div class="ph-row">
     <div><h1 class="pg-title">Properties</h1><div class="pg-sub">LTR properties count toward your REPS 750-hr total. STRs are evaluated for all 7 material participation tests.</div></div>
-    <button class="btn btn-teal" onclick="togglePF()">+ Add Property</button>
+    <button class="btn btn-teal" data-act="togglePF">+ Add Property</button>
   </div>
 </div>
 ${showPropForm?`
@@ -1254,11 +1410,11 @@ ${showPropForm?`
   <h2 class="sec-lbl" style="margin-bottom:12px;">New Property</h2>
   <div class="g2">
     <div class="field"><label class="fl">Nickname / Name</label><input id="p-nm" placeholder="e.g. Kissimmee STR, Blue Ridge Cabin"/></div>
-    <div class="field"><label class="fl">Type</label><select id="p-tp" onchange="togglePropType()"><option value="STR">STR — Short-Term Rental</option><option value="LTR">LTR — Long-Term Rental</option></select></div>
+    <div class="field"><label class="fl">Type</label><select id="p-tp" data-chg="togglePropType"><option value="STR">STR — Short-Term Rental</option><option value="LTR">LTR — Long-Term Rental</option></select></div>
   </div>
   <div class="field">
     <label class="fl">Address Search <span style="font-weight:400;text-transform:none;color:#94A3B8;">— type to search and autofill</span></label>
-    <input id="p-addr-search" placeholder="Start typing the property address..." autocomplete="off" oninput="addrSearch(this.value)" style="position:relative;"/>
+    <input id="p-addr-search" placeholder="Start typing the property address..." autocomplete="off" data-inp="addrSearch" style="position:relative;"/>
     <div id="p-addr-suggestions" style="display:none;position:absolute;z-index:100;background:#fff;border:1.5px solid #CCFBF1;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);max-height:200px;overflow-y:auto;margin-top:2px;min-width:340px;"></div>
   </div>
   <div class="g2">
@@ -1276,8 +1432,8 @@ ${showPropForm?`
   </div>
   </div>
   <div style="display:flex;gap:8px;">
-    <button class="btn btn-teal" onclick="addProp()">Save Property</button>
-    <button class="btn btn-outline" onclick="togglePF()">Cancel</button>
+    <button class="btn btn-teal" data-act="addProp">Save Property</button>
+    <button class="btn btn-outline" data-act="togglePF">Cancel</button>
   </div>
 </div></div>`:''}
 ${state.properties.length===0?`<div class="empty"><div class="empty-ic">🏠</div><div class="empty-tx">No properties yet — add your first LTR or STR above.</div></div>`:''}
@@ -1286,7 +1442,7 @@ ${state.properties.map(p=>{
   const propEntries=yearEntries().filter(e=>e.propertyId===p.id).sort((a,b)=>new Date(b.date)-new Date(a.date));
   return`<div class="prop-c ${p.type==='LTR'?'ltr':''}" style="flex-direction:column;gap:0;position:relative;">
   <div style="position:absolute;top:0;right:0;">
-    <button onclick="openQuickLog('${p.id}')" style="background:#14B8A6;color:#fff;border:none;font-size:12px;font-weight:700;padding:7px 14px;border-radius:0 10px 0 10px;cursor:pointer;letter-spacing:.01em;" aria-label="Log time for ${esc(p.name)}">⏱ Log Time</button>
+    <button data-act="openQuickLog" data-id="${p.id}" style="background:#14B8A6;color:#fff;border:none;font-size:12px;font-weight:700;padding:7px 14px;border-radius:0 10px 0 10px;cursor:pointer;letter-spacing:.01em;" aria-label="Log time for ${esc(p.name)}">⏱ Log Time</button>
   </div>
   <div style="display:flex;justify-content:space-between;align-items:flex-start;padding-right:90px;">
     <div>
@@ -1300,10 +1456,10 @@ ${state.properties.map(p=>{
     <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
       <div style="font-size:26px;font-weight:900;color:#0D1F3C;margin-top:28px;">${Math.round(hrs)}<span style="font-size:13px;font-weight:400;color:#64748B;"> hrs</span></div>
       <div style="display:flex;gap:6px;">
-        <button class="btn btn-sm" style="background:#F0FDFA;border:1px solid #CCFBF1;color:#0E7490;font-size:11px;" onclick="togglePropEntries('${p.id}')">📋 View Entries (${propEntries.length})</button>
-        ${p.type==='STR'?`<button class="btn btn-sm" style="background:#FEF3C7;border:1px solid #FDE68A;color:#92400E;font-size:11px;" onclick="toggleBookingLog('${p.id}')">📅 Bookings (${(p.bookings||[]).length})</button>`:''}
-        <button class="btn btn-sm" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;font-size:11px;" onclick="toggleEditProp('${p.id}')">✏️ Edit</button>
-        <button class="btn btn-sm btn-danger" style="display:flex;align-items:center;gap:4px;font-size:11px;" aria-label="Delete property ${esc(p.name)}" onclick="rmProp('${p.id}')">🗑 Delete</button>
+        <button class="btn btn-sm" style="background:#F0FDFA;border:1px solid #CCFBF1;color:#0E7490;font-size:11px;" data-act="togglePropEntries" data-id="${p.id}">📋 View Entries (${propEntries.length})</button>
+        ${p.type==='STR'?`<button class="btn btn-sm" style="background:#FEF3C7;border:1px solid #FDE68A;color:#92400E;font-size:11px;" data-act="toggleBookingLog" data-id="${p.id}">📅 Bookings (${(p.bookings||[]).length})</button>`:''}
+        <button class="btn btn-sm" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;font-size:11px;" data-act="toggleEditProp" data-id="${p.id}">✏️ Edit</button>
+        <button class="btn btn-sm btn-danger" style="display:flex;align-items:center;gap:4px;font-size:11px;" aria-label="Delete property ${esc(p.name)}" data-act="rmProp" data-id="${p.id}">🗑 Delete</button>
       </div>
     </div>
   </div>
@@ -1312,7 +1468,7 @@ ${state.properties.map(p=>{
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
       <div class="field"><label class="fl">Date</label><input type="date" id="ql-date-${p.id}" value="${todayStr()}"/></div>
       <div class="field"><label class="fl">Track Type</label>
-        <select id="ql-tt-${p.id}" onchange="updateQLCats('${p.id}')">
+        <select id="ql-tt-${p.id}" data-chg="updateQLCats" data-id="${p.id}">
           <option value="${p.type==='LTR'?'REPS':p.type}" selected>${p.type==='LTR'?'REPS — Real Estate Professional':'STR — Short-Term Rental'}</option>
           ${p.type==='STR'?'<option value="REPS">REPS — Real Estate Professional</option>':'<option value="STR">STR — Short-Term Rental</option>'}
         </select>
@@ -1337,15 +1493,15 @@ ${state.properties.map(p=>{
     </div>
     ${state.settings.spouseEnabled?`<label class="tog-row" style="margin-bottom:12px;"><input type="checkbox" id="ql-spouse-${p.id}"/><span class="tog-lbl">Log as ${state.settings.spouseName||'Spouse'}'s hours (tracked separately for MP Tests 3 & 7)</span></label>`:''}
     <div style="display:flex;gap:8px;">
-      <button onclick="saveQuickLog('${p.id}')" style="background:#14B8A6;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Save Entry</button>
-      <button onclick="document.getElementById('quick-log-${p.id}').style.display='none'" style="background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0;padding:9px 14px;border-radius:8px;font-size:13px;cursor:pointer;">Cancel</button>
+      <button data-act="saveQuickLog" data-id="${p.id}" style="background:#14B8A6;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Save Entry</button>
+      <button data-act="hideQuickLog" data-id="${p.id}" style="background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0;padding:9px 14px;border-radius:8px;font-size:13px;cursor:pointer;">Cancel</button>
     </div>
   </div>
   <div id="edit-prop-${p.id}" style="display:none;margin-top:14px;border-top:1px solid #CBD5E1;padding-top:14px;">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
       <div class="field"><label class="fl">Property Name</label><input id="ep-nm-${p.id}" value="${p.name.replace(/"/g,'&quot;')}"/></div>
       <div class="field"><label class="fl">Type</label>
-        <select id="ep-tp-${p.id}" onchange="toggleEditPropType('${p.id}')">
+        <select id="ep-tp-${p.id}" data-chg="toggleEditPropType" data-id="${p.id}">
           <option value="STR" ${p.type==='STR'?'selected':''}>STR — Short-Term Rental</option>
           <option value="LTR" ${p.type==='LTR'?'selected':''}>LTR — Long-Term Rental</option>
         </select>
@@ -1364,8 +1520,8 @@ ${state.properties.map(p=>{
       </div>
     </div>
     <div style="display:flex;gap:8px;">
-      <button onclick="savePropEdit('${p.id}')" style="background:#14B8A6;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Save changes</button>
-      <button onclick="toggleEditProp('${p.id}')" style="background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0;padding:9px 14px;border-radius:8px;font-size:13px;cursor:pointer;">Cancel</button>
+      <button data-act="savePropEdit" data-id="${p.id}" style="background:#14B8A6;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Save changes</button>
+      <button data-act="toggleEditProp" data-id="${p.id}" style="background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0;padding:9px 14px;border-radius:8px;font-size:13px;cursor:pointer;">Cancel</button>
     </div>
   </div>
   <div id="booking-log-${p.id}" style="display:none;margin-top:14px;border-top:2px solid #FDE68A;padding-top:14px;">
@@ -1380,7 +1536,7 @@ ${state.properties.map(p=>{
     <div style="display:grid;grid-template-columns:1fr 1fr auto;gap:10px;margin-bottom:12px;align-items:end;">
       <div class="field" style="margin-bottom:0;"><label class="fl">Check-In</label><input type="date" id="bk-in-${p.id}" value="${todayStr()}"/></div>
       <div class="field" style="margin-bottom:0;"><label class="fl">Check-Out</label><input type="date" id="bk-out-${p.id}" value="${todayStr()}"/></div>
-      <button onclick="addBooking('${p.id}')" style="background:#F59E0B;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;height:40px;">+ Add Booking</button>
+      <button data-act="addBooking" data-id="${p.id}" style="background:#F59E0B;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;height:40px;">+ Add Booking</button>
     </div>
     ${(p.bookings||[]).length===0?`<div style="text-align:center;padding:16px;color:#94A3B8;font-size:13px;background:#FFFBEB;border-radius:8px;">No bookings logged yet — add your first booking above.</div>`:`
     <div style="background:#FFFBEB;border-radius:8px;padding:2px 0;margin-bottom:8px;">
@@ -1395,7 +1551,7 @@ ${state.properties.map(p=>{
           <td style="padding:7px 12px;color:#0D1F3C;">${b.checkIn}</td>
           <td style="padding:7px 12px;color:#0D1F3C;">${b.checkOut}</td>
           <td style="padding:7px 12px;text-align:center;font-weight:700;color:${n<=7?'#065F46':'#92400E'};">${n}d</td>
-          <td style="padding:7px 12px;text-align:right;"><button onclick="delBooking('${p.id}','${b.id}')" style="background:#FEE2E2;border:1px solid #FECACA;color:#DC2626;font-size:11px;padding:3px 8px;border-radius:5px;cursor:pointer;">✕</button></td>
+          <td style="padding:7px 12px;text-align:right;"><button data-act="delBooking" data-id="${p.id}" data-id2="${b.id}" style="background:#FEE2E2;border:1px solid #FECACA;color:#DC2626;font-size:11px;padding:3px 8px;border-radius:5px;cursor:pointer;">✕</button></td>
         </tr>`;}).join('')}</tbody>
       </table>
     </div>
@@ -1416,8 +1572,8 @@ ${state.properties.map(p=>{
         ${e.attachments&&e.attachments.length?`<div style="font-size:11px;color:#0F766E;margin-top:2px;">📎 ${e.attachments.length} attachment${e.attachments.length>1?'s':''}</div>`:''}
       </div>
       <div style="display:flex;gap:5px;flex-shrink:0;">
-        <button onclick="showEditEntry('${e.id}')" style="background:#F0FDFA;border:1px solid #CCFBF1;color:#0E7490;font-size:11px;padding:4px 8px;border-radius:6px;cursor:pointer;">✏️ Edit</button>
-        <button onclick="delEntry('${e.id}')" style="background:#FEE2E2;border:1px solid #FECACA;color:#DC2626;font-size:11px;padding:4px 8px;border-radius:6px;cursor:pointer;">🗑 Delete</button>
+        <button data-act="showEditEntry" data-id="${e.id}" style="background:#F0FDFA;border:1px solid #CCFBF1;color:#0E7490;font-size:11px;padding:4px 8px;border-radius:6px;cursor:pointer;">✏️ Edit</button>
+        <button data-act="delEntry" data-id="${e.id}" style="background:#FEE2E2;border:1px solid #FECACA;color:#DC2626;font-size:11px;padding:4px 8px;border-radius:6px;cursor:pointer;">🗑 Delete</button>
       </div>
     </div>
     <div id="edit-entry-${e.id}" style="display:none;margin-top:8px;background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:10px;padding:14px;">
@@ -1433,8 +1589,8 @@ ${state.properties.map(p=>{
       </div>
       <div class="field" style="margin-bottom:10px;"><label class="fl">Notes</label><textarea id="ee-note-${e.id}" rows="2">${esc(e.notes||'')}</textarea></div>
       <div style="display:flex;gap:8px;">
-        <button onclick="saveEditEntry('${e.id}')" style="background:#14B8A6;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">Save changes</button>
-        <button onclick="document.getElementById('edit-entry-${e.id}').style.display='none'" style="background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0;padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;">Cancel</button>
+        <button data-act="saveEditEntry" data-id="${e.id}" style="background:#14B8A6;color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">Save changes</button>
+        <button data-act="hideEditEntry" data-id="${e.id}" style="background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0;padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;">Cancel</button>
       </div>
     </div>`).join('')}
   </div>
@@ -1453,7 +1609,7 @@ function addrSearch(q){
       const data=await res.json();
       if(!box)return;
       if(!data.length){box.style.display='none';return;}
-      box.innerHTML=data.map((r,i)=>`<div onclick="fillAddr(${i})" data-addr='${JSON.stringify({street:(r.address.house_number?r.address.house_number+' ':'')+( r.address.road||r.address.pedestrian||''),city:r.address.city||r.address.town||r.address.village||r.address.county||'',state:r.address.state||'',zip:r.address.postcode||''}).replace(/'/g,"&apos;")}' style="padding:10px 14px;cursor:pointer;font-size:13px;color:#0D1F3C;border-bottom:1px solid #F0FDFA;" onmouseover="this.style.background='#F0FDFA'" onmouseout="this.style.background=''">${r.display_name}</div>`).join('');
+      box.innerHTML=data.map((r,i)=>`<div class="hov-row" data-act="fillAddr" data-idx="${i}" data-addr='${JSON.stringify({street:(r.address.house_number?r.address.house_number+' ':'')+( r.address.road||r.address.pedestrian||''),city:r.address.city||r.address.town||r.address.village||r.address.county||'',state:r.address.state||'',zip:r.address.postcode||''}).replace(/'/g,"&apos;")}' style="padding:10px 14px;cursor:pointer;font-size:13px;color:#0D1F3C;border-bottom:1px solid #F0FDFA;">${r.display_name}</div>`).join('');
       box.style.display='block';
     }catch(e){if(box)box.style.display='none';}
   },400);
@@ -1896,7 +2052,7 @@ ${sps.map(p=>{
           ${t.met?'<span style="font-size:11px;font-weight:700;color:#10B981;">✓ Met</span>':''}
         </div>
         <div class="mp-desc">${t.desc}</div>
-        ${!t.auto?`<label class="mp-man"><input type="checkbox" ${t.met?'checked':''} onchange="togMP('${p.id}',${t.id},this.checked)"/><span>Mark as met for ${activeYear} — requires supporting documentation</span></label>`:''}
+        ${!t.auto?`<label class="mp-man"><input type="checkbox" ${t.met?'checked':''} data-chg="togMP" data-id="${p.id}" data-tid="${t.id}"/><span>Mark as met for ${activeYear} — requires supporting documentation</span></label>`:''}
         ${t.auto&&!t.met&&t.id===3?`<div style="font-size:11px;color:#0F766E;margin-top:6px;">Need ${Math.max(0,Math.ceil(100-(state.settings.spouseHoursPolicy==='majority'?(ph.owner+(ph.spouse||0)):ph.owner)+0.01))} more hours${state.settings.spouseHoursPolicy==='majority'?'':' & must exceed all other participants ('+Math.round(Math.max(ph.spouse||0,p.otherHours||0))+' hrs)'}</div>`:''}
         ${t.auto&&!t.met&&t.id===1?`<div style="font-size:11px;color:#0F766E;margin-top:6px;">Need ${Math.max(0,Math.ceil(500-(state.settings.spouseHoursPolicy==='majority'?(ph.owner+(ph.spouse||0)):ph.owner)+0.01))} more hours for this property</div>`:''}
       </div>
@@ -1922,7 +2078,7 @@ ${ltrs.map(p=>{
     </div>
   </div>`;}).join('')}`:''}
 
-${state.properties.length===0?`<div class="empty"><div class="empty-ic">✅</div><div class="empty-tx">Add properties first to evaluate material participation. <a href="#" onclick="go('properties');return false;" style="color:#14B8A6;text-decoration:none;font-weight:600;">Add a property →</a></div></div>`:''}`;
+${state.properties.length===0?`<div class="empty"><div class="empty-ic">✅</div><div class="empty-tx">Add properties first to evaluate material participation. <a href="#" data-act="nav" data-target="properties" data-prevent="1" style="color:#14B8A6;text-decoration:none;font-weight:600;">Add a property →</a></div></div>`:''}`;
 }
 
 function togMP(pid,tid,val){if(!state.manualMP)state.manualMP={};if(!state.manualMP[pid])state.manualMP[pid]={};state.manualMP[pid][tid]=val;save();renderView();}
@@ -1940,8 +2096,8 @@ function vReports(){
   <div class="ph-row">
     <div><h1 class="pg-title">Audit Report <span style='font-size:13px;font-weight:400;color:#64748B;'>/ Contemporaneous Activity Log</span></h1><div class="pg-sub">IRC §469(c)(7) REPS &amp; Temp. Reg. §1.469-5T STR — Tax Year ${activeYear} — Prepared for IRS substantiation</div></div>
     <div class="top-acts" style="display:flex;gap:8px;">
-      <button class="btn btn-outline btn-sm" onclick="window.print()">🖨 Print</button>
-      <button class="btn btn-teal btn-sm" onclick="exportXLSX()">📥 Export to Excel</button>
+      <button class="btn btn-outline btn-sm" data-act="printPage">🖨 Print</button>
+      <button class="btn btn-teal btn-sm" data-act="exportXLSX">📥 Export to Excel</button>
     </div>
   </div>
 </div>
@@ -2000,7 +2156,7 @@ function vSettings(){
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">50% Personal Services Test — IRC §469(c)(7)(B)(ii)</div>
   <div style="font-size:12px;color:#64748B;margin-bottom:14px;line-height:1.6;">Enter your total hours in non-real-estate activities this year (W-2, other businesses). Used to calculate whether RE hours exceed 50% of ALL personal services.</div>
-  <div class="field"><label class="fl">Non-Real Estate Hours This Year</label><input type="number" min="0" step="1" value="${s.nonREPSHours||''}" placeholder="0" onchange="setSetting('nonREPSHours',parseFloat(this.value)||0)"/><div class="hint">Enter your hours in W-2 jobs, other businesses, or any non-real-estate activity. Example: a full-time W-2 job = ~2,080 hrs/yr (52 weeks × 40 hrs). Only YOUR hours count — not a spouse's W-2.</div></div>
+  <div class="field"><label class="fl">Non-Real Estate Hours This Year</label><input type="number" min="0" step="1" value="${s.nonREPSHours||''}" placeholder="0" data-chg="setNum" data-key="nonREPSHours"/><div class="hint">Enter your hours in W-2 jobs, other businesses, or any non-real-estate activity. Example: a full-time W-2 job = ~2,080 hrs/yr (52 weeks × 40 hrs). Only YOUR hours count — not a spouse's W-2.</div></div>
 </div>
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:10px;">Spouse / Co-Participant Tracking</div>
@@ -2015,12 +2171,12 @@ function vSettings(){
     </ul>
     <span style="color:#B45309;font-weight:600;">Do not rely on spouse hours to help you qualify for REPS qualification itself.</span>
   </div>
-  <label class="tog-row"><input type="checkbox" ${s.spouseEnabled?'checked':''} onchange="setSetting('spouseEnabled',this.checked);renderView()"/><span class="tog-lbl">Enable spouse hour tracking</span></label>
-  ${s.spouseEnabled?`<div class="field"><label class="fl">Spouse Name</label><input value="${esc(s.spouseName||'')}" placeholder="First name or initials" onchange="setSetting('spouseName',this.value)"/></div>`:''}
+  <label class="tog-row"><input type="checkbox" ${s.spouseEnabled?'checked':''} data-chg="setBoolRender" data-key="spouseEnabled"/><span class="tog-lbl">Enable spouse hour tracking</span></label>
+  ${s.spouseEnabled?`<div class="field"><label class="fl">Spouse Name</label><input value="${esc(s.spouseName||'')}" placeholder="First name or initials" data-chg="setStr" data-key="spouseName"/></div>`:''}
   ${s.spouseEnabled?`
   <div class="field">
     <label class="fl">Tests 3 &amp; 7 — Spouse Hours Treatment</label>
-    <select onchange="setSetting('spouseHoursPolicy',this.value);renderView();updateSB();">
+    <select data-chg="setStrRenderSB" data-key="spouseHoursPolicy">
       <option value="conservative" ${(s.spouseHoursPolicy||'conservative')==='conservative'?'selected':''}>Conservative — spouse treated as a competing participant (defensive)</option>
       <option value="majority" ${s.spouseHoursPolicy==='majority'?'selected':''}>Majority view — spouse hours combine with yours per §469(h)(5) (regulatory position)</option>
     </select>
@@ -2033,7 +2189,7 @@ function vSettings(){
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">§469(c)(7)(A) Grouping Election</div>
   <div style="font-size:12px;color:#64748B;margin-bottom:12px;line-height:1.6;">If you have multiple LTR properties, this election combines all your hours into one pool — making material participation easier to achieve. <strong>Most new investors should consult their CPA before enabling this.</strong> Cannot be easily revoked once filed.</div>
-  <label class="tog-row"><input type="checkbox" ${s.groupingElection?'checked':''} onchange="setSetting('groupingElection',this.checked)"/><span class="tog-lbl">Grouping election filed for ${activeYear}</span></label>
+  <label class="tog-row"><input type="checkbox" ${s.groupingElection?'checked':''} data-chg="setBool" data-key="groupingElection"/><span class="tog-lbl">Grouping election filed for ${activeYear}</span></label>
   <div class="hint" style="margin-top:2px;padding:8px 10px;background:#EFF6FF;border-radius:6px;border:.5px solid #BFDBFE;color:#1E40AF;">⚠ This tracks your election status only. The actual grouping election must be attached to your timely filed original tax return per Treas. Reg. §1.469-9(g). Note: The §469(c)(7)(A) election and the §1.469-9 grouping election are related but distinct — your tax professional should confirm which applies. If you missed the filing deadline, see Rev. Proc. 2011-34 for potential relief. Consult your tax professional before filing.</div>
 </div>
 <div class="card card-mb">
@@ -2042,7 +2198,7 @@ function vSettings(){
   <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:11px 14px;margin-bottom:12px;font-size:12px;color:#991B1B;line-height:1.7;">
     ⚠ <strong>Important — adverse case law:</strong> The Tax Court has held in <em>Bailey v. Comm'r</em>, T.C. Memo 2001-296 and <em>Bailey v. Comm'r</em>, T.C. Summary 2011-22 that hours spent on short-term rentals (≤7-day average rental period) do <strong>not</strong> count toward the §469(c)(7)(B)(ii) 750-hour REPS test, because STRs are not "rental" activities under §469. Under that reading, this toggle should be <strong>off</strong>. Some practitioners take the contrary view that STR hours qualify as services in a real property trade or business under §469(c)(7)(C). Discuss with your CPA before relying on this setting.
   </div>
-  <label class="tog-row"><input type="checkbox" ${s.includeSTRinREPS!==false?'checked':''} onchange="setSetting('includeSTRinREPS',this.checked)"/><span class="tog-lbl">Include STR hours in REPS 750-hr total</span></label>
+  <label class="tog-row"><input type="checkbox" ${s.includeSTRinREPS!==false?'checked':''} data-chg="setBool" data-key="includeSTRinREPS"/><span class="tog-lbl">Include STR hours in REPS 750-hr total</span></label>
 </div>
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">Suspended Passive Activity Losses (PAL Carryforwards)</div>
@@ -2057,11 +2213,16 @@ function vSettings(){
   <div style="background:#F0FDFA;border:.5px solid #CCFBF1;border-radius:8px;padding:12px 14px;font-size:12px;color:#0F766E;line-height:1.7;">
     <strong>Why this matters:</strong> §1411 has its own trade-or-business and material-participation analysis. Rental income avoids NIIT only when (1) the rental activity rises to a §162 trade or business AND (2) you materially participate. REPS status alone — without the underlying trade-or-business posture — may not be enough. The position depends on facts (services provided, scale of operations, hours, etc.). Discuss the §1411 analysis with your CPA separately from your §469 analysis.
   </div>
-</div>
+  <div class="field" style="margin-top:14px;"><label class="fl">Filing status</label>
+    <select data-chg="setStrRender" data-key="filingStatus">
+      ${Object.keys(FILING_LABELS).map(k=>`<option value="${k}" ${(s.filingStatus||'MFJ')===k?'selected':''}>${FILING_LABELS[k]}</option>`).join('')}
+    </select>
+    <div class="hint">Your §1411 MAGI threshold: <strong>$${(NIIT_THRESHOLDS[s.filingStatus||'MFJ']||250000).toLocaleString()}</strong>. The 3.8% NIIT applies to the lesser of net investment income or MAGI above this threshold. These thresholds are fixed by statute and are <strong>not</strong> adjusted for inflation. This figure is informational only — RepsRecord does not compute your NIIT.</div>
+  </div>
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">§280A Personal-Use Limitation</div>
   <div style="font-size:12px;color:#64748B;line-height:1.7;margin-bottom:10px;">If you use a dwelling unit as a residence — defined as personal use exceeding the greater of <strong>14 days</strong> or <strong>10% of total rental days</strong> — IRC §280A limits the deductions you can claim against the rental income. Net losses may be disallowed entirely, regardless of REPS or material participation status.</div>
-  <div class="field"><label class="fl">Total personal use days this year (across all STR/LTR properties)</label><input type="number" min="0" step="1" value="${s.personalUseDays||''}" placeholder="0" onchange="setSetting('personalUseDays',parseFloat(this.value)||0)"/><div class="hint">Includes days used by you, family members (spouse, kids, siblings, parents, grandparents), or anyone paying less than fair rental value. A property meeting the 14-day-or-10% threshold becomes a "residence" under §280A and loss deductibility is capped at gross rental income. Consult your CPA — §280A interacts with §469 in complex ways.</div></div>
+  <div class="field"><label class="fl">Total personal use days this year (across all STR/LTR properties)</label><input type="number" min="0" step="1" value="${s.personalUseDays||''}" placeholder="0" data-chg="setNum" data-key="personalUseDays"/><div class="hint">Includes days used by you, family members (spouse, kids, siblings, parents, grandparents), or anyone paying less than fair rental value. A property meeting the 14-day-or-10% threshold becomes a "residence" under §280A and loss deductibility is capped at gross rental income. Consult your CPA — §280A interacts with §469 in complex ways.</div></div>
 </div>
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">Community Property States</div>
@@ -2070,7 +2231,7 @@ function vSettings(){
 <div class="card" style="background:#FEF2F2;border-color:#FECACA;">
   <div style="font-size:14px;font-weight:800;color:#991B1B;margin-bottom:6px;">Reset All Data</div>
   <div style="font-size:12px;color:#64748B;margin-bottom:12px;">Permanently deletes all entries, properties, and settings.</div>
-  <button class="btn btn-danger" onclick="resetAll()">Reset Everything</button>
+  <button class="btn btn-danger" data-act="resetAll">Reset Everything</button>
   <div class="hint" style="margin-top:8px;color:#EF4444;">⚠ A second confirmation will be required. This action cannot be undone.</div>
 </div>`;
 }
@@ -2576,6 +2737,7 @@ async function appInit(){
   renderView();
   setTimeout(showWalkthrough,800);
 }
+initDelegation();
 appInit();
 
 // ── FIRST-TIME WALKTHROUGH ──
@@ -2708,7 +2870,7 @@ setTimeout(showWalkthrough,800);
     <div style="background:#0D1F3C;padding:28px 28px 20px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
         <div style="display:flex;gap:6px;align-items:center;" id="walk-dots"></div>
-        <button onclick="closeWalkthrough()" aria-label="Close walkthrough" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:20px;cursor:pointer;padding:0;line-height:1;">×</button>
+        <button data-act="closeWalkthrough" aria-label="Close walkthrough" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:20px;cursor:pointer;padding:0;line-height:1;">×</button>
       </div>
       <div id="walk-icon" style="font-size:40px;margin-bottom:10px;"></div>
       <div id="walk-title" style="font-size:22px;font-weight:900;color:#fff;letter-spacing:-0.03em;line-height:1.2;"></div>
@@ -2720,9 +2882,9 @@ setTimeout(showWalkthrough,800);
     </div>
     <!-- Footer -->
     <div style="padding:16px 28px 24px;display:flex;align-items:center;justify-content:space-between;">
-      <button id="walk-back" onclick="walkBack()" style="display:none;background:none;border:1px solid #E2E8F0;color:#64748B;padding:10px 18px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">← Back</button>
+      <button id="walk-back" data-act="walkBack" style="display:none;background:none;border:1px solid #E2E8F0;color:#64748B;padding:10px 18px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">← Back</button>
       <div></div>
-      <button id="walk-next" onclick="walkNext()" style="background:#14B8A6;color:#fff;border:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;">Next →</button>
+      <button id="walk-next" data-act="walkNext" style="background:#14B8A6;color:#fff;border:none;padding:12px 24px;border-radius:10px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;">Next →</button>
     </div>
   </div>
 </div>
@@ -2738,7 +2900,7 @@ setTimeout(showWalkthrough,800);
         <div style="font-size:11px;color:#7DD3FC;margin-top:1px;">RepsRecord AI · Educational only</div>
       </div>
     </div>
-    <button onclick="toggleRemy()" aria-label="Close Remy" style="background:rgba(255,255,255,.1);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">×</button>
+    <button data-act="toggleRemy" aria-label="Close Remy" style="background:rgba(255,255,255,.1);border:none;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;">×</button>
   </div>
   <!-- Messages -->
   <div id="remy-messages" role="log" aria-live="polite" aria-label="Conversation with Remy" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;background:#F8FAFC;">
@@ -2747,13 +2909,13 @@ setTimeout(showWalkthrough,800);
   <!-- Input -->
   <div style="padding:12px 14px;border-top:1px solid #E2E8F0;background:#fff;flex-shrink:0;">
     <div style="display:flex;gap:8px;align-items:flex-end;">
-      <textarea id="remy-input" rows="2" placeholder="Ask Remy about your REPS hours, STR strategy, or qualification…" aria-label="Message to Remy" style="flex:1;padding:10px 13px;border-radius:10px;border:1.5px solid #CBD5E1;font-size:13px;font-family:inherit;color:#0D1F3C;background:#F8FAFC;outline:none;resize:none;line-height:1.5;transition:border-color .15s;" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();remySend();}"></textarea>
-      <button onclick="remySend()" id="remy-send" aria-label="Send message" style="background:linear-gradient(135deg,#14B8A6,#38BDF8);border:none;color:#fff;width:40px;height:40px;border-radius:10px;cursor:pointer;font-size:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:opacity .15s;">→</button>
+      <textarea id="remy-input" rows="2" placeholder="Ask Remy about your REPS hours, STR strategy, or qualification…" aria-label="Message to Remy" style="flex:1;padding:10px 13px;border-radius:10px;border:1.5px solid #CBD5E1;font-size:13px;font-family:inherit;color:#0D1F3C;background:#F8FAFC;outline:none;resize:none;line-height:1.5;transition:border-color .15s;" data-kd="remyKey"></textarea>
+      <button data-act="remySend" id="remy-send" aria-label="Send message" style="background:linear-gradient(135deg,#14B8A6,#38BDF8);border:none;color:#fff;width:40px;height:40px;border-radius:10px;cursor:pointer;font-size:18px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:opacity .15s;">→</button>
     </div>
     <div style="font-size:10px;color:#94A3B8;margin-top:6px;text-align:center;">Remy is educational — not a licensed tax advisor. Verify with your CPA.</div>
   </div>
 </div>
 <!-- Remy backdrop -->
-<div id="remy-backdrop" onclick="toggleRemy()" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:599;backdrop-filter:blur(2px);"></div>
+<div id="remy-backdrop" data-act="toggleRemy" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:599;backdrop-filter:blur(2px);"></div>
 </body>
 </html>
