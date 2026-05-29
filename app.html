@@ -8,7 +8,7 @@
      the hash (sha256 of the exact UTF-8 bytes of that element's contents, base64) and update it below.
      Note: frame-ancestors is intentionally omitted here — it is ignored in a meta CSP and should be
      set as an HTTP response header (e.g. frame-ancestors 'none') at the host instead. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-NGIuWZb2+PdtuDWIOPvgaqNN3ziNBVQ2SYNO2GK7ZJg=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-mAjmQJcFJY0e/GY94oGmuzUFRA/6vE8sSIA9mwGek0Y=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>RepsRecord — REPS & STR Hour Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -613,8 +613,8 @@ const TAX={
   MP_TEST4_SPA_FLOOR:100,        // §1.469-5T(c)(2) — MORE than 100 hours for SPA
   MP_TEST4_AGG:500,              // §1.469-5T(a)(4) — SPA aggregate >500 hours
   MP_TEST7_MIN:100,              // §1.469-5T(b)(2)(iii) — MORE than 100 hours required for Test 7
-  STR_AVG_DAYS:7,                // §1.469-1T(e)(3)(ii)(A)(1) — average rental period ≤7 days
-  STR_MID_DAYS:30,               // §1.469-1T(e)(3)(ii)(A)(2) — 8–30 days with significant personal services
+  STR_AVG_DAYS:7,                // §1.469-1T(e)(3)(ii)(A) — average rental period ≤7 days
+  STR_MID_DAYS:30,               // §1.469-1T(e)(3)(ii)(B) — 8–30 days with significant personal services
 };
 
 const SK='repsrecord_v1';
@@ -2285,14 +2285,14 @@ function vSettings(){
   return`
 <div class="ph"><h1 class="pg-title">Settings</h1><div class="pg-sub">Configure your tax situation for accurate qualification tracking.</div></div>
 <div class="card card-mb">
-  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">50% Personal Services Test — IRC §469(c)(7)(B)(ii)</div>
+  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">50% Personal Services Test — IRC §469(c)(7)(B)(i)</div>
   <div style="font-size:12px;color:#64748B;margin-bottom:14px;line-height:1.6;">Enter your total hours in non-real-estate activities this year (W-2, other businesses). Used to calculate whether RE hours exceed 50% of ALL personal services.</div>
   <div class="field"><label class="fl">Non-Real Estate Hours This Year</label><input type="number" min="0" step="1" value="${s.nonREPSHours||''}" placeholder="0" data-chg="setNum" data-key="nonREPSHours"/><div class="hint">Enter your hours in W-2 jobs, other businesses, or any non-real-estate activity. Example: a full-time W-2 job = ~2,080 hrs/yr (52 weeks × 40 hrs). Only YOUR hours count — not a spouse's W-2.</div></div>
 </div>
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:10px;">Spouse / Co-Participant Tracking</div>
   <div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#92400E;line-height:1.7;">
-    <strong>⚠ Important — REPS qualification is individual:</strong> A spouse's hours do <strong>not</strong> count toward <em>your</em> 750-hour test or 50% personal services test (IRC §469(c)(7)(B), §469(c)(7)(F)). These are tested per-taxpayer, not jointly.
+    <strong>⚠ Important — REPS qualification is individual:</strong> A spouse's hours do <strong>not</strong> count toward <em>your</em> 750-hour test or 50% personal services test (IRC §469(c)(7)(B)). These are tested per-taxpayer, not jointly.
     <br><br>
     Spouse hours <strong>do</strong> apply to per-property Material Participation testing under §469(h)(5) and Temp. Reg. §1.469-5T(f)(3):
     <ul style="margin-top:6px;padding-left:16px;line-height:1.9;">
@@ -2387,7 +2387,7 @@ function vLTR(){
 
 <h2 class="sec-lbl">Test 1 of 2 — More Than 750 Hours Required</h2>
 <div class="card card-mb">
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;"><div style="font-size:15px;font-weight:800;color:#0D1F3C;">IRC §469(c)(7)(B)(i)</div><span class="badge b-warn" style="font-size:12px;padding:5px 13px;">Must exceed 750 hours</span></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;"><div style="font-size:15px;font-weight:800;color:#0D1F3C;">IRC §469(c)(7)(B)(ii)</div><span class="badge b-warn" style="font-size:12px;padding:5px 13px;">Must exceed 750 hours</span></div>
   <div style="font-size:13px;color:#64748B;line-height:1.7;margin-bottom:14px;">You must perform more than 750 hours of services during the tax year in real property trades or businesses in which you materially participate. Hours from any qualifying real property trade or business count — not just rentals.</div>
   <h2 class="sec-lbl">Qualifying real property trades or businesses — <span style="text-transform:none;font-family:ui-monospace,monospace;letter-spacing:0;">§469(c)(7)(C)</span></h2>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -2402,7 +2402,7 @@ function vLTR(){
 
 <h2 class="sec-lbl">Test 2 of 2 — 50% Personal Services Test</h2>
 <div class="card card-mb">
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;"><div style="font-size:15px;font-weight:800;color:#0D1F3C;">IRC §469(c)(7)(B)(ii)</div><span class="badge b-warn" style="font-size:12px;padding:5px 13px;">&gt; 50% of all services must be RE</span></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;"><div style="font-size:15px;font-weight:800;color:#0D1F3C;">IRC §469(c)(7)(B)(i)</div><span class="badge b-warn" style="font-size:12px;padding:5px 13px;">&gt; 50% of all services must be RE</span></div>
   <div style="font-size:13px;color:#64748B;line-height:1.7;margin-bottom:14px;">More than half of all personal services performed in all trades or businesses during the year must be in real property trades or businesses in which you materially participate. Your RE hours must outnumber your non-RE hours.</div>
   <div style="background:#CFFAFE;border:.5px solid #99F6E4;border-radius:10px;padding:14px;">
     <div style="font-size:12px;font-weight:700;color:#0E7490;margin-bottom:6px;">💡 W-2 Employee Trap</div>
@@ -2445,7 +2445,7 @@ function vSTR(){
   <div style="font-size:15px;font-weight:800;color:#0D1F3C;margin-bottom:8px;">Temp. Reg. §1.469-1T(e)(3)(ii)</div>
   <div style="font-size:13px;color:#64748B;line-height:1.7;margin-bottom:14px;">An activity is NOT treated as a rental activity if the average period of customer use is 7 days or fewer. Calculated as total rental days ÷ number of separate rental transactions in the year.</div>
   <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
-    ${[['≤ 7 days','STR Material Participation Exception Applies','Not a rental activity — MP tests govern. Most powerful scenario. (§1.469-1T(e)(3)(ii)(A)(1))','#ECFDF5','#6EE7B7','#065F46'],['8–30 days','May Still Qualify','Must provide significant personal services — a distinct, more complex standard than the §1.469-5T MP tests. Higher scrutiny. (§1.469-1T(e)(3)(ii)(A)(2))','#FFFBEB','#FDE68A','#92400E'],['> 30 days','Standard Rental Rules','Subject to passive loss rules. Needs REPS for non-passive treatment.','#FEF2F2','#FECACA','#991B1B']].map(([r,t,d,bg,br,tc])=>`<div style="padding:14px;background:${bg};border-radius:10px;border:.5px solid ${br};text-align:center;"><div style="font-size:20px;font-weight:900;color:${tc};margin-bottom:4px;">${r}</div><div style="font-size:12px;font-weight:700;color:#0D1F3C;margin-bottom:6px;">${t}</div><div style="font-size:11px;color:#64748B;line-height:1.5;">${d}</div></div>`).join('')}
+    ${[['≤ 7 days','STR Material Participation Exception Applies','Not a rental activity — MP tests govern. Most powerful scenario. (§1.469-1T(e)(3)(ii)(A))','#ECFDF5','#6EE7B7','#065F46'],['8–30 days','May Still Qualify','Must provide significant personal services — a distinct, more complex standard than the §1.469-5T MP tests. Higher scrutiny. (§1.469-1T(e)(3)(ii)(B))','#FFFBEB','#FDE68A','#92400E'],['> 30 days','Standard Rental Rules','Subject to passive loss rules. Needs REPS for non-passive treatment.','#FEF2F2','#FECACA','#991B1B']].map(([r,t,d,bg,br,tc])=>`<div style="padding:14px;background:${bg};border-radius:10px;border:.5px solid ${br};text-align:center;"><div style="font-size:20px;font-weight:900;color:${tc};margin-bottom:4px;">${r}</div><div style="font-size:12px;font-weight:700;color:#0D1F3C;margin-bottom:6px;">${t}</div><div style="font-size:11px;color:#64748B;line-height:1.5;">${d}</div></div>`).join('')}
   </div>
   <div style="padding:11px 14px;background:#EFF6FF;border-radius:8px;border:.5px solid #BFDBFE;margin-bottom:10px;">
     <div style="font-size:12px;font-weight:700;color:#1E40AF;margin-bottom:4px;">💡 Six non-rental exceptions — §1.469-1T(e)(3)(ii)(A)–(F)</div>
