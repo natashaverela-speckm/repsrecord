@@ -1171,7 +1171,7 @@ ${(()=>{
   if(logFilter.propId)filtered=filtered.filter(e=>e.propertyId===logFilter.propId);
   if(logFilter.search){const q=logFilter.search.toLowerCase();filtered=filtered.filter(e=>(e.notes||'').toLowerCase().includes(q)||(e.category||'').toLowerCase().includes(q));}
   if(!filtered.length)return`<div style="text-align:center;padding:32px;color:#94A3B8;font-size:13px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;">No entries match your filter — <a href="#" data-act="clearLogFilter" data-prevent="1" style="color:#14B8A6;font-weight:600;">clear filters</a></div>`;
-  return`<h2 class="sec-lbl" style="margin-bottom:8px;">Entries (${filtered.length}${filtered.length<all.length?' of '+all.length:''})<label style="float:right;font-size:10px;font-weight:700;color:#64748B;cursor:pointer;display:flex;align-items:center;gap:5px;"><input type="checkbox" class="entry-cb" data-chg="selectAll" style="accent-color:#14B8A6;"/> Select all</label></h2>
+  return`<h2 class="sec-lbl" style="margin-bottom:8px;">Entries (${filtered.length}${filtered.length<all.length?' of '+all.length:''})<label style="float:right;font-size:10px;font-weight:700;color:#64748B;cursor:pointer;display:flex;align-items:center;gap:5px;"><input type="checkbox" class="entry-cb-all" data-chg="selectAll" style="accent-color:#14B8A6;"/> Select all</label></h2>
 <div class="card">
 ${filtered.map(e=>{const pr=state.properties.find(p=>p.id===e.propertyId);const cats=e.trackType==='STR'?STR_CATS:REPS_CATS;const isSel=selEntries.has(e.id);return`
 <div class="ei" style="flex-wrap:wrap;${isSel?'background:#F0FDFA;border-radius:8px;':''}">
@@ -1272,7 +1272,7 @@ function setLogFilter(key,val){logFilter[key]=val;renderView();}
 // ── BULK SELECT / DELETE ──
 function toggleSelEntry(id,chk){chk?selEntries.add(id):selEntries.delete(id);refreshBulkBar();}
 function selectAllEntries(chk){
-  document.querySelectorAll('.entry-cb').forEach(b=>{b.checked=chk;chk?selEntries.add(b.dataset.id):selEntries.delete(b.dataset.id);});
+  document.querySelectorAll('.entry-cb').forEach(b=>{if(!b.dataset.id)return;b.checked=chk;chk?selEntries.add(b.dataset.id):selEntries.delete(b.dataset.id);});
   refreshBulkBar();
 }
 function refreshBulkBar(){
