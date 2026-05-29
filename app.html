@@ -8,7 +8,7 @@
      the hash (sha256 of the exact UTF-8 bytes of that element's contents, base64) and update it below.
      Note: frame-ancestors is intentionally omitted here — it is ignored in a meta CSP and should be
      set as an HTTP response header (e.g. frame-ancestors 'none') at the host instead. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4W1YAMLMH5J5a7lBshbwrrW28DyCSjN2UYTjsEUftrc=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-+jdkL0LOpnJTPqrX9igfxYD4IPv07vM9pF50Id6o7PE=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>RepsRecord — REPS & STR Hour Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -767,8 +767,11 @@ function calcREPS(){
 }
 
 function pH(pid){
-  return{owner:state.entries.filter(e=>e.propertyId===pid&&!e.isSpouse).reduce((s,e)=>s+e.hours,0),
-         spouse:state.entries.filter(e=>e.propertyId===pid&&e.isSpouse).reduce((s,e)=>s+e.hours,0)};
+  // H1 fix: material participation is determined per taxable year (§1.469-5T),
+  // so owner/spouse hours must be scoped to the active year — not lifetime totals.
+  const ye=yearEntries();
+  return{owner:ye.filter(e=>e.propertyId===pid&&!e.isSpouse).reduce((s,e)=>s+(e.hours||0),0),
+         spouse:ye.filter(e=>e.propertyId===pid&&e.isSpouse).reduce((s,e)=>s+(e.hours||0),0)};
 }
 
 // AUDIT FIX (Pass 4 #1): Test 7 — corrected to reflect §1.469-5T(b)(2)(iii) which DOES
