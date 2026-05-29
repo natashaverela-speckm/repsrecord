@@ -8,7 +8,7 @@
      the hash (sha256 of the exact UTF-8 bytes of that element's contents, base64) and update it below.
      Note: frame-ancestors is intentionally omitted here — it is ignored in a meta CSP and should be
      set as an HTTP response header (e.g. frame-ancestors 'none') at the host instead. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-4FWSEZ76zkG/GiOlDM09bL7a+ydj4GTkw/FZ/8SUG48=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-LqyHmhw4TChCqISk8Qe9JEJ0V0yfYvq6yuB6sJHPk0Q=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>RepsRecord — REPS & STR Hour Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -778,8 +778,11 @@ function yearEntries(){return state.entries.filter(e=>e.date&&e.date.startsWith(
 function calcREPS(){
   const inc=state.settings.includeSTRinREPS!==false;
   const ye=yearEntries();
-  const propIds=new Set(state.properties.map(p=>p.id));
-  const rh=ye.filter(e=>!e.isSpouse&&(propIds.has(e.propertyId)||e.propertyId===null||e.propertyId===undefined||e.propertyId==='')&&(e.trackType==='REPS'||e.trackType==='LTR'||(inc&&e.trackType==='STR'))).reduce((s,e)=>s+(e.hours||0),0);
+  // L8 fix: count all qualifying hours regardless of whether the property still
+  // exists. Entries can become orphaned (propertyId points to a deleted property)
+  // via cross-device sync; those hours were real qualifying work and must not
+  // silently drop out of the 750-hour REPS total.
+  const rh=ye.filter(e=>!e.isSpouse&&(e.trackType==='REPS'||e.trackType==='LTR'||(inc&&e.trackType==='STR'))).reduce((s,e)=>s+(e.hours||0),0);
   const th=rh+(state.settings.nonREPSHours||0);
   const pct=th>0?rh/th*100:0;
   return{rh,pct,m750:rh>750,m50:pct>50,ok:rh>750&&pct>50};
@@ -1367,6 +1370,7 @@ async function uploadFiles(entryId,files){
 async function submitEntry(){
   const h=(parseFloat(document.getElementById('f-hrs')?.value)||0)+(parseInt(document.getElementById('f-mins')?.value)||0)/60;
   if(h<=0){toast('Please enter a time greater than 0.','warn');return;}
+  if(h>24){ const okBig=await dlgConfirm({title:'Unusually long entry',body:`That's ${h.toFixed(1)} hours for a single entry. A single day can't exceed 24 hours — save it anyway?`,confirmLabel:'Save anyway'}); if(!okBig)return; }
   const propId=document.getElementById('f-prop')?.value||'';
   if(!propId&&trackType==='STR'){toast('Please select an STR property. Go to Properties to add your STR properties first.','warn');return;}
   const btn=document.getElementById('sub-btn');
@@ -1405,13 +1409,15 @@ function showEditEntry(id){
   el.style.display=isOpen?'none':'block';
 }
 
-function saveEditEntry(id){
+async function saveEditEntry(id){
   const entry=state.entries.find(e=>e.id===id);
   if(!entry)return;
   const hrs=parseFloat(document.getElementById('ee-hrs-'+id)?.value)||0;
   const mins=parseFloat(document.getElementById('ee-min-'+id)?.value)||0;
+  const total=hrs+(mins/60);
+  if(total>24){ const okBig=await dlgConfirm({title:'Unusually long entry',body:`That's ${total.toFixed(1)} hours for a single entry. A single day can't exceed 24 hours — save it anyway?`,confirmLabel:'Save anyway'}); if(!okBig)return; }
   entry.date=document.getElementById('ee-date-'+id)?.value||entry.date;
-  entry.hours=hrs+(mins/60);
+  entry.hours=total;
   entry.category=document.getElementById('ee-cat-'+id)?.value||entry.category;
   entry.notes=document.getElementById('ee-note-'+id)?.value||'';
   save();renderView();
@@ -1686,6 +1692,7 @@ async function saveQuickLog(propId){
   const hrs=parseFloat(document.getElementById('ql-hrs-'+propId)?.value)||0;
   const mins=parseFloat(document.getElementById('ql-min-'+propId)?.value)||0;
   if(hrs+mins<=0){toast('Please enter a time greater than 0.','warn');return;}
+  if(hrs+mins/60>24){ const okBig=await dlgConfirm({title:'Unusually long entry',body:`That's ${(hrs+mins/60).toFixed(1)} hours for a single entry. A single day can't exceed 24 hours — save it anyway?`,confirmLabel:'Save anyway'}); if(!okBig)return; }
   const btn=document.querySelector(`#quick-log-${propId} button`);
   if(btn){btn.disabled=true;btn.textContent='Saving…';}
   const tt=document.getElementById('ql-tt-'+propId)?.value||'REPS';
