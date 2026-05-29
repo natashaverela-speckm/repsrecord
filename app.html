@@ -8,7 +8,7 @@
      the hash (sha256 of the exact UTF-8 bytes of that element's contents, base64) and update it below.
      Note: frame-ancestors is intentionally omitted here — it is ignored in a meta CSP and should be
      set as an HTTP response header (e.g. frame-ancestors 'none') at the host instead. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-t6y99IU/CN4sX/jYNFwHHAGxJKFve2VgqYQ1VFpQV34=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-JwZbn6b0fyBYQwO5M3243N7c2GhgP2QyO5xwwYpJ2U4=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>RepsRecord — REPS & STR Hour Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1140,7 +1140,7 @@ function vLog(){
     ${trackType==='REPS'?'<strong>Qualifying activities</strong> include property management, acquisition, construction, leasing, maintenance, brokerage, and related financial/legal work (IRC §469(c)(7)(C)). General RE hours also cover any real property trade or business — not just rentals.':'<strong>STR hours</strong> count toward material participation for properties with avg rental period ≤7 days (Reg. §1.469-1T(e)(3)(ii)(A)).'}
   </div>
   <div class="g2">
-    <div class="field"><label class="fl">Date</label><input type="date" id="f-date" value="${todayStr()}"/></div>
+    <div class="field"><label class="fl">Date</label><input type="date" id="f-date" value="${todayStr()}" max="${todayStr()}"/></div>
     <div class="field"><label class="fl">Property ${trackType==='STR'?'<span style="color:#EF4444;">*</span>':''}</label>
       <select id="f-prop">${(()=>{
         if(trackType==='STR'){
@@ -1223,7 +1223,7 @@ ${filtered.map(e=>{const pr=state.properties.find(p=>p.id===e.propertyId);const 
   <div id="edit-entry-${e.id}" style="display:none;width:100%;margin-top:12px;background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:10px;padding:14px;">
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#14B8A6;margin-bottom:12px;">Edit Entry</div>
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
-      <div class="field"><label class="fl">Date</label><input type="date" id="ee-date-${e.id}" value="${e.date}"/></div>
+      <div class="field"><label class="fl">Date</label><input type="date" id="ee-date-${e.id}" value="${e.date}" max="${todayStr()}"/></div>
       <div class="field"><label class="fl">Hours</label><input type="number" id="ee-hrs-${e.id}" value="${Math.floor(e.hours)}" min="0" max="24" step="1"/></div>
       <div class="field"><label class="fl">Minutes</label><input type="number" id="ee-min-${e.id}" value="${Math.round((e.hours%1)*60)}" min="0" max="59" step="15"/></div>
     </div>
@@ -1367,6 +1367,21 @@ async function uploadFiles(entryId,files){
   return attachments;
 }
 
+// After saving an entry, keep the active tax year in sync with the entry's date so
+// a back-dated entry stays visible (and its totals correct) instead of silently
+// dropping out of the year-scoped list. Warns if the date is outside tracked years.
+function _syncYearToEntry(dateStr){
+  const yr=parseInt((dateStr||'').slice(0,4));
+  if(!yr||yr===activeYear)return;
+  if(YEARS.includes(yr)){
+    activeYear=yr;
+    const ys=document.getElementById('year-sel');
+    if(ys)ys.value=String(yr);
+  } else {
+    toast(`Saved — but this entry is dated ${yr}, outside the tax years RepsRecord tracks (${YEARS[0]}–${YEARS[YEARS.length-1]}), so it won't show in your logs.`,'warn',{duration:7000});
+  }
+}
+
 async function submitEntry(){
   const h=(parseFloat(document.getElementById('f-hrs')?.value)||0)+(parseInt(document.getElementById('f-mins')?.value)||0)/60;
   if(h<=0){toast('Please enter a time greater than 0.','warn');return;}
@@ -1383,7 +1398,9 @@ async function submitEntry(){
     try{attachments=await uploadFiles(entryId,pendingFiles);}
     catch(err){console.error('Upload error:',err);}
   }
-  state.entries.push({id:entryId,date:document.getElementById('f-date')?.value||todayStr(),propertyId:propId,trackType,type:trackType,category:cat,hours:Math.round(h*100)/100,notes:document.getElementById('f-notes')?.value||'',isSpouse:!!document.getElementById('f-spouse')?.checked,attachments});
+  const _eDate=document.getElementById('f-date')?.value||todayStr();
+  state.entries.push({id:entryId,date:_eDate,propertyId:propId,trackType,type:trackType,category:cat,hours:Math.round(h*100)/100,notes:document.getElementById('f-notes')?.value||'',isSpouse:!!document.getElementById('f-spouse')?.checked,attachments});
+  _syncYearToEntry(_eDate);
   save();
   pendingFiles=[];
   const _newRH=calcREPS().rh;
@@ -1420,6 +1437,7 @@ async function saveEditEntry(id){
   entry.hours=total;
   entry.category=document.getElementById('ee-cat-'+id)?.value||entry.category;
   entry.notes=document.getElementById('ee-note-'+id)?.value||'';
+  _syncYearToEntry(entry.date);
   save();renderView();
 }
 
@@ -1500,7 +1518,7 @@ ${state.properties.map(p=>{
   <div id="quick-log-${p.id}" style="display:none;margin-top:14px;border-top:1px solid #14B8A6;padding-top:14px;">
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#14B8A6;margin-bottom:12px;">⏱ Log Time — ${esc(p.name)}</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-      <div class="field"><label class="fl">Date</label><input type="date" id="ql-date-${p.id}" value="${todayStr()}"/></div>
+      <div class="field"><label class="fl">Date</label><input type="date" id="ql-date-${p.id}" value="${todayStr()}" max="${todayStr()}"/></div>
       <div class="field"><label class="fl">Track Type</label>
         <select id="ql-tt-${p.id}" data-chg="updateQLCats" data-id="${p.id}">
           <option value="${p.type==='LTR'?'REPS':p.type}" selected>${p.type==='LTR'?'REPS — Real Estate Professional':'STR — Short-Term Rental'}</option>
@@ -1573,8 +1591,8 @@ ${state.properties.map(p=>{
       <button data-act="addBooking" data-id="${p.id}" style="background:#F59E0B;color:#fff;border:none;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;height:40px;">+ Add Booking</button>
     </div>
     ${(p.bookings||[]).length===0?`<div style="text-align:center;padding:16px;color:#94A3B8;font-size:13px;background:#FFFBEB;border-radius:8px;">No bookings logged yet — add your first booking above.</div>`:`
-    <div style="background:#FFFBEB;border-radius:8px;padding:2px 0;margin-bottom:8px;">
-      <table style="width:100%;border-collapse:collapse;font-size:12px;">
+    <div style="background:#FFFBEB;border-radius:8px;padding:2px 0;margin-bottom:8px;overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;min-width:340px;">
         <thead><tr>
           <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400E;border-bottom:1px solid #FDE68A;">Check-In</th>
           <th style="padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#92400E;border-bottom:1px solid #FDE68A;">Check-Out</th>
@@ -1612,7 +1630,7 @@ ${state.properties.map(p=>{
     </div>
     <div id="edit-entry-${e.id}" style="display:none;margin-top:8px;background:#F8FAFC;border:1.5px solid #CBD5E1;border-radius:10px;padding:14px;">
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
-        <div class="field"><label class="fl">Date</label><input type="date" id="ee-date-${e.id}" value="${e.date}"/></div>
+        <div class="field"><label class="fl">Date</label><input type="date" id="ee-date-${e.id}" value="${e.date}" max="${todayStr()}"/></div>
         <div class="field"><label class="fl">Hours</label><input type="number" id="ee-hrs-${e.id}" value="${Math.floor(e.hours)}" min="0" max="24" step="1"/></div>
         <div class="field"><label class="fl">Minutes</label><input type="number" id="ee-min-${e.id}" value="${Math.round((e.hours % 1)*60)}" min="0" max="59" step="15"/></div>
       </div>
@@ -1716,6 +1734,7 @@ async function saveQuickLog(propId){
     isSpouse:!!document.getElementById('ql-spouse-'+propId)?.checked,
     attachments
   });
+  _syncYearToEntry(document.getElementById('ql-date-'+propId)?.value||todayStr());
   save();renderView();
 }
 
@@ -2435,6 +2454,7 @@ function renderView(){
   else if(view==='ltr') el.innerHTML=vLTR();
   else if(view==='str') el.innerHTML=vSTR();
   else if(view==='settings') el.innerHTML=vSettings();
+  else { view='dashboard'; el.innerHTML=vDashboard(); }
 
   // Restart timer display tick if timer is running and we're on the log page
   if(view==='log'&&timerStart){
