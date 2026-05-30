@@ -8,7 +8,7 @@
      the hash (sha256 of the exact UTF-8 bytes of that element's contents, base64) and update it below.
      Note: frame-ancestors is intentionally omitted here — it is ignored in a meta CSP and should be
      set as an HTTP response header (e.g. frame-ancestors 'none') at the host instead. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-C9+Ft1e+DuMItXZHTltEHn7I5UmL+RHBMJaty7Jygsg=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-y2roaLFiEC6+zwbcamgKx616Ww+XPJ0fLEWBb2S7Z98=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>RepsRecord — REPS & STR Hour Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -2397,6 +2397,11 @@ function vSettings(){
   const s=state.settings;
   return`
 <div class="ph"><h1 class="pg-title">Settings</h1><div class="pg-sub">Configure your tax situation for accurate qualification tracking.</div></div>
+<div class="card card-mb">
+  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">Subscription &amp; Billing</div>
+  <div style="font-size:12px;color:#64748B;margin-bottom:14px;line-height:1.6;">Update your payment method, view invoices, or cancel your subscription. Opens a secure Stripe page in a new tab.</div>
+  <a href="https://billing.stripe.com/p/login/bJedR19mL8bK7rY3nuebu00" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#0D1F3C;color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:10px 18px;border-radius:8px;">Manage subscription</a>
+</div>
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">50% Personal Services Test — IRC §469(c)(7)(B)(i)</div>
   <div style="font-size:12px;color:#64748B;margin-bottom:14px;line-height:1.6;">Enter your total hours in non-real-estate activities this year (W-2, other businesses). Used to calculate whether RE hours exceed 50% of ALL personal services.</div>
