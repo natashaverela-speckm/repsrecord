@@ -8,7 +8,7 @@
      the hash (sha256 of the exact UTF-8 bytes of that element's contents, base64) and update it below.
      Note: frame-ancestors is intentionally omitted here — it is ignored in a meta CSP and should be
      set as an HTTP response header (e.g. frame-ancestors 'none') at the host instead. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-z+JzKjR3CP7BXh4cfXbneVTS7vf+JQG24W4VwwvQGA8=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-xM0PeM6ACSmngzN+RVaboeFswsLrv6dlup6v969XffY=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>RepsRecord — REPS & STR Hour Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -2248,6 +2248,16 @@ function vReports(){
   const cats=Object.values(byCat).sort((a,b)=>b.hours-a.hours);
   const sorted=[...ye].sort((a,b)=>new Date(b.date)-new Date(a.date));
   const sps=state.properties.filter(p=>p.type==='STR');
+  // Pass 7 (audit-report clarity): surface STR hours that are logged but NOT included in the
+  // REPS 750-hr figure, so the "RE hours logged" summary and the "Hours by Activity Category"
+  // total reconcile for a reader. Excluded = all non-spouse STR-type hours minus those that
+  // actually counted toward rh (only 'yes'-qualifying STR properties count, and only when the
+  // includeSTRinREPS setting is on).
+  const _inc=state.settings.includeSTRinREPS===true;
+  const _strYesIds=_inc?new Set(state.properties.filter(p=>p.type==='STR'&&strQualifies(p)==='yes').map(p=>p.id)):new Set();
+  const _strHrsTotal=ye.filter(e=>!e.isSpouse&&e.trackType==='STR').reduce((s,e)=>s+(e.hours||0),0);
+  const _strHrsCounted=_inc?ye.filter(e=>!e.isSpouse&&e.trackType==='STR'&&_strYesIds.has(e.propertyId)).reduce((s,e)=>s+(e.hours||0),0):0;
+  const strHrsExcluded=Math.max(0,_strHrsTotal-_strHrsCounted);
   return`
 <div class="ph">
   <div class="ph-row">
@@ -2265,6 +2275,7 @@ function vReports(){
     <div class="rstat"><div class="rstat-num">${Math.round(r.pct)}%</div><div class="rstat-lbl">% of personal services</div><div class="rstat-req">Required: > 50%</div><span class="badge ${r.m50?'b-met':'b-no'}" style="margin-top:6px;display:inline-block;${r.incomplete50?'background:#FEF3C7;color:#92400E;':''}">${r.incomplete50?'UNVERIFIED':r.m50?'MET ✓':'NOT MET'}</span></div>
     <div class="rstat"><div class="rstat-num" style="color:${r.ok?'#10B981':r.incomplete50?'#F59E0B':'#EF4444'}">${r.ok?'YES':r.incomplete50?'PENDING':'NO'}</div><div class="rstat-lbl">REPS qualified</div><div class="rstat-req">Both tests required</div><span class="badge ${r.ok?'b-met':'b-no'}" style="margin-top:6px;display:inline-block;${r.incomplete50?'background:#FEF3C7;color:#92400E;':''}">${r.ok?'QUALIFIED':r.incomplete50?'VERIFY NON-RE HRS':'NOT YET'}</span></div>
   </div>
+  ${strHrsExcluded>0?`<div style="margin-top:12px;font-size:11.5px;color:#92400E;background:#FFF7ED;border:1px solid #FDE68A;border-radius:8px;padding:9px 13px;line-height:1.6;">ℹ️ ${Math.round(strHrsExcluded)} short-term-rental hour${Math.round(strHrsExcluded)===1?'':'s'} logged this year ${Math.round(strHrsExcluded)===1?'is':'are'} tracked separately under the Short-Term Rental strategy below and ${Math.round(strHrsExcluded)===1?'is':'are'} <strong>not</strong> part of the ${Math.round(r.rh)} REPS hours above — ${_inc?'those properties have not met the ≤7-day average rental period exception (Reg. §1.469-1T(e)(3)(ii)(A)), so their hours do not count toward the §469(c)(7)(B)(ii) 750-hour test':'the “Include STR hours in REPS 750-hr total” setting is off'}. Total logged hours shown below may therefore exceed the REPS figure.</div>`:''}
 </div>
 ${sps.length?`
 <div class="card card-mb">
