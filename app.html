@@ -2370,7 +2370,7 @@ ${sps.length?`
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:14px;">Hours by Activity Category</div>
   <table><thead><tr><th>Type</th><th>Activity</th><th>Entries</th><th>Total Hours</th></tr></thead><tbody>
   ${cats.map(c=>`<tr><td><span class="tb tb-${c.trackType==='STR'?'s':'r'}">${c.trackType}</span></td><td>${esc(c.category)}</td><td style="color:#64748B;">${c.count}</td><td><strong>${fmtH(c.hours)}</strong></td></tr>`).join('')}
-  <tr style="border-top:1.5px solid #CCFBF1;"><td colspan="3"><strong>TOTAL</strong></td><td><strong style="font-size:15px;">${fmtH(tot)}</strong></td></tr>
+  <tr style="border-top:1.5px solid #CCFBF1;"><td colspan="3"><strong>All logged hours${state.settings.spouseEnabled?' (incl. spouse)':''}</strong></td><td><strong style="font-size:15px;">${fmtH(tot)}</strong></td></tr>
   </tbody></table>
 </div>
 <div class="card">
@@ -2418,7 +2418,8 @@ function vSettings(){
       <li>Tests 5 &amp; 6 — prior-year history tests apply jointly</li>
       <li>Tests 3 &amp; 7 — <strong>majority view:</strong> spouse hours combine with yours and are excluded from "any other individual"; <strong>conservative view</strong> (used by some practitioners): spouse may be treated as a third-party participant. Discuss with your CPA — your position should align with your filing status.</li>
     </ul>
-    <span style="color:#B45309;font-weight:600;">Do not rely on spouse hours to help you qualify for REPS qualification itself.</span>
+    <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #FCD34D;">One nuance on the 750-hour test: spouse hours are <strong>never added</strong> to your 750 total, but under §469(h)(5) they can help establish your <em>material participation</em> in a real property trade or business — and the 750 counts only your hours in businesses in which you materially participate. So a spouse's hours can indirectly help <em>qualify the activity</em> whose hours you then count, without ever counting toward the 750 themselves.</div>
+    <span style="color:#B45309;font-weight:600;display:block;margin-top:8px;">Do not rely on spouse hours to help you qualify for REPS qualification itself.</span>
   </div>
   <label class="tog-row"><input type="checkbox" ${s.spouseEnabled?'checked':''} data-chg="setBoolRender" data-key="spouseEnabled"/><span class="tog-lbl">Enable spouse hour tracking</span></label>
   ${s.spouseEnabled?`<div class="field"><label class="fl">Spouse Name</label><input value="${esc(s.spouseName||'')}" placeholder="First name or initials" data-chg="setStr" data-key="spouseName"/></div>`:''}
@@ -2432,7 +2433,8 @@ function vSettings(){
     <div class="hint">
       <strong>How spouse hours are counted (both views):</strong> per IRC §469(h)(5) and §1.469-5T(f)(3), a spouse's participation is always added to your own hours for every test — including Test 1's 500-hour floor and the 100-hour floors of Tests 3 &amp; 7. The two views differ only on the "more than any other individual" comparison in Tests 3 &amp; 7.<br>
       <strong>Majority view (default):</strong> the spouse is treated as you, so spouse hours are not also counted on the "other individual" side. This is the dominant practitioner reading of §469(h)(5).<br>
-      <strong>Conservative view:</strong> the spouse's hours are additionally compared against you on the others' side of Tests 3 &amp; 7 — a more defensive position. Confirm the position you take with your CPA; it should align with your filing status.
+      <strong>Conservative view:</strong> the spouse's hours are additionally compared against you on the others' side of Tests 3 &amp; 7 — a more defensive position. Confirm the position you take with your CPA; it should align with your filing status.<br>
+      <strong>Note — unsettled:</strong> no case or ruling squarely resolves whether a spouse is "any other individual" for Tests 3 &amp; 7. Both readings appear in practice, so this remains a judgment call for you and your CPA.
     </div>
   </div>`:''}
 </div>
