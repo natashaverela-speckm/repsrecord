@@ -8,7 +8,7 @@
      the hash (sha256 of the exact UTF-8 bytes of that element's contents, base64) and update it below.
      Note: frame-ancestors is intentionally omitted here — it is ignored in a meta CSP and should be
      set as an HTTP response header (e.g. frame-ancestors 'none') at the host instead. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-1os5eDAQe8fMVeYag189KmRi8eEj+a4StweFGfWCTWQ=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-E5oSby1yrdD8pSiNTgQaqM38caCp5Bpm0A6+BhNAtdw=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>RepsRecord — REPS & STR Hour Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -625,7 +625,7 @@ const REPS_CATS=['— General REPS Hours (Real Estate Professional Activity)','A
 const STR_CATS=['— Material Participation Hours (STR Active Management)','Guest Communication','Booking & Reservation Management','Check-in / Check-out','Cleaning Coordination','Maintenance & Repairs','Marketing & Listing Management','Financial & Accounting','Furnishing & Setup','Travel (STR property)','Guest Services & Concierge','Other STR Activity'];
 const NAV=[{id:'dashboard',ic:'📊',label:'Dashboard'},{id:'properties',ic:'🏠',label:'Properties'},{id:'log',ic:'⏱',label:'Log Time'},{id:'mp',ic:'✅',label:'MP Tests'},{id:'reports',ic:'📋',label:'Audit Report'},{id:'divider'},{id:'ltr',ic:'🏡',label:'REPS Rules'},{id:'str',ic:'🏖',label:'STR Rules'},{id:'settings',ic:'⚙️',label:'Settings'}];
 
-let state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:false,personalUseDays:0,filingStatus:'MFJ',spouseHoursPolicy:'conservative'},properties:[],entries:[],manualMP:{}};
+let state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:false,personalUseDays:0,filingStatus:'MFJ',spouseHoursPolicy:'majority'},properties:[],entries:[],manualMP:{}};
 let activeYear=CUR_YEAR;
 let view='dashboard',chartInst=null,showPropForm=false,trackType='REPS';
 // Feature state
@@ -782,7 +782,15 @@ function calcREPS(){
   // exists. Entries can become orphaned (propertyId points to a deleted property)
   // via cross-device sync; those hours were real qualifying work and must not
   // silently drop out of the 750-hour REPS total.
-  const rh=ye.filter(e=>!e.isSpouse&&(e.trackType==='REPS'||e.trackType==='LTR'||(inc&&e.trackType==='STR'))).reduce((s,e)=>s+(e.hours||0),0);
+  // AUDIT FIX (Pass 6 #C): STR hours feed the 750-hr REPS total ONLY when the user actually
+  // materially participates in that STR as a trade or business AND it clears the average-
+  // rental-period gate (strQualifies !== 'no'). Toggling the setting on no longer sweeps in
+  // hours from STRs held passively or that fail the period test — matching the on-screen
+  // condition ("only if you materially participate ... not merely as passive owner") and the
+  // Bailey caution. (Note: an STR entry orphaned to a deleted property no longer counts here,
+  // since material participation can no longer be established for it.)
+  const strOK=inc?new Set(state.properties.filter(p=>p.type==='STR'&&strQualifies(p)!=='no').map(p=>p.id)):null;
+  const rh=ye.filter(e=>!e.isSpouse&&(e.trackType==='REPS'||e.trackType==='LTR'||(inc&&e.trackType==='STR'&&strOK&&strOK.has(e.propertyId)))).reduce((s,e)=>s+(e.hours||0),0);
   const th=rh+(state.settings.nonREPSHours||0);
   const pct=th>0?rh/th*100:0;
   // AUDIT FIX (Critical #2): the 50% personal-services test cannot be verified until the
@@ -806,19 +814,31 @@ function pH(pid){
 // impose a >100-hour minimum and disqualifying conditions in §1.469-5T(b)(2)(ii).
 // AUDIT FIX (Pass 4): hour thresholds use > ("more than 500/100 hours"). AUDIT FIX (Pass 5):
 // the Test 3/7 "not less than any other individual" comparison uses >= (a tie qualifies), per §1.469-5T(a)(3)/(b)(2)(ii).
-// BATCH 2 (Pass 4 #2): spouseHoursPolicy controls Test 3/7 spouse treatment.
-//   'majority'    — §469(h)(5) view: spouse hours add to taxpayer's; spouse is NOT
-//                    "any other individual". Other-individuals = p.otherHours only.
-//   'conservative' — spouse hours treated as a competing participant. Other-individuals
-//                    = max(spouse, otherHours). This is the default (preserves Batch-1
-//                    behavior for existing users).
+// AUDIT FIX (Pass 6 #A/#J): spouseHoursPolicy now controls ONLY the Tests 3/7 "other individual"
+// comparison; spouse hours are always attributed to the taxpayer (see body). Default is 'majority'
+// (the §469(h)(5) regulatory position), matching the in-app rules pages and the Settings copy.
+//   'majority'     — spouse hours add to taxpayer's; spouse is NOT "any other individual".
+//                    Other-individuals = p.otherHours only.
+//   'conservative' — spouse hours still add to the taxpayer's, but are ALSO counted on the
+//                    others' side of Tests 3/7: other-individuals = max(spouse, otherHours).
 function mpT(pid){
   const ph=pH(pid),p=state.properties.find(x=>x.id===pid)||{},mn=(state.manualMP||{})[pid]||{};
-  const policy=(state.settings&&state.settings.spouseHoursPolicy)||'conservative';
-  // Effective hours of the taxpayer under each policy
-  const ownerEff=policy==='majority'?(ph.owner+(ph.spouse||0)):ph.owner;
-  // Effective "other individuals" hours for comparison
-  const mo=policy==='majority'?(p.otherHours||0):Math.max(ph.spouse||0,p.otherHours||0);
+  const policy=(state.settings&&state.settings.spouseHoursPolicy)||'majority';
+  // AUDIT FIX (Pass 6 #A): §469(h)(5) and §1.469-5T(f)(3) require a spouse's participation to be
+  // "taken into account" for EVERY material-participation test — this is mandatory, not a
+  // practitioner option. Spouse hours therefore ALWAYS add to the taxpayer's own count
+  // (Test 1's >500 floor and the >100 floors of Tests 3 & 7). The majority/conservative
+  // choice affects ONLY the "any other individual" comparison in Tests 3 & 7 — i.e. whether
+  // the spouse is ALSO counted on the others' side. It must never zero the spouse out of ownerEff.
+  const ownerEff=ph.owner+(ph.spouse||0);
+  // "Other individuals" hours for the Test 3 / Test 7 comparison:
+  //   majority     — spouse is treated as the taxpayer, not an "other individual": others = p.otherHours.
+  //   conservative — some practitioners still count the spouse on the others' side (defensive only).
+  const mo=policy==='conservative'?Math.max(ph.spouse||0,p.otherHours||0):(p.otherHours||0);
+  // AUDIT FIX (Pass 6 #B): Test 7 (facts & circumstances) is UNAVAILABLE when any other person is
+  // COMPENSATED to manage the activity (§1.469-5T(b)(2)(ii)). otherHoursCompensated flags a paid
+  // co-host / property manager. When set with logged other-hours, Test 7 cannot be auto-met.
+  const paidManager=!!p.otherHoursCompensated&&(p.otherHours||0)>0;
   return[
     {id:1,name:'Test 1',label:'500 Hours',cite:'§1.469-5T(a)(1)',desc:'More than 500 hours in this activity during the year.',auto:true,met:ownerEff>TAX.MP_TEST1_HOURS},
     {id:2,name:'Test 2',label:'Substantially All',cite:'§1.469-5T(a)(2)',desc:'Substantially all participation in the activity was yours. "Substantially all" is not quantified in the regulation; practitioners commonly use a 95%+ safe harbor (others combined < 5%).',auto:false,met:!!mn[2]},
@@ -826,7 +846,7 @@ function mpT(pid){
     {id:4,name:'Test 4',label:'SPA Aggregate',cite:'§1.469-5T(a)(4)',desc:'Activity is a Significant Participation Activity (>100 hrs in a trade or business in which you do not otherwise materially participate) and all your SPAs aggregate to more than 500 hours for the year. SPAs are non-rental trade-or-business activities only; LTR rental activities cannot generate SPAs.',auto:false,met:!!mn[4]},
     {id:5,name:'Test 5',label:'5 of Last 10 Yrs',cite:'§1.469-5T(a)(5)',desc:'Materially participated in this activity in any 5 of the last 10 taxable years.',auto:false,met:!!mn[5]},
     {id:6,name:'Test 6',label:'3 Prior Yrs (Personal Service Activity)',cite:'§1.469-5T(a)(6)',desc:'Materially participated 3 prior years when the activity was a personal service activity. Does not apply to most STRs — STR properties are almost never personal service activities (medical, law, engineering, etc.).',auto:false,met:!!mn[6]},
-    {id:7,name:'Test 7',label:'Facts & Circumstances',cite:'§1.469-5T(a)(7)',desc:'Participate on a regular, continuous, and substantial basis. Requires more than 100 hours of participation (§1.469-5T(b)(2)(iii)). Does NOT apply if any other person is compensated for managing the activity, or if any other individual performs more management hours than you (§1.469-5T(b)(2)(ii)). Document frequency, duration, and nature of involvement.',auto:true,met:ownerEff>TAX.MP_TEST7_MIN&&ownerEff>=mo},
+    {id:7,name:'Test 7',label:'Facts & Circumstances',cite:'§1.469-5T(a)(7)',desc:'Participate on a regular, continuous, and substantial basis. Requires more than 100 hours of participation (§1.469-5T(b)(2)(iii)). Does NOT apply if any other person is compensated for managing the activity, or if any other individual performs more management hours than you (§1.469-5T(b)(2)(ii)). Document frequency, duration, and nature of involvement.',auto:true,met:ownerEff>TAX.MP_TEST7_MIN&&ownerEff>=mo&&!paidManager},
   ];
 }
 
@@ -1004,7 +1024,8 @@ function vDashboard(){
             const yearEnd=new Date(activeYear,11,31);
             // Find earliest entry in active year for REPS-counting entries
             const inc=state.settings.includeSTRinREPS===true;
-            const yEntries=yearEntries().filter(e=>!e.isSpouse&&(e.trackType==='REPS'||e.trackType==='LTR'||(inc&&e.trackType==='STR')));
+            const strOK=inc?new Set(state.properties.filter(p=>p.type==='STR'&&strQualifies(p)!=='no').map(p=>p.id)):null;
+            const yEntries=yearEntries().filter(e=>!e.isSpouse&&(e.trackType==='REPS'||e.trackType==='LTR'||(inc&&e.trackType==='STR'&&strOK&&strOK.has(e.propertyId))));
             let earliest=null;
             yEntries.forEach(e=>{const d=new Date(e.date);if(!earliest||d<earliest)earliest=d;});
             // Anchor: the LATER of (earliest entry date) and (year start). Floor of 30 days back if too recent.
@@ -1527,6 +1548,7 @@ ${showPropForm?`
   <div class="g2">
     <div class="field"><label class="fl">Avg Rental Period (days)</label><input type="number" id="p-dy" min="0.5" step="0.5" placeholder="e.g. 4.5"/><div class="hint">≤7 days = strongest eligibility. 8–30 days may still qualify. <strong>Don't know yet?</strong> Leave blank — use the <strong>Booking Log</strong> (available after saving this property) to auto-calculate from your individual bookings.</div></div>
     <div class="field"><label class="fl">Other Participants' Annual Hours</label><input type="number" id="p-ot" min="0" step="1" placeholder="e.g. 50"/><div class="hint">Hours/year your cleaner, co-host, or PM spends on this property — used to check if your hours exceed theirs (key to the most common qualification test).</div></div>
+    <label class="tog-row" style="margin-top:-4px;"><input type="checkbox" id="p-ot-comp"/><span class="tog-lbl">These hours are paid management (co-host / PM compensated to manage) — disqualifies Test 7 per §1.469-5T(b)(2)(ii)</span></label>
   </div>
   </div>
   <div style="display:flex;gap:8px;">
@@ -1615,6 +1637,7 @@ ${state.properties.map(p=>{
         <div class="field"><label class="fl">Avg Rental Period (days)</label><input type="number" id="ep-dy-${p.id}" value="${p.avgRentalDays||''}" min="0.5" step="0.5" placeholder="e.g. 4.5"/><div class="hint">${(p.bookings&&p.bookings.length>0)?`📅 Auto-calculated from ${p.bookings.length} booking${p.bookings.length>1?'s':''}. Use Booking Log to update.`:'≤7 days = strongest eligibility. 8–30 days may qualify with significant personal services.'}</div></div>
         <div class="field"><label class="fl">Other Participants' Annual Hours</label><input type="number" id="ep-ot-${p.id}" value="${p.otherHours||0}" min="0" step="1"/><div class="hint">Hours/year your cleaner, co-host, or PM spends on this property.</div></div>
       </div>
+      <label class="tog-row" style="margin-bottom:12px;"><input type="checkbox" id="ep-ot-comp-${p.id}" ${p.otherHoursCompensated?'checked':''}/><span class="tog-lbl">These hours are paid management (co-host / PM compensated to manage) — disqualifies Test 7 per §1.469-5T(b)(2)(ii)</span></label>
     </div>
     <div style="display:flex;gap:8px;">
       <button data-act="savePropEdit" data-id="${p.id}" style="background:#14B8A6;color:#fff;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Save changes</button>
@@ -1811,6 +1834,7 @@ function savePropEdit(id){
   const recalcAvg=calcAvgFromBookings(id);
   prop.avgRentalDays=recalcAvg!==null?recalcAvg:manualAvg;
   prop.otherHours=parseFloat(document.getElementById('ep-ot-'+id)?.value)||0;
+  prop.otherHoursCompensated=!!document.getElementById('ep-ot-comp-'+id)?.checked;
   save();renderView();
 }
 
@@ -2020,7 +2044,7 @@ function addProp(){
   const state2=document.getElementById('p-state')?.value?.trim().toUpperCase()||'';
   const zip=document.getElementById('p-zip')?.value?.trim()||'';
   const address=[street,city,state2,zip].filter(Boolean).join(', ');
-  state.properties.push({id:uid(),name:nm,address,street,city,state:state2,zip,type:tp,avgRentalDays:parseFloat(document.getElementById('p-dy')?.value)||null,otherHours:parseFloat(document.getElementById('p-ot')?.value)||0,bookings:[]});
+  state.properties.push({id:uid(),name:nm,address,street,city,state:state2,zip,type:tp,avgRentalDays:parseFloat(document.getElementById('p-dy')?.value)||null,otherHours:parseFloat(document.getElementById('p-ot')?.value)||0,otherHoursCompensated:!!document.getElementById('p-ot-comp')?.checked,bookings:[]});
   save();showPropForm=false;renderView();
 }
 async function rmProp(id){
@@ -2181,9 +2205,10 @@ ${sps.map(p=>{
         </div>
         <div class="mp-desc">${t.desc}</div>
         ${!t.auto?`<label class="mp-man"><input type="checkbox" ${t.met?'checked':''} data-chg="togMP" data-id="${p.id}" data-tid="${t.id}"/><span>Mark as met for ${activeYear} — requires supporting documentation</span></label>`:''}
-        ${t.auto&&!t.met&&t.id===3?`<div style="font-size:11px;color:#0F766E;margin-top:6px;">Need ${Math.max(0,Math.ceil(100-(state.settings.spouseHoursPolicy==='majority'?(ph.owner+(ph.spouse||0)):ph.owner)+0.01))} more hours${state.settings.spouseHoursPolicy==='majority'?'':' & must equal or exceed all other participants ('+Math.round(Math.max(ph.spouse||0,p.otherHours||0))+' hrs)'}</div>`:''}
-        ${t.auto&&!t.met&&t.id===1?`<div style="font-size:11px;color:#0F766E;margin-top:6px;">Need ${Math.max(0,Math.ceil(500-(state.settings.spouseHoursPolicy==='majority'?(ph.owner+(ph.spouse||0)):ph.owner)+0.01))} more hours for this property</div>`:''}
+        ${t.auto&&!t.met&&t.id===3?`<div style="font-size:11px;color:#0F766E;margin-top:6px;">Need ${Math.max(0,Math.ceil(100-(ph.owner+(ph.spouse||0))+0.01))} more hours${(()=>{const mo=(state.settings.spouseHoursPolicy||'majority')==='conservative'?Math.max(ph.spouse||0,p.otherHours||0):(p.otherHours||0);return mo>0?' & must equal or exceed other participants ('+Math.round(mo)+' hrs)':'';})()}</div>`:''}
+        ${t.auto&&!t.met&&t.id===1?`<div style="font-size:11px;color:#0F766E;margin-top:6px;">Need ${Math.max(0,Math.ceil(500-(ph.owner+(ph.spouse||0))+0.01))} more hours for this property</div>`:''}
         ${t.auto&&t.met&&t.id===7?`<div style="font-size:11px;color:#B45309;margin-top:6px;background:#FFF7ED;border:1px solid #FDE68A;border-radius:6px;padding:6px 9px;line-height:1.5;">⚠ Facts-and-circumstances test — the app checks only your hours. Confirm you participate on a regular, continuous, and substantial basis and that <strong>no other person is compensated to manage</strong> this property (§1.469-5T(b)(2)(ii)).</div>`:''}
+        ${t.auto&&!t.met&&t.id===7&&p.otherHoursCompensated&&(p.otherHours||0)>0?`<div style="font-size:11px;color:#991B1B;margin-top:6px;background:#FEF2F2;border:1px solid #FECACA;border-radius:6px;padding:6px 9px;line-height:1.5;">⛔ Test 7 unavailable: a paid co-host / property manager (${Math.round(p.otherHours)} hrs) is compensated to manage this property, which disqualifies the facts-and-circumstances test under §1.469-5T(b)(2)(ii). Use another test to qualify, or remove the paid-management flag if it no longer applies.</div>`:''}
       </div>
     </div>`).join('')}
   </div>`;}).join('')}`:''}
@@ -2308,12 +2333,13 @@ function vSettings(){
   <div class="field">
     <label class="fl">Tests 3 &amp; 7 — Spouse Hours Treatment</label>
     <select data-chg="setStrRenderSB" data-key="spouseHoursPolicy">
-      <option value="conservative" ${(s.spouseHoursPolicy||'conservative')==='conservative'?'selected':''}>Conservative — spouse treated as a competing participant (defensive)</option>
-      <option value="majority" ${s.spouseHoursPolicy==='majority'?'selected':''}>Majority view — spouse hours combine with yours per §469(h)(5) (regulatory position)</option>
+      <option value="majority" ${(s.spouseHoursPolicy||'majority')==='majority'?'selected':''}>Majority view — spouse hours combine with yours per §469(h)(5) (regulatory position · default)</option>
+      <option value="conservative" ${s.spouseHoursPolicy==='conservative'?'selected':''}>Conservative — spouse also counted as a competing participant in Tests 3 &amp; 7 (defensive)</option>
     </select>
     <div class="hint">
-      <strong>Conservative</strong>: spouse hours are compared against you for the "more than any other individual" requirement in Tests 3 &amp; 7. This is the most defensive position and what RepsRecord currently calculates by default.<br>
-      <strong>Majority view</strong>: per IRC §469(h)(5) and §1.469-5T(f)(3), spouse participation is "taken into account" — spouse hours are added to yours and the spouse is not treated as a separate individual. This is the dominant practitioner reading but should be confirmed with your CPA before relying on it.
+      <strong>How spouse hours are counted (both views):</strong> per IRC §469(h)(5) and §1.469-5T(f)(3), a spouse's participation is always added to your own hours for every test — including Test 1's 500-hour floor and the 100-hour floors of Tests 3 &amp; 7. The two views differ only on the "more than any other individual" comparison in Tests 3 &amp; 7.<br>
+      <strong>Majority view (default):</strong> the spouse is treated as you, so spouse hours are not also counted on the "other individual" side. This is the dominant practitioner reading of §469(h)(5).<br>
+      <strong>Conservative view:</strong> the spouse's hours are additionally compared against you on the others' side of Tests 3 &amp; 7 — a more defensive position. Confirm the position you take with your CPA; it should align with your filing status.
     </div>
   </div>`:''}
 </div>
@@ -2373,7 +2399,7 @@ async function resetAll(){
   if(!ok)return;
   const code=await dlgPrompt({title:'Confirm reset',body:'Type RESET to permanently erase all data.',placeholder:'RESET',confirmLabel:'Reset everything',danger:true,expectedText:'RESET'});
   if(code===null)return;
-  state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:false,personalUseDays:0,filingStatus:'MFJ',spouseHoursPolicy:'conservative'},properties:[],entries:[],manualMP:{}};
+  state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:false,personalUseDays:0,filingStatus:'MFJ',spouseHoursPolicy:'majority'},properties:[],entries:[],manualMP:{}};
   save();renderView();
   toast('All data reset.','success');
 }
@@ -2606,6 +2632,7 @@ function buildRemyCtx(){
         name:p.name,type:p.type,
         avgRentalDays:p.avgRentalDays||null,
         otherHours:p.otherHours||0,
+        otherHoursCompensated:!!p.otherHoursCompensated,
         ownerHrs:ph_.owner,
         mpMet:mpT(p.id).some(t=>t.met),
       };
