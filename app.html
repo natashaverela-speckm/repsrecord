@@ -8,7 +8,7 @@
      the hash (sha256 of the exact UTF-8 bytes of that element's contents, base64) and update it below.
      Note: frame-ancestors is intentionally omitted here — it is ignored in a meta CSP and should be
      set as an HTTP response header (e.g. frame-ancestors 'none') at the host instead. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-E5oSby1yrdD8pSiNTgQaqM38caCp5Bpm0A6+BhNAtdw=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-z+JzKjR3CP7BXh4cfXbneVTS7vf+JQG24W4VwwvQGA8=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>RepsRecord — REPS & STR Hour Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -782,14 +782,15 @@ function calcREPS(){
   // exists. Entries can become orphaned (propertyId points to a deleted property)
   // via cross-device sync; those hours were real qualifying work and must not
   // silently drop out of the 750-hour REPS total.
-  // AUDIT FIX (Pass 6 #C): STR hours feed the 750-hr REPS total ONLY when the user actually
-  // materially participates in that STR as a trade or business AND it clears the average-
-  // rental-period gate (strQualifies !== 'no'). Toggling the setting on no longer sweeps in
-  // hours from STRs held passively or that fail the period test — matching the on-screen
-  // condition ("only if you materially participate ... not merely as passive owner") and the
-  // Bailey caution. (Note: an STR entry orphaned to a deleted property no longer counts here,
-  // since material participation can no longer be established for it.)
-  const strOK=inc?new Set(state.properties.filter(p=>p.type==='STR'&&strQualifies(p)!=='no').map(p=>p.id)):null;
+  // AUDIT FIX (Pass 6 #C, tightened Pass 7): STR hours feed the 750-hr REPS total ONLY when the
+  // property fully qualifies under the STR exception — strQualifies==='yes', i.e. average rental
+  // period <=7 days AND the user materially participates. Toggling the setting on does NOT sweep in
+  // hours from STRs held passively, that fail the period test, or that are merely "conditional"
+  // (8-30 day band pending significant personal services). This is the stricter reading and matches
+  // the on-screen condition ("only if you materially participate ... not merely as passive owner").
+  // (Note: an STR entry orphaned to a deleted property no longer counts here, since qualification
+  // can no longer be established for it.)
+  const strOK=inc?new Set(state.properties.filter(p=>p.type==='STR'&&strQualifies(p)==='yes').map(p=>p.id)):null;
   const rh=ye.filter(e=>!e.isSpouse&&(e.trackType==='REPS'||e.trackType==='LTR'||(inc&&e.trackType==='STR'&&strOK&&strOK.has(e.propertyId)))).reduce((s,e)=>s+(e.hours||0),0);
   const th=rh+(state.settings.nonREPSHours||0);
   const pct=th>0?rh/th*100:0;
@@ -1024,7 +1025,7 @@ function vDashboard(){
             const yearEnd=new Date(activeYear,11,31);
             // Find earliest entry in active year for REPS-counting entries
             const inc=state.settings.includeSTRinREPS===true;
-            const strOK=inc?new Set(state.properties.filter(p=>p.type==='STR'&&strQualifies(p)!=='no').map(p=>p.id)):null;
+            const strOK=inc?new Set(state.properties.filter(p=>p.type==='STR'&&strQualifies(p)==='yes').map(p=>p.id)):null;
             const yEntries=yearEntries().filter(e=>!e.isSpouse&&(e.trackType==='REPS'||e.trackType==='LTR'||(inc&&e.trackType==='STR'&&strOK&&strOK.has(e.propertyId))));
             let earliest=null;
             yEntries.forEach(e=>{const d=new Date(e.date);if(!earliest||d<earliest)earliest=d;});
@@ -2157,10 +2158,10 @@ function vMP(){
     <br><strong>2. "Other Participants' Hours"</strong> — the number you entered on each property card for your cleaner, co-host, or property manager. This is used for Tests 3 and 7.
   </div>
   <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
-    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 1</span> <span style="color:#64748B;">Your hours ≥ 500</span></div>
+    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 1</span> <span style="color:#64748B;">Your hours &gt; 500</span></div>
     <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 2</span> <span style="color:#64748B;">You = only participant</span></div>
-    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 3</span> <span style="color:#64748B;">Your hours ≥ 100 AND > others' hours</span></div>
-    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 4</span> <span style="color:#64748B;">Each activity 100–499 hrs (SPA) + all SPAs aggregate ≥ 500 hrs</span></div>
+    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 3</span> <span style="color:#64748B;">Your hours &gt; 100 AND ≥ others' hours</span></div>
+    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 4</span> <span style="color:#64748B;">Each activity 100–499 hrs (SPA) + all SPAs aggregate &gt; 500 hrs</span></div>
     <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 5</span> <span style="color:#64748B;">Qualified in 5 of last 10 years</span></div>
     <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 6</span> <span style="color:#64748B;">Qualified 3 prior years (PSA — does not apply to most STRs)</span></div>
     <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;grid-column:1/-1;"><span style="font-weight:700;color:#0D1F3C;">Test 7</span> <span style="color:#64748B;">Regular, continuous & substantial basis (facts & circumstances)</span></div>
