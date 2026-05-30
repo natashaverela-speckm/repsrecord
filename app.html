@@ -8,7 +8,7 @@
      the hash (sha256 of the exact UTF-8 bytes of that element's contents, base64) and update it below.
      Note: frame-ancestors is intentionally omitted here — it is ignored in a meta CSP and should be
      set as an HTTP response header (e.g. frame-ancestors 'none') at the host instead. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-odSIJJSRFjrKxZyA6TMVO/URu2Y4QE4e0bpbj93gPYs=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-C9+Ft1e+DuMItXZHTltEHn7I5UmL+RHBMJaty7Jygsg=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>RepsRecord — REPS & STR Hour Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -647,6 +647,53 @@ function todayStr(){return new Date().toISOString().slice(0,10);}
 async function signOut(){
   if(_sb){try{await _sb.auth.signOut();}catch(e){}}
   window.location.href='login.html';
+}
+
+// ── Paywall gate ──
+// Accounts that always have access (never locked out). Owner addresses go here.
+const PAYWALL_ADMINS=['admin@repsrecord.com','support@repsrecord.com','support@themoneynista.com'];
+const PAY_MONTHLY='https://buy.stripe.com/bJedR19mL8bK7rY3nuebu00';
+const PAY_ANNUAL='https://buy.stripe.com/aFadR17eD9fOfYubU0ebu01';
+// Returns 'ok' | 'blocked' | 'redirect' | 'open'. Fails OPEN on any error so a
+// transient glitch can never lock a legitimate user out of their own data.
+async function enforceSubscription(){
+  try{
+    if(!_sb) return 'open';                       // library didn't load → don't strand
+    const{data:{session}}=await _sb.auth.getSession();
+    if(!session){ window.location.replace('login.html'); return 'redirect'; }
+    const email=(session.user.email||'').toLowerCase();
+    if(PAYWALL_ADMINS.includes(email)) return 'ok';
+    let status=null;
+    try{
+      const res=await fetch(`${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${session.user.id}&select=status`,{
+        headers:{'Authorization':`Bearer ${session.access_token}`,'apikey':SUPABASE_ANON_KEY,'Accept':'application/json'}
+      });
+      if(!res.ok) return 'open';                   // query error → fail open
+      const rows=await res.json();
+      status=rows.length?rows[0].status:null;
+    }catch(e){ return 'open'; }                     // network error → fail open
+    if(['trialing','active','past_due'].includes(status)) return 'ok';
+    showPaywallOverlay(session.user.id, session.user.email||'');
+    return 'blocked';
+  }catch(e){ return 'open'; }
+}
+function showPaywallOverlay(userId,email){
+  if(document.getElementById('paywall-overlay'))return;
+  const ref=`?client_reference_id=${encodeURIComponent(userId)}&prefilled_email=${encodeURIComponent(email)}`;
+  const o=document.createElement('div');
+  o.id='paywall-overlay';
+  o.setAttribute('style','position:fixed;inset:0;z-index:99999;background:#0D1F3C;color:#fff;display:flex;align-items:center;justify-content:center;padding:24px;font-family:inherit;');
+  o.innerHTML=`<div style="max-width:440px;width:100%;background:#13294B;border:1px solid #1E3A63;border-radius:16px;padding:32px;text-align:center;box-sizing:border-box;">
+    <div style="font-size:40px;margin-bottom:8px;">🔒</div>
+    <h2 style="margin:0 0 8px;font-size:22px;">Your access is paused</h2>
+    <p style="margin:0 0 20px;color:#B6C6E0;font-size:15px;line-height:1.5;">Your free trial or subscription isn't active right now. Choose a plan to pick up right where you left off — your data is safe and waiting.</p>
+    <a href="${PAY_MONTHLY}${ref}" style="display:block;background:#14B8A6;color:#fff;text-decoration:none;font-weight:600;padding:13px;border-radius:10px;margin-bottom:10px;">Continue — Monthly</a>
+    <a href="${PAY_ANNUAL}${ref}" style="display:block;background:#0EA5E9;color:#fff;text-decoration:none;font-weight:600;padding:13px;border-radius:10px;">Continue — Annual</a>
+    <button id="paywall-signout" type="button" style="margin-top:18px;background:none;border:none;color:#7C93B8;font-size:13px;cursor:pointer;text-decoration:underline;">Sign out</button>
+  </div>`;
+  document.body.appendChild(o);
+  const so=document.getElementById('paywall-signout');
+  if(so) so.addEventListener('click',signOut);
 }
 
 // ── CRITICAL FIX 1: Cloud sync ──
@@ -2934,6 +2981,9 @@ async function appInit(){
       if(session){_sbUser=session.user;}
     }catch(e){_sb=null;}
   }
+  // Paywall gate: require an active trial/subscription before the app loads.
+  const _gate=await enforceSubscription();
+  if(_gate==='blocked'||_gate==='redirect') return;
   // Load data: cloud first, localStorage fallback
   try{
     await load();
