@@ -8,7 +8,7 @@
      the hash (sha256 of the exact UTF-8 bytes of that element's contents, base64) and update it below.
      Note: frame-ancestors is intentionally omitted here — it is ignored in a meta CSP and should be
      set as an HTTP response header (e.g. frame-ancestors 'none') at the host instead. -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-xM0PeM6ACSmngzN+RVaboeFswsLrv6dlup6v969XffY=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'sha256-odSIJJSRFjrKxZyA6TMVO/URu2Y4QE4e0bpbj93gPYs=' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co https://nominatim.openstreetmap.org; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>RepsRecord — REPS & STR Hour Tracker</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -486,6 +486,7 @@ const CLICK_ACTIONS={
   bulkDelete:()=>bulkDelete(),
   clearLogFilter:()=>{logFilter={type:'all',propId:'',search:''};renderView();},
   delAttachment:el=>delAttachment(el.dataset.id,el.dataset.name),
+  openAtt:el=>openAtt(el),
   dupeEntry:el=>dupeEntry(el.dataset.id),
   dupePrevDay:()=>dupePrevDay(),
   addProp:()=>addProp(),
@@ -1280,7 +1281,7 @@ ${filtered.map(e=>{const pr=state.properties.find(p=>p.id===e.propertyId);const 
     <div class="ei-cat">${esc(e.category)}<span class="tb tb-${e.trackType==='STR'?'s':'r'}">${e.trackType}</span>${e.isSpouse?'<span class="tb tb-sp">SPOUSE</span>':''}${e.attachments&&e.attachments.length?`<span class="attach-badge">📎 ${e.attachments.length}</span>`:''}</div>
     <div class="ei-meta">${e.date} · ${pr?.name||'General RE'} · ${fmtH(e.hours)}</div>
     ${e.notes?`<div class="ei-note">"${esc(e.notes)}"</div>`:''}
-    ${e.attachments&&e.attachments.length?`<div class="attach-list">${e.attachments.map(a=>`<span class="attach-chip"><a href="${esc(a.url)}" target="_blank" title="${esc(a.name)}">📄 ${esc(a.name.length>20?a.name.slice(0,20)+'…':a.name)}</a><button data-act="delAttachment" data-id="${e.id}" data-name="${esc(a.name)}" title="Remove">×</button></span>`).join('')}</div>`:''}
+    ${e.attachments&&e.attachments.length?`<div class="attach-list">${e.attachments.map(a=>`<span class="attach-chip"><a href="#" data-act="openAtt" data-path="${esc(a.path||'')}" data-url="${esc(a.url||'')}" title="${esc(a.name)}">📄 ${esc(a.name.length>20?a.name.slice(0,20)+'…':a.name)}</a><button data-act="delAttachment" data-id="${e.id}" data-name="${esc(a.name)}" title="Remove">×</button></span>`).join('')}</div>`:''}
   </div>
   <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
     <div class="ei-hrs">${fmtH(e.hours)}</div>
@@ -1404,23 +1405,32 @@ function previewFiles(input){
 
 // ── UPLOAD TO SUPABASE STORAGE ──
 async function uploadFiles(entryId,files){
-  // Uses top-level SUPABASE_URL and SUPABASE_ANON_KEY
+  // Pass 8 (private-storage): attachments are written under a per-user path prefix
+  //   `${userId}/${entryId}/...` so a Storage RLS policy can scope access to the owner, and the
+  // file is served later via a short-lived SIGNED url (see attUrl/openAtt) instead of a public link.
+  // Cloud attachments require an authenticated session.
   const attachments=[];
   let failed=0;
   const list=Array.from(files||[]);
+  if(list.length===0)return attachments;
+  const sess=_sb?await _sb.auth.getSession():null;
+  const token=sess?.data?.session?.access_token;
+  if(!_sbUser||!token){
+    toast('Sign in to attach evidence files — they\u2019re stored securely to your account.','warn',{duration:6000});
+    return attachments;
+  }
   for(const file of list){
     try{
-      const path=`${entryId}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g,'_')}`;
-      const sess=_sb?await _sb.auth.getSession():null;
-      const token=sess?.data?.session?.access_token||SUPABASE_ANON_KEY;
+      const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+      const path=`${_sbUser.id}/${entryId}/${Date.now()}_${safe}`;
       const res=await fetch(`${SUPABASE_URL}/storage/v1/object/Evidence/${path}`,{
         method:'POST',
         headers:{'Authorization':`Bearer ${token}`,'Content-Type':file.type||'application/octet-stream','x-upsert':'true'},
         body:file
       });
       if(res.ok){
-        const url=`${SUPABASE_URL}/storage/v1/object/public/Evidence/${path}`;
-        attachments.push({name:file.name,url,path});
+        // Store only name + path. The viewable URL is generated on demand (signed, time-limited).
+        attachments.push({name:file.name,path});
       } else { failed++; console.error('[uploadFiles] HTTP',res.status,file.name); }
     }catch(err){ failed++; console.error('[uploadFiles]',file?.name,err); }
   }
@@ -1433,6 +1443,25 @@ async function uploadFiles(entryId,files){
     }
   }
   return attachments;
+}
+
+// Resolve a viewable URL for an attachment: prefer a short-lived SIGNED url (works with a private
+// bucket), falling back to any legacy public url stored on older entries.
+async function attUrl(att,expiresIn){
+  try{
+    if(att&&att.path&&_sb){
+      const{data,error}=await _sb.storage.from('Evidence').createSignedUrl(att.path,expiresIn||3600);
+      if(!error&&data&&data.signedUrl)return data.signedUrl;
+    }
+  }catch(e){}
+  return (att&&att.url)||'';
+}
+
+async function openAtt(el){
+  const path=el.dataset.path||'',url=el.dataset.url||'';
+  const u=await attUrl({path,url});
+  if(u){window.open(u,'_blank','noopener');}
+  else{toast('Could not open this file. Older attachments may need to be re-uploaded after the storage update.','warn',{duration:6000});}
 }
 
 // After saving an entry, keep the active tax year in sync with the entry's date so
@@ -2752,13 +2781,26 @@ async function exportXLSX(){
   const strEntries=[...ye].filter(e=>e.trackType==='STR').sort((a,b)=>new Date(b.date)-new Date(a.date));
   const allEntries=[...ye].sort((a,b)=>new Date(b.date)-new Date(a.date));
 
+  // Pass 8 (private-storage): pre-resolve a time-limited SIGNED url for each attachment so the
+  // exported workbook keeps working after the Evidence bucket is made private. Falls back to any
+  // legacy public url. Signed links expire (7 days here) — for a fresh link, open from the app.
+  const _attUrlMap=new Map();
+  if(_sb){
+    const _atts=allEntries.flatMap(e=>(e.attachments||[])).filter(a=>a&&a.path);
+    await Promise.all(_atts.map(async a=>{
+      if(!_attUrlMap.has(a.path)){
+        try{const{data}=await _sb.storage.from('Evidence').createSignedUrl(a.path,604800);if(data&&data.signedUrl)_attUrlMap.set(a.path,data.signedUrl);}catch(e){}
+      }
+    }));
+  }
+
   function propName(e){return state.properties.find(p=>p.id===e.propertyId)?.name||'General RE';}
   function fmtDecHrs(h){return Math.round(h*100)/100;}
   function fmtHMLabel(h){const a=Math.floor(h),b=Math.round((h-a)*60);return b===0?`${a}h`:`${a}h ${b}m`;}
   // ── Evidence helper: returns array of {name, url} for an entry ──
   function getAttachments(e){
     return(e.attachments||[])
-      .map(a=>({name:a.name||'Evidence',url:a.url||a.publicUrl||a.href||''}))
+      .map(a=>({name:a.name||'Evidence',url:(a.path&&_attUrlMap.get(a.path))||a.url||a.publicUrl||a.href||''}))
       .filter(a=>a.url);
   }
 
@@ -2804,7 +2846,7 @@ async function exportXLSX(){
   // ─── Sheet builder helper ───
   function buildActivitySheet(entries){
     // Base columns per entry (no evidence — those expand to separate rows below)
-    const headers=['Date','Property','Type','Category','Hours (decimal)','Hours (formatted)','Notes','Evidence File','Evidence URL'];
+    const headers=['Date','Property','Type','Category','Hours (decimal)','Hours (formatted)','Notes','Evidence File','Evidence URL (signed link — expires; open from app for a fresh link)'];
     const rows=[];
 
     entries.forEach(e=>{
