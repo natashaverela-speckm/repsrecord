@@ -183,10 +183,13 @@ sb.auth.onAuthStateChange((event, session) => {
     }
     // Check if coming from a plan selection
     const plan = params.get('plan');
+    // Pass the Supabase user id (client_reference_id) and email to Stripe so the
+    // webhook can match the payment back to this account. Both are non-sensitive.
+    const ref = `?client_reference_id=${encodeURIComponent(session.user.id)}&prefilled_email=${encodeURIComponent(email)}`;
     if (plan === 'annual') {
-      window.location.href = 'https://buy.stripe.com/aFadR17eD9fOfYubU0ebu01';
+      window.location.href = 'https://buy.stripe.com/aFadR17eD9fOfYubU0ebu01' + ref;
     } else if (plan === 'monthly') {
-      window.location.href = 'https://buy.stripe.com/bJedR19mL8bK7rY3nuebu00';
+      window.location.href = 'https://buy.stripe.com/bJedR19mL8bK7rY3nuebu00' + ref;
     } else {
       window.location.href = 'app.html';
     }
