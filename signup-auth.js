@@ -59,10 +59,16 @@ function setBusy(b) {
   if (btn) { btn.disabled = b; btn.textContent = b ? 'Creating account…' : 'Create account'; }
 }
 
+// Endpoint that verifies the Stripe payment and links the subscription to the new user.
+const CLAIM_ENDPOINT = SUPABASE_URL + '/functions/v1/claim-subscription';
+// Set true while we're creating+claiming so the auth-state listener doesn't redirect early.
+let CLAIMING = false;
+
 function goApp() { window.location.replace(APP_PAGE); }
 
-// If a session already exists, send straight to the app.
-sb.auth.onAuthStateChange((_event, session) => { if (session) goApp(); });
+// If a session already exists (e.g. revisit), send to the app — but NOT while we're
+// in the middle of the signup+claim flow (we redirect ourselves after claiming).
+sb.auth.onAuthStateChange((_event, session) => { if (session && !CLAIMING) goApp(); });
 
 (async () => {
   try {
@@ -108,6 +114,28 @@ function applyGates() {
   }
 }
 
+// After the account exists and we have a session, verify the payment and write the
+// subscription row. Returns true on success.
+async function claimSubscription() {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return false;
+    const res = await fetch(CLAIM_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + session.access_token
+      },
+      body: JSON.stringify({ session_id: CTX.sessionId })
+    });
+    const out = await res.json().catch(() => ({}));
+    return res.ok && out && out.ok === true;
+  } catch (e) {
+    return false;
+  }
+}
+
 async function signUpEmail() {
   if (!HAS_VALID_SESSION) { window.location.href = TRIAL_PAGE; return; }
 
@@ -136,11 +164,22 @@ async function signUpEmail() {
       setBusy(false);
       return;
     }
+    CLAIMING = true; // hold the auto-redirect until the subscription is claimed
     if (!data || !data.session) {
       const { error: siErr } = await sb.auth.signInWithPassword({ email, password });
-      if (siErr) { showMsg('Account created. Please check your email to confirm, then sign in.'); setBusy(false); return; }
+      if (siErr) { CLAIMING = false; showMsg('Account created, but we could not sign you in. Please try signing in.'); setBusy(false); return; }
     }
-    // Success: onAuthStateChange handles the redirect to the app.
+    // Link the payment to this new account (verifies the Stripe session is paid).
+    const claimed = await claimSubscription();
+    if (!claimed) {
+      // Account exists and they're signed in, but linking the subscription failed.
+      // Let them in is wrong (paywall would block); show a clear, recoverable message.
+      CLAIMING = false;
+      showMsg('Your account was created, but we could not confirm your payment automatically. Please contact support@repsrecord.com and we will activate it right away.');
+      setBusy(false);
+      return;
+    }
+    goApp();
   } catch (e) {
     showMsg('Something went wrong creating your account. Please try again.');
     setBusy(false);
