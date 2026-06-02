@@ -2616,18 +2616,19 @@ async function exportXLSX(){
     const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
     ws['!cols']=[{wch:13},{wch:22},{wch:10},{wch:36},{wch:14},{wch:12},{wch:44},{wch:32},{wch:72}];
 
-    // Apply HYPERLINK formula to every Evidence URL cell (col I, index 8)
-    // =HYPERLINK("url","filename") works in all Excel/Sheets versions
+    // Make every Evidence URL cell a clickable link (col I, index 8).
+    // Use a NATIVE worksheet hyperlink (cell.l) rather than a HYPERLINK() formula:
+    // signed Supabase URLs run 500+ chars and exceed Excel's formula-string limit,
+    // which silently breaks the link. The native link is stored in the sheet's
+    // relationship table with no such limit, so it stays clickable. The visible
+    // cell text shows the URL so the link is still usable if pasted as plain text.
     rows.forEach((row,i)=>{
       const url=row[8];
       const name=row[7];
       if(!url)return;
       const cellRef=XLSX.utils.encode_cell({r:i+1,c:8});// +1 for header row
       if(ws[cellRef]){
-        // Sanitise for formula: escape double-quotes in URL and name
-        const safeUrl=url.replace(/"/g,'""');
-        const safeName=(name||'Evidence').replace(/"/g,'""').slice(0,31);
-        ws[cellRef]={t:'s',f:`HYPERLINK("${safeUrl}","${safeName}")`,v:url};
+        ws[cellRef]={t:'s',v:url,l:{Target:url,Tooltip:(name||'Evidence')+' — opens evidence file (signed link expires; re-export for a fresh link)'}};
       }
     });
 
