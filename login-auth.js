@@ -12,8 +12,8 @@ const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 // loads app.js) — NOT this page.
 const APP_PAGE = 'app.html';
 
-// Where new users go to start a trial (same as the homepage CTA).
-const TRIAL_LINK = 'https://buy.stripe.com/bJedR19mL8bK7rY3nuebu00';
+// Where new users go to start a trial — the pricing cards, so they pick a plan first.
+const TRIAL_LINK = 'index.html#pricing'; // send new users to plan selection, not straight to Monthly checkout
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
