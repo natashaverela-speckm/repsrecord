@@ -1,4 +1,4 @@
-const CACHE='repsrecord-v6';
+const CACHE='repsrecord-v7';
 const STATIC=['icon-192x192.png','icon-512x512.png','apple-touch-icon.png','manifest.json'];
 
 self.addEventListener('install',e=>{
