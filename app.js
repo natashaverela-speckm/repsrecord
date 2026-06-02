@@ -1476,6 +1476,28 @@ function addrSearch(q){
     }catch(e){if(box)box.style.display='none';}
   },400);
 }
+// Maps Nominatim's full state names to USPS 2-letter codes (address autofill fix).
+const US_STATE_CODES = {
+  'alabama':'AL','alaska':'AK','arizona':'AZ','arkansas':'AR','california':'CA',
+  'colorado':'CO','connecticut':'CT','delaware':'DE','district of columbia':'DC',
+  'florida':'FL','georgia':'GA','hawaii':'HI','idaho':'ID','illinois':'IL',
+  'indiana':'IN','iowa':'IA','kansas':'KS','kentucky':'KY','louisiana':'LA',
+  'maine':'ME','maryland':'MD','massachusetts':'MA','michigan':'MI','minnesota':'MN',
+  'mississippi':'MS','missouri':'MO','montana':'MT','nebraska':'NE','nevada':'NV',
+  'new hampshire':'NH','new jersey':'NJ','new mexico':'NM','new york':'NY',
+  'north carolina':'NC','north dakota':'ND','ohio':'OH','oklahoma':'OK','oregon':'OR',
+  'pennsylvania':'PA','rhode island':'RI','south carolina':'SC','south dakota':'SD',
+  'tennessee':'TN','texas':'TX','utah':'UT','vermont':'VT','virginia':'VA',
+  'washington':'WA','west virginia':'WV','wisconsin':'WI','wyoming':'WY',
+  'puerto rico':'PR','guam':'GU','u.s. virgin islands':'VI'
+};
+function toStateCode(name){
+  if(!name) return '';
+  const key = String(name).trim().toLowerCase();
+  if(US_STATE_CODES[key]) return US_STATE_CODES[key];  // full name -> code
+  if(key.length===2) return key.toUpperCase();         // already a 2-letter code
+  return '';                                           // unknown -> blank, never a wrong guess
+}
 function fillAddr(i){
   const box=document.getElementById('p-addr-suggestions');
   const items=box?.querySelectorAll('[data-addr]');
@@ -1484,7 +1506,7 @@ function fillAddr(i){
   const set=(id,val)=>{const el=document.getElementById(id);if(el)el.value=val;};
   set('p-street',a.street);
   set('p-city',a.city);
-  set('p-state',a.state.length>2?a.state.substring(0,2).toUpperCase():a.state.toUpperCase());
+  set('p-state',toStateCode(a.state));
   set('p-zip',a.zip);
   set('p-addr-search',a.street+(a.city?', '+a.city:'')+(a.state?', '+a.state:''));
   box.style.display='none';
