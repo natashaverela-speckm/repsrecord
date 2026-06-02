@@ -2662,7 +2662,7 @@ async function exportXLSX(){
       if(!m)return;
       if(m.bundlePath){
         const refH=XLSX.utils.encode_cell({r:i+1,c:7});
-        if(ws[refH]){ws[refH]={t:'s',v:m.name||'Evidence',l:{Target:m.bundlePath,Tooltip:'Opens the bundled evidence file (kept inside this package — never expires)'}};}
+        if(ws[refH]){const _encTarget=m.bundlePath.split('/').map(function(seg){return encodeURIComponent(seg);}).join('/');ws[refH]={t:'s',v:m.name||'Evidence',l:{Target:_encTarget,Tooltip:'Opens the bundled evidence file (kept inside this package — never expires)'}};}
       }
       if(m.url){
         const refJ=XLSX.utils.encode_cell({r:i+1,c:9});
