@@ -136,6 +136,27 @@ async function claimSubscription() {
   }
 }
 
+// Poll until (a) a session token exists and (b) the subscriptions row is readable
+// for this user. Prevents the post-signup paywall from firing before data is ready.
+async function waitForReady() {
+  for (let i = 0; i < 12; i++) { // up to ~3s
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (session && session.access_token) {
+        const res = await fetch(SUPABASE_URL + '/rest/v1/subscriptions?user_id=eq.' + session.user.id + '&select=status', {
+          headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + session.access_token }
+        });
+        if (res.ok) {
+          const rows = await res.json().catch(() => []);
+          if (Array.isArray(rows) && rows.length && ['trialing','active','past_due'].includes(rows[0].status)) return true;
+        }
+      }
+    } catch (e) { /* keep polling */ }
+    await new Promise(r => setTimeout(r, 250));
+  }
+  return false; // fall through; app's own paywall will re-check
+}
+
 async function signUpEmail() {
   if (!HAS_VALID_SESSION) { window.location.href = TRIAL_PAGE; return; }
 
@@ -179,6 +200,10 @@ async function signUpEmail() {
       setBusy(false);
       return;
     }
+    // Make sure the new session is fully established AND the subscription row is
+    // readable before we load the app — otherwise the paywall can run a split second
+    // too early and flash "access paused". Poll briefly until both are ready.
+    await waitForReady();
     goApp();
   } catch (e) {
     showMsg('Something went wrong creating your account. Please try again.');
