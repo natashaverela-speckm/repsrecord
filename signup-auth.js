@@ -61,6 +61,8 @@ function setBusy(b) {
 
 // Endpoint that verifies the Stripe payment and links the subscription to the new user.
 const CLAIM_ENDPOINT = SUPABASE_URL + '/functions/v1/claim-subscription';
+// Read-only endpoint that returns the email for a paid Stripe session (autofill).
+const SESSION_EMAIL_ENDPOINT = SUPABASE_URL + '/functions/v1/session-email';
 // Set true while we're creating+claiming so the auth-state listener doesn't redirect early.
 let CLAIMING = false;
 
@@ -75,11 +77,11 @@ sb.auth.onAuthStateChange((_event, session) => { if (session && !CLAIMING) goApp
     const { data: { session } } = await sb.auth.getSession();
     if (session) { goApp(); return; }
   } catch (e) { /* no session — continue */ }
-  applyGates();
+  await applyGates();
 })();
 
 // Set up the form based on the Stripe context (Gates 1 & 2).
-function applyGates() {
+async function applyGates() {
   const emailEl = $('email');
   const banner = document.querySelector('.welcome');
 
@@ -109,8 +111,28 @@ function applyGates() {
     const hint = emailEl.parentElement && emailEl.parentElement.querySelector('.hint');
     // (email field has no hint by default; the locked styling signals it's fixed)
   } else if (emailEl) {
-    // Session present but Stripe didn't pass the email — let them type the one they paid with.
-    emailEl.placeholder = 'Use the email you paid with';
+    // Session present but no email in the URL — fetch it from Stripe (read-only) and lock it.
+    emailEl.placeholder = 'Loading your email…';
+    try {
+      const res = await fetch(SESSION_EMAIL_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: CTX.sessionId })
+      });
+      const out = await res.json().catch(() => ({}));
+      if (res.ok && out && out.email) {
+        CTX.email = out.email; // remember it for the claim step
+        emailEl.value = out.email;
+        emailEl.readOnly = true;
+        emailEl.style.background = '#F1F5F9';
+        emailEl.style.color = '#475569';
+        emailEl.setAttribute('aria-readonly', 'true');
+      } else {
+        emailEl.placeholder = 'Use the email you paid with';
+      }
+    } catch (e) {
+      emailEl.placeholder = 'Use the email you paid with';
+    }
   }
 }
 
