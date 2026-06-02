@@ -2514,6 +2514,18 @@ async function exportXLSX(){
       document.head.appendChild(sc);
     });
   }
+  // Load JSZip (used to bundle evidence files into the download so links never expire).
+  // If it fails to load we fall back to a plain .xlsx export below — export never breaks.
+  if(!window.JSZip){
+    try{
+      await new Promise((res,rej)=>{
+        const sc=document.createElement('script');
+        sc.src='https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+        sc.onload=res;sc.onerror=()=>rej(new Error('jszip load failed'));
+        document.head.appendChild(sc);
+      });
+    }catch(e){ console.warn('[exportXLSX] JSZip unavailable — exporting plain .xlsx',e); }
+  }
 
   const r=calcREPS();
   const ye=yearEntries();
@@ -2538,12 +2550,31 @@ async function exportXLSX(){
   function propName(e){return state.properties.find(p=>p.id===e.propertyId)?.name||'General RE';}
   function fmtDecHrs(h){return Math.round(h*100)/100;}
   function fmtHMLabel(h){const a=Math.floor(h),b=Math.round((h-a)*60);return b===0?`${a}h`:`${a}h ${b}m`;}
-  // ── Evidence helper: returns array of {name, url} for an entry ──
+  // ── Evidence helper: returns {name, url, bundlePath} for an entry ──
+  // bundlePath is the file's location INSIDE the exported zip (evidence/<property>/<date>_<file>),
+  // so the workbook can link to the bundled copy that never expires.
+  const _safeSeg=s=>String(s||'').replace(/[^a-zA-Z0-9._ -]/g,'_').replace(/\s+/g,' ').trim().slice(0,60)||'_';
+  const _bundleSeen={};
   function getAttachments(e){
+    const prop=_safeSeg(propName(e));
     return(e.attachments||[])
-      .map(a=>({name:a.name||'Evidence',url:(a.path&&_attUrlMap.get(a.path))||a.url||a.publicUrl||a.href||''}))
-      .filter(a=>a.url);
+      .map(a=>{
+        const url=(a.path&&_attUrlMap.get(a.path))||a.url||a.publicUrl||a.href||'';
+        let bundlePath='';
+        if(a.path||url){
+          let fn=_safeSeg((e.date?e.date+'_':'')+(a.name||'evidence'));
+          let rel='evidence/'+prop+'/'+fn;
+          // de-dupe identical relative paths (same file name attached twice, etc.)
+          if(_bundleSeen[rel]!=null){_bundleSeen[rel]++;const dot=fn.lastIndexOf('.');fn=dot>0?fn.slice(0,dot)+'_'+_bundleSeen[rel]+fn.slice(dot):fn+'_'+_bundleSeen[rel];rel='evidence/'+prop+'/'+fn;}
+          else{_bundleSeen[rel]=0;}
+          bundlePath=rel;
+        }
+        return{name:a.name||'Evidence',url,path:a.path||'',bundlePath};
+      })
+      .filter(a=>a.url||a.path);
   }
+  // Collects {bundlePath, url, path} for every attachment we reference, so we can fetch + zip them.
+  const _bundleList=[];
 
   const wb=XLSX.utils.book_new();
 
@@ -2585,50 +2616,57 @@ async function exportXLSX(){
   XLSX.utils.book_append_sheet(wb,wsSummary,'Summary');
 
   // ─── Sheet builder helper ───
+  // Columns: ... | Evidence File (H) | Bundled File Path (I) | Online Link (J)
+  //   • Col H: filename, linked to the file bundled INSIDE the zip — never expires.
+  //   • Col I: the relative path of that bundled file (plain text, for reference).
+  //   • Col J: the signed online link (expires; convenience only).
   function buildActivitySheet(entries){
-    // Base columns per entry (no evidence — those expand to separate rows below)
-    const headers=['Date','Property','Type','Category','Hours (decimal)','Hours (formatted)','Notes','Evidence File','Evidence URL (signed link — expires; open from app for a fresh link)'];
+    const headers=['Date','Property','Type','Category','Hours (decimal)','Hours (formatted)','Notes','Evidence File (bundled — never expires)','Bundled File Path','Online Link (expires)'];
     const rows=[];
+    const linkMeta=[];// {rowIdx, bundlePath, url, name}
 
     entries.forEach(e=>{
       const atts=getAttachments(e);
       if(atts.length===0){
-        // No attachments — single row, blank evidence columns
-        rows.push([e.date,propName(e),e.trackType+(e.isSpouse?' (Spouse)':''),e.category,fmtDecHrs(e.hours),fmtHMLabel(e.hours),e.notes||'','','']);
+        rows.push([e.date,propName(e),e.trackType+(e.isSpouse?' (Spouse)':''),e.category,fmtDecHrs(e.hours),fmtHMLabel(e.hours),e.notes||'','','','']);
+        linkMeta.push(null);
       } else {
-        // One row per attachment so every URL gets its own cell/hyperlink
         atts.forEach((att,ai)=>{
+          // Record the file for zipping (only once per unique bundlePath)
+          if(att.bundlePath){_bundleList.push({bundlePath:att.bundlePath,url:att.url,path:att.path});}
           rows.push([
-            ai===0?e.date:'',       // date only on first row
+            ai===0?e.date:'',
             ai===0?propName(e):'',
             ai===0?e.trackType+(e.isSpouse?' (Spouse)':''):'',
             ai===0?e.category:'',
             ai===0?fmtDecHrs(e.hours):'',
             ai===0?fmtHMLabel(e.hours):'',
             ai===0?e.notes||'':'',
-            att.name,               // filename in col H
-            att.url,                // raw URL in col I (plain text — clickable in Excel)
+            att.name,            // col H — filename (will be linked to bundled file)
+            att.bundlePath||'',  // col I — relative path inside the zip
+            att.url||'',         // col J — signed online link (expires)
           ]);
+          linkMeta.push({bundlePath:att.bundlePath,url:att.url,name:att.name});
         });
       }
     });
 
     const ws=XLSX.utils.aoa_to_sheet([headers,...rows]);
-    ws['!cols']=[{wch:13},{wch:22},{wch:10},{wch:36},{wch:14},{wch:12},{wch:44},{wch:32},{wch:72}];
+    ws['!cols']=[{wch:13},{wch:22},{wch:10},{wch:36},{wch:14},{wch:12},{wch:44},{wch:40},{wch:46},{wch:50}];
 
-    // Make every Evidence URL cell a clickable link (col I, index 8).
-    // Use a NATIVE worksheet hyperlink (cell.l) rather than a HYPERLINK() formula:
-    // signed Supabase URLs run 500+ chars and exceed Excel's formula-string limit,
-    // which silently breaks the link. The native link is stored in the sheet's
-    // relationship table with no such limit, so it stays clickable. The visible
-    // cell text shows the URL so the link is still usable if pasted as plain text.
-    rows.forEach((row,i)=>{
-      const url=row[8];
-      const name=row[7];
-      if(!url)return;
-      const cellRef=XLSX.utils.encode_cell({r:i+1,c:8});// +1 for header row
-      if(ws[cellRef]){
-        ws[cellRef]={t:'s',v:url,l:{Target:url,Tooltip:(name||'Evidence')+' — opens evidence file (signed link expires; re-export for a fresh link)'}};
+    // Link col H (index 7) to the BUNDLED file via a relative path — opens the copy
+    // packaged in the zip, so it never expires. Relative targets keep working as long
+    // as the .xlsx stays next to the evidence/ folder (i.e. the zip is kept together).
+    // Col J (index 9) keeps the signed online link as a clickable convenience.
+    linkMeta.forEach((m,i)=>{
+      if(!m)return;
+      if(m.bundlePath){
+        const refH=XLSX.utils.encode_cell({r:i+1,c:7});
+        if(ws[refH]){ws[refH]={t:'s',v:m.name||'Evidence',l:{Target:m.bundlePath,Tooltip:'Opens the bundled evidence file (kept inside this package — never expires)'}};}
+      }
+      if(m.url){
+        const refJ=XLSX.utils.encode_cell({r:i+1,c:9});
+        if(ws[refJ]){ws[refJ]={t:'s',v:m.url,l:{Target:m.url,Tooltip:'Online link — expires; re-export for a fresh one'}};}
       }
     });
 
@@ -2655,10 +2693,76 @@ async function exportXLSX(){
   }
 
   // ─── Download ───
-  const filename=`RepsRecord_${activeYear}_AuditLog_${new Date().toISOString().slice(0,10)}.xlsx`;
-  XLSX.writeFile(wb,filename);
-  _done();
-  toast('Excel file downloaded.','success');
+  const stamp=new Date().toISOString().slice(0,10);
+  const xlsxName=`RepsRecord_${activeYear}_AuditLog_${stamp}.xlsx`;
+
+  // De-dupe the bundle list by path (same file can appear across multiple sheets/rows).
+  const _seenPaths={};
+  const bundleFiles=_bundleList.filter(b=>b&&b.bundlePath&&!_seenPaths[b.bundlePath]&&(_seenPaths[b.bundlePath]=1));
+
+  // If JSZip loaded AND there are evidence files, bundle everything into one .zip so the
+  // in-sheet links to evidence/... never expire. Otherwise fall back to a plain .xlsx.
+  if(window.JSZip && bundleFiles.length){
+    _done();
+    const _zdone=toast(`Bundling ${bundleFiles.length} evidence file${bundleFiles.length===1?'':'s'}…`,'info',{duration:0});
+    try{
+      const zip=new JSZip();
+      // Workbook as binary, written into the zip root.
+      const wbOut=XLSX.write(wb,{type:'array',bookType:'xlsx'});
+      zip.file(xlsxName,wbOut);
+
+      // Fetch each evidence file (signed url first, fall back to a fresh signed url from path).
+      let fetched=0, failedFiles=[];
+      await Promise.all(bundleFiles.map(async b=>{
+        try{
+          let u=b.url;
+          if(!u && b.path && _sb){const{data}=await _sb.storage.from('Evidence').createSignedUrl(b.path,3600);u=data&&data.signedUrl;}
+          if(!u) throw new Error('no url');
+          const resp=await fetch(u);
+          if(!resp.ok) throw new Error('http '+resp.status);
+          const buf=await resp.arrayBuffer();
+          zip.file(b.bundlePath,buf);
+          fetched++;
+        }catch(e){failedFiles.push(b.bundlePath);console.warn('[exportXLSX] evidence fetch failed',b.bundlePath,e);}
+      }));
+
+      // A short README so an auditor knows how to use the package.
+      zip.file('README.txt',
+        'RepsRecord — IRS Audit Documentation Package\n'+
+        'Tax Year: '+activeYear+'\n'+
+        'Generated: '+new Date().toLocaleString()+'\n\n'+
+        'Contents:\n'+
+        '  • '+xlsxName+' — the audit log / activity report.\n'+
+        '  • evidence/ — the supporting files referenced in the report.\n\n'+
+        'In the spreadsheet, the "Evidence File" column links to the bundled copy in the\n'+
+        'evidence/ folder. Keep this package together (unzip it as a whole) so those links\n'+
+        'continue to work — they do not expire. The "Online Link" column is a convenience\n'+
+        'link that DOES expire; re-export from the app for a fresh one.\n'+
+        (failedFiles.length?('\nNOTE: '+failedFiles.length+' file(s) could not be retrieved at export time:\n  '+failedFiles.join('\n  ')+'\n'):'')
+      );
+
+      const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE'});
+      const zipName=`RepsRecord_${activeYear}_AuditPackage_${stamp}.zip`;
+      const a=document.createElement('a');
+      a.href=URL.createObjectURL(blob);
+      a.download=zipName;
+      document.body.appendChild(a);a.click();
+      setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000);
+      _zdone();
+      if(failedFiles.length){toast(`Audit package downloaded. ${fetched} file(s) bundled; ${failedFiles.length} couldn’t be retrieved (listed in README).`,'warn',{duration:8000});}
+      else{toast(`Audit package downloaded — report + ${fetched} evidence file(s), links never expire.`,'success');}
+    }catch(err){
+      _zdone();
+      console.error('[exportXLSX] zip failed, falling back to .xlsx',err);
+      XLSX.writeFile(wb,xlsxName);
+      toast('Evidence couldn’t be bundled; downloaded the Excel report on its own.','warn');
+    }
+  } else {
+    // No evidence files (or JSZip unavailable) — plain Excel download as before.
+    XLSX.writeFile(wb,xlsxName);
+    _done();
+    toast(window.JSZip?'Excel file downloaded.':'Excel file downloaded (evidence bundling unavailable).','success');
+  }
   }catch(err){
     _done();
     console.error('[exportXLSX]',err);
