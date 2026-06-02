@@ -318,7 +318,14 @@ async function enforceSubscription(){
   try{
     if(!_sb) return 'open';                       // library didn't load → don't strand
     const{data:{session}}=await _sb.auth.getSession();
-    if(!session){ window.location.replace('login.html'); return 'redirect'; }
+    if(!session){
+      // Only redirect to the sign-in page if we're not already on it,
+      // so an unauthenticated state can never cause a reload loop.
+      if(!/(^|\/)login\.html$/.test(location.pathname)){
+        window.location.replace('login.html');
+      }
+      return 'redirect';
+    }
     const email=(session.user.email||'').toLowerCase();
     if(PAYWALL_ADMINS.includes(email)) return 'ok';
     let status=null;
