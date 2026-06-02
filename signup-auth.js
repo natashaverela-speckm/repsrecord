@@ -169,40 +169,51 @@ async function signUpEmail() {
   setBusy(true);
   showMsg('');
   try {
-    // Gate 3: record the Stripe session id on the account for traceability.
+    CLAIMING = true; // hold the auto-redirect until we've claimed
+    // Try to CREATE the account with the typed password.
     const { data, error } = await sb.auth.signUp({
       email,
       password,
       options: { data: { stripe_session_id: CTX.sessionId, signup_source: 'stripe_checkout' } }
     });
+
+    let signedIn = !!(data && data.session);
+
     if (error) {
       const msg = (error.message || '').toLowerCase();
       if (msg.includes('already') || msg.includes('registered') || msg.includes('exists')) {
-        showMsg('An account with this email already exists. Please sign in instead.');
+        // Account already exists (returning customer). Sign in with the typed password.
+        const { error: siErr } = await sb.auth.signInWithPassword({ email, password });
+        if (siErr) {
+          CLAIMING = false;
+          showMsg('This email already has an account. Please sign in with your existing password — your new payment will be applied automatically once you do.');
+          setBusy(false);
+          return;
+        }
+        signedIn = true;
       } else {
+        CLAIMING = false;
         showMsg(error.message || 'Could not create your account. Please try again.');
+        setBusy(false);
+        return;
       }
-      setBusy(false);
-      return;
     }
-    CLAIMING = true; // hold the auto-redirect until the subscription is claimed
-    if (!data || !data.session) {
+
+    if (!signedIn) {
       const { error: siErr } = await sb.auth.signInWithPassword({ email, password });
-      if (siErr) { CLAIMING = false; showMsg('Account created, but we could not sign you in. Please try signing in.'); setBusy(false); return; }
+      if (siErr) { CLAIMING = false; showMsg('Account created, but we could not sign you in. Please sign in to continue.'); setBusy(false); return; }
     }
-    // Link the payment to this new account (verifies the Stripe session is paid).
+
+    // Link the payment to this account (verifies the Stripe session is really paid).
     const claimed = await claimSubscription();
     if (!claimed) {
-      // Account exists and they're signed in, but linking the subscription failed.
-      // Let them in is wrong (paywall would block); show a clear, recoverable message.
       CLAIMING = false;
-      showMsg('Your account was created, but we could not confirm your payment automatically. Please contact support@repsrecord.com and we will activate it right away.');
+      showMsg('Your account is ready, but we could not confirm your payment automatically. Please email support@repsrecord.com and we will activate it right away.');
       setBusy(false);
       return;
     }
-    // Make sure the new session is fully established AND the subscription row is
-    // readable before we load the app — otherwise the paywall can run a split second
-    // too early and flash "access paused". Poll briefly until both are ready.
+
+    // Confirm session + subscription are readable, then enter the app.
     await waitForReady();
     goApp();
   } catch (e) {
