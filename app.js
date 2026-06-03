@@ -564,6 +564,37 @@ function mpT(pid){
   ];
 }
 
+
+// AUDIT FIX (Critical): §469(c)(7)(A) / Reg. §1.469-9(g) grouping election.
+// Electing to treat all rental real estate as ONE activity does NOT by itself create
+// material participation — the taxpayer must still materially participate in that single
+// combined activity (Reg. §1.469-9(e)). This evaluates the relevant tests on the POOLED
+// long-term-rental hours so a grouping election is VERIFIED, not assumed. Mirrors mpT():
+// spouse hours are always attributed to the taxpayer (§469(h)(5)/§1.469-5T(f)(3)); the
+// majority/conservative policy controls only the Tests 3/7 "any other individual" side.
+// Manual tests for the combined activity are stored under the synthetic id LTR_GROUP_ID.
+// Tests 4 (SPA) and 6 (PSA) are omitted: neither applies to a pooled rental activity.
+const LTR_GROUP_ID='__ltrgroup';
+function mpGroupedLTR(){
+  const ltrs=state.properties.filter(p=>p.type==='LTR');
+  const mn=(state.manualMP||{})[LTR_GROUP_ID]||{};
+  const policy=(state.settings&&state.settings.spouseHoursPolicy)||'majority';
+  let owner=0,spouse=0,other=0,paidManager=false;
+  ltrs.forEach(p=>{const h=pH(p.id);owner+=h.owner;spouse+=(h.spouse||0);other+=(p.otherHours||0);if(p.otherHoursCompensated&&(p.otherHours||0)>0)paidManager=true;});
+  const ownerEff=owner+spouse;
+  const mo=policy==='conservative'?Math.max(spouse,other):other;
+  return{
+    properties:ltrs.length, owner, spouse, ownerEff, other, paidManager,
+    tests:[
+      {id:1,name:'Test 1',label:'500 Hours',cite:'§1.469-5T(a)(1)',desc:'More than 500 hours across all grouped long-term rentals during the year.',auto:true,met:ownerEff>TAX.MP_TEST1_HOURS},
+      {id:2,name:'Test 2',label:'Substantially All',cite:'§1.469-5T(a)(2)',desc:'Substantially all participation in the combined rental activity was yours.',auto:false,met:!!mn[2]},
+      {id:3,name:'Test 3',label:'100 Hrs + Most',cite:'§1.469-5T(a)(3)',desc:'More than 100 hours across the combined activity AND not less than any other individual\u2019s participation.',auto:true,met:ownerEff>TAX.MP_TEST3_HOURS&&ownerEff>=mo},
+      {id:5,name:'Test 5',label:'5 of Last 10 Yrs',cite:'§1.469-5T(a)(5)',desc:'Materially participated in this combined rental activity in any 5 of the last 10 taxable years.',auto:false,met:!!mn[5]},
+      {id:7,name:'Test 7',label:'Facts & Circumstances',cite:'§1.469-5T(a)(7)',desc:'Regular, continuous, and substantial participation in the combined activity. Requires more than 100 hours (§1.469-5T(b)(2)(iii)); unavailable if any grouped property is managed by a compensated person (§1.469-5T(b)(2)(ii)).',auto:true,met:ownerEff>TAX.MP_TEST7_MIN&&ownerEff>=mo&&!paidManager},
+    ]
+  };
+}
+function ltrGroupMet(){return mpGroupedLTR().tests.some(t=>t.met);}
 // AUDIT FIX (Critical #4): Average-rental-period gate, Reg. §1.469-1T(e)(3)(ii).
 // An STR escapes "rental activity" treatment (so material participation can make losses
 // non-passive) ONLY if (A) the average period of customer use is ≤7 days, OR (B) it is
@@ -704,7 +735,7 @@ function vDashboard(){
         '<div style="text-align:center;"><div style="font-size:22px;font-weight:900;color:'+( ltrMpMet===ltrPs.length?'#10B981':'#F59E0B')+';">'+ltrMpMet+' / '+ltrPs.length+'</div><div style="font-size:11px;color:#64748B;margin-top:2px;">With MP Met</div><div style="font-size:10px;color:#94A3B8;margin-top:1px;">per-property test</div></div>'+
         '<div style="text-align:center;"><a href="#" data-act="nav" data-target="mp" data-prevent="1" style="font-size:11px;color:#0F766E;font-weight:700;text-decoration:none;display:block;margin-top:4px;">MP Tests →</a><div style="font-size:10px;color:#94A3B8;margin-top:2px;">view detail</div></div>'+
       '</div>':
-      (grouped?'<div style="margin-top:12px;font-size:12px;color:#1D4ED8;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:8px 12px;">📋 <strong>Grouping election on file</strong> — all LTR properties combined for MP testing.</div>':'');
+      (grouped?(function(){var any=ltrGroupMet();var gg=mpGroupedLTR();return '<div style="margin-top:12px;font-size:12px;color:'+(any?'#065F46':'#92400E')+';background:'+(any?'#ECFDF5':'#FFFBEB')+';border:1px solid '+(any?'#A7F3D0':'#FDE68A')+';border-radius:8px;padding:8px 12px;">\ud83d\udccb <strong>Grouping election on file</strong> \u2014 all LTRs tested as one activity ('+Math.round(gg.ownerEff)+' combined hrs): '+(any?'\u2713 materially participates':'\u26a0 MP not yet met')+'.</div>';})():'');
 
     repsSection=
       '<div style="margin-bottom:32px;">'+
@@ -781,6 +812,11 @@ function vDashboard(){
         const ltrUnmet=ltrPs.filter(lp=>!mpT(lp.id).some(t=>t.met));
         if(ltrUnmet.length===0)return'';
         return'<div style="background:#FEF3C7;border:1.5px solid #FCD34D;border-radius:10px;padding:12px 14px;font-size:12px;color:#92400E;line-height:1.6;margin-top:14px;">⚠ <strong>Per-property MP not verified for '+ltrUnmet.length+' of '+ltrPs.length+' LTR'+(ltrPs.length>1?' properties':' property')+'.</strong> REPS qualification alone does not make rental losses non-passive — you must also materially participate in each rental activity (or file a §469(c)(7)(A) grouping election). <a href="#" data-act="nav" data-target="mp" data-prevent="1" style="color:#92400E;font-weight:700;text-decoration:underline;">Review MP tests →</a></div>';
+      })():'')+
+      ((ok&&hasLTR&&grouped)?(function(){
+        if(ltrGroupMet())return'';
+        const gg=mpGroupedLTR();
+        return'<div style="background:#FEF3C7;border:1.5px solid #FCD34D;border-radius:10px;padding:12px 14px;font-size:12px;color:#92400E;line-height:1.6;margin-top:14px;">\u26a0 <strong>Grouped rental activity has not met material participation ('+Math.round(gg.ownerEff)+' combined hrs).</strong> Your \u00a7469(c)(7)(A) election treats all rentals as one activity, but you must still materially participate in it \u2014 most commonly more than 500 combined hours. Until a test is met, the grouped rental losses remain passive. <a href="#" data-act="nav" data-target="mp" data-prevent="1" style="color:#92400E;font-weight:700;text-decoration:underline;">Review MP tests \u2192</a></div>';
       })():'')+
     '</div>';
   } else {
@@ -1908,7 +1944,7 @@ function vMP(){
   const sps=state.properties.filter(p=>p.type==='STR');
   const ltrs=state.properties.filter(p=>p.type==='LTR');
   return`
-<div class="ph"><h1 class="pg-title">Material Participation Tests</h1><div class="pg-sub">All 7 tests under Temp. Reg. §1.469-5T evaluated per STR property. Passing any one test qualifies you.</div></div>
+<div class="ph"><h1 class="pg-title">Material Participation Tests</h1><div class="pg-sub">All 7 tests under Temp. Reg. §1.469-5T, evaluated automatically for each STR property and for your long-term rentals. Passing any one test makes that activity’s losses non-passive.</div></div>
 
 <div style="background:#F0FDFA;border:1px solid #CCFBF1;border-left:4px solid #14B8A6;border-radius:12px;padding:20px 22px;margin-bottom:20px;">
   <div style="font-size:13px;font-weight:800;color:#0D1F3C;margin-bottom:10px;">📊 How this page works</div>
@@ -1977,24 +2013,72 @@ ${sps.map(p=>{
     </div>`).join('')}
   </div>`;}).join('')}`:''}
 
-${ltrs.length>0?`
-<h2 class="sec-lbl" style="margin-bottom:12px;margin-top:24px;">🏡 Long-Term Rental Properties — REPS Portfolio Tracking</h2>
-<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-left:4px solid #38BDF8;border-radius:12px;padding:16px 20px;margin-bottom:16px;font-size:13px;color:#1D4ED8;">
-  ℹ️ Long-term rental properties do not use per-property MP tests. Instead, your hours across all LTR properties are pooled toward your <strong>750-hour REPS qualification</strong> and the <strong>50% personal services test</strong>. Track your progress on the Dashboard.
-</div>
-${ltrs.map(p=>{
-  const hrs=yearEntries().filter(e=>e.propertyId===p.id&&!e.isSpouse).reduce((s,e)=>s+(e.hours||0),0);
-  return`<div class="card card-mb" style="display:flex;justify-content:space-between;align-items:center;">
-    <div>
-      <div style="font-size:15px;font-weight:800;color:#0D1F3C;">${esc(p.name)}</div>
-      <div style="font-size:12px;color:#64748B;margin-top:3px;">${esc(p.address)||'No address'}</div>
-      <span class="badge b-amber" style="margin-top:6px;display:inline-block;">LTR</span>
-    </div>
-    <div style="text-align:right;">
-      <div style="font-size:28px;font-weight:900;color:#0D1F3C;">${Math.round(hrs)}<span style="font-size:13px;font-weight:400;color:#64748B;"> hrs</span></div>
-      <div style="font-size:11px;color:#64748B;">counts toward REPS 750</div>
-    </div>
-  </div>`;}).join('')}`:''}
+${ltrs.length>0?(function(){
+  const grouped=!!state.settings.groupingElection;
+  const heading='<h2 class="sec-lbl" style="margin-bottom:12px;margin-top:24px;">🏡 Long-Term Rental Properties — Material Participation</h2>';
+  // AUDIT FIX (Critical): REPS status (750-hr + 50%) is the GATEWAY, not the material-
+  // participation test. Under Reg. §1.469-9(e) an LTR is non-passive only if the taxpayer
+  // ALSO materially participates in it — per property, or in the single combined activity
+  // when a §469(c)(7)(A) grouping election is on file.
+  const intro='<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-left:4px solid #38BDF8;border-radius:12px;padding:16px 20px;margin-bottom:16px;font-size:13px;color:#1D4ED8;line-height:1.7;">'
+    +'ℹ️ <strong>REPS status is the gateway, not the finish line.</strong> Clearing the 750-hour and 50% tests removes the automatic-passive rule, but each long-term rental is non-passive <strong>only if you also materially participate in it</strong> (Reg. §1.469-9(e)). '
+    +(grouped
+      ?'Your <strong>§469(c)(7)(A) grouping election</strong> is on file, so all rentals are tested together as one activity below.'
+      :'Without a grouping election, each rental is tested separately. You can elect to treat all rentals as one activity in <a href="#" data-act="nav" data-target="settings" data-prevent="1" style="color:#1D4ED8;font-weight:700;">Settings</a>.')
+    +'</div>';
+  function row(t,owner,spouse,otherHrs,paid,manualId){
+    return `<div class="mp-row">
+      <div class="mp-num ${t.met?'met':'unm'}">${t.met?'✓':t.id}</div>
+      <div style="flex:1;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <div class="mp-name">${t.name} — ${t.label}</div>
+          <span style="font-size:10px;color:#94A3B8;font-family:ui-monospace,monospace;padding:1px 6px;background:#F0FDFA;border-radius:4px;">${t.cite}</span>
+          ${t.met?(t.id===7?'<span style="font-size:11px;font-weight:700;color:#B45309;">✓ Likely met</span>':'<span style="font-size:11px;font-weight:700;color:#10B981;">✓ Met</span>'):''}
+        </div>
+        <div class="mp-desc">${t.desc}</div>
+        ${!t.auto?`<label class="mp-man"><input type="checkbox" ${t.met?'checked':''} data-chg="togMP" data-id="${manualId}" data-tid="${t.id}"/><span>Mark as met for ${activeYear} — requires supporting documentation</span></label>`:''}
+        ${t.auto&&!t.met&&t.id===1?`<div style="font-size:11px;color:#0F766E;margin-top:6px;">Need ${Math.max(0,Math.ceil(500-(owner+spouse)+0.01))} more hours</div>`:''}
+        ${t.auto&&!t.met&&t.id===3?`<div style="font-size:11px;color:#0F766E;margin-top:6px;">Need ${Math.max(0,Math.ceil(100-(owner+spouse)+0.01))} more hours${(()=>{const pol=(state.settings.spouseHoursPolicy||'majority')==='conservative'?Math.max(spouse||0,otherHrs||0):(otherHrs||0);return pol>0?' & must equal or exceed other participants ('+Math.round(pol)+' hrs)':'';})()}</div>`:''}
+        ${t.auto&&!t.met&&t.id===7&&paid?`<div style="font-size:11px;color:#991B1B;margin-top:6px;background:#FEF2F2;border:1px solid #FECACA;border-radius:6px;padding:6px 9px;line-height:1.5;">⛔ Test 7 unavailable: a compensated co-host / property manager disqualifies the facts-and-circumstances test (§1.469-5T(b)(2)(ii)). Use another test, or remove the paid-management flag if it no longer applies.</div>`:''}
+      </div>
+    </div>`;
+  }
+  if(grouped){
+    const g=mpGroupedLTR(), any=g.tests.some(t=>t.met);
+    const badgeSpan=any
+      ?'<span class="badge b-met" style="font-size:12px;padding:5px 13px;">✅ Materially participates (combined)</span>'
+      :'<span class="badge b-no" style="font-size:12px;padding:5px 13px;">❌ MP not yet met (combined)</span>';
+    return heading+intro+`<div class="card card-mb">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div>
+          <div style="font-size:16px;font-weight:800;color:#0D1F3C;">Combined Rental Real Estate Activity <span style="font-size:11px;font-weight:600;color:#64748B;">· ${g.properties} propert${g.properties===1?'y':'ies'} grouped</span></div>
+          <div style="font-size:12px;color:#64748B;margin-top:2px;">Your hours: <strong>${Math.round(g.owner)}</strong>${state.settings.spouseEnabled?` · ${state.settings.spouseName||'Spouse'}: <strong>${Math.round(g.spouse)}</strong>`:''}${g.other>0?` · Others: <strong>${Math.round(g.other)}</strong>`:''} · <strong>Pooled: ${Math.round(g.ownerEff)}</strong></div>
+        </div>
+        ${badgeSpan}
+      </div>
+      ${!any?`<div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;font-size:11.5px;color:#92400E;line-height:1.55;margin-bottom:14px;">The grouping election pools your rental hours but does not by itself establish material participation. Meet at least one test below (most commonly Test 1 — more than 500 combined hours) or the grouped rental losses remain passive.</div>`:''}
+      ${g.tests.map(t=>row(t,g.owner,g.spouse,g.other,g.paidManager,LTR_GROUP_ID)).join('')}
+    </div>`;
+  }
+  return heading+intro+ltrs.map(p=>{
+    const ph=pH(p.id),ts=mpT(p.id),any=ts.some(t=>t.met);
+    const paid=!!p.otherHoursCompensated&&(p.otherHours||0)>0;
+    const badgeSpan=any
+      ?'<span class="badge b-met" style="font-size:12px;padding:5px 13px;">✅ Materially participates</span>'
+      :'<span class="badge b-no" style="font-size:12px;padding:5px 13px;">❌ MP not yet met</span>';
+    return `<div class="card card-mb">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div>
+          <div style="font-size:16px;font-weight:800;color:#0D1F3C;">${esc(p.name)} <span class="badge b-amber" style="font-size:10px;">LTR</span></div>
+          <div style="font-size:12px;color:#64748B;margin-top:2px;">Your hours: <strong>${Math.round(ph.owner)}</strong>${state.settings.spouseEnabled?` · ${state.settings.spouseName||'Spouse'}: <strong>${Math.round(ph.spouse)}</strong>`:''}${p.otherHours>0?` · Others: <strong>${p.otherHours}</strong>`:''}</div>
+        </div>
+        ${badgeSpan}
+      </div>
+      ${!any?`<div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;font-size:11.5px;color:#92400E;line-height:1.55;margin-bottom:14px;">REPS status alone does not make this rental non-passive — meet at least one test below (most commonly Test 1 — more than 500 hours on this property).</div>`:''}
+      ${ts.map(t=>row(t,ph.owner,ph.spouse||0,p.otherHours||0,paid,p.id)).join('')}
+    </div>`;
+  }).join('');
+})():''}
 
 ${state.properties.length===0?`<div class="empty"><div class="empty-ic">✅</div><div class="empty-tx">Add properties first to evaluate material participation. <a href="#" data-act="nav" data-target="properties" data-prevent="1" style="color:#14B8A6;text-decoration:none;font-weight:600;">Add a property →</a></div></div>`:''}`;
 }
