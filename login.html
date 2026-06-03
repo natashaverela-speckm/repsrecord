@@ -47,19 +47,21 @@ label.fl{display:block;font-size:10px;font-weight:700;text-transform:uppercase;l
 
     <div id="msg" role="alert" aria-live="polite"></div>
 
+    <form id="signin-form" autocomplete="on">
     <div class="field">
       <label class="fl" for="email">Email</label>
-      <input id="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com"/>
+      <input id="email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="you@example.com"/>
     </div>
     <div class="field">
       <label class="fl" for="password">Password</label>
-      <input id="password" type="password" autocomplete="current-password" placeholder="Your password"/>
+      <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Your password"/>
     </div>
     <div class="row-between">
       <button id="forgot-link" class="link" type="button">Forgot password?</button>
     </div>
 
-    <button id="signin-btn" class="btn btn-teal" type="button">Sign in</button>
+    <button id="signin-btn" class="btn btn-teal" type="submit">Sign in</button>
+    </form>
 
     <div class="divider">OR</div>
 
