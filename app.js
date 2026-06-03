@@ -2095,6 +2095,8 @@ function vReports(){
   const cats=Object.values(byCat).sort((a,b)=>b.hours-a.hours);
   const sorted=[...ye].sort((a,b)=>new Date(b.date)-new Date(a.date));
   const sps=state.properties.filter(p=>p.type==='STR');
+  const ltrs=state.properties.filter(p=>p.type==='LTR');
+  const grouped=!!state.settings.groupingElection;
   // Pass 7 (audit-report clarity): surface STR hours that are logged but NOT included in the
   // REPS 750-hr figure, so the "RE hours logged" summary and the "Hours by Activity Category"
   // total reconcile for a reader. Excluded = all non-spouse STR-type hours minus those that
@@ -2138,6 +2140,34 @@ ${sps.length?`
   </div>`;}).join('')}
 </div>`:''}
 <div class="card card-mb">
+${ltrs.length?`
+<div class="card card-mb">
+  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">Long-Term Rental Material Participation — IRC §469(c)(7)(A) · Reg. §1.469-9(e)</div>
+  <div style="font-size:11.5px;color:#64748B;line-height:1.6;margin-bottom:14px;">REPS status removes the automatic-passive rule; each long-term rental is non-passive only if you also materially participate in it${grouped?' — tested here as one combined activity under your §469(c)(7)(A) grouping election.':' — tested per property below (no grouping election on file).'}</div>
+  ${grouped?(function(){
+    const g=mpGroupedLTR(),any=g.tests.some(t=>t.met),best=g.tests.find(t=>t.met),bl=best?best.label:'';
+    const badgeSpan=any?`<span class="badge b-met">✓ Materially participates — via ${bl}</span>`:'<span class="badge b-no">MP not yet met</span>';
+    return`<div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div><strong>Combined Rental Real Estate Activity</strong> <span style="font-size:11px;color:#64748B;">· ${g.properties} propert${g.properties===1?'y':'ies'} grouped</span></div>
+        ${badgeSpan}
+      </div>
+      <div style="font-size:12px;color:#64748B;margin-bottom:8px;">Your hours: <strong style="color:#0D1F3C">${Math.round(g.owner)}</strong>${state.settings.spouseEnabled?` · ${state.settings.spouseName||'Spouse'}: <strong>${Math.round(g.spouse)}</strong>`:''}${g.other>0?` · Others: <strong>${Math.round(g.other)}</strong>`:''} · Pooled: <strong>${Math.round(g.ownerEff)}</strong></div>
+      <div class="tcs">${g.tests.map(t=>`<span class="tc ${t.met?'tc-y':'tc-n'}">${t.name} — ${t.label}${t.met?' ✓':''}</span>`).join('')}</div>
+    </div>`;
+  })():ltrs.map(p=>{
+    const ph=pH(p.id),ts=mpT(p.id),any=ts.some(t=>t.met),best=ts.find(t=>t.met),bl=best?best.label:'';
+    const badgeSpan=any?`<span class="badge b-met">✓ Materially participates — via ${bl}</span>`:'<span class="badge b-no">MP not yet met</span>';
+    return`<div style="margin-bottom:14px;padding-bottom:14px;border-bottom:.5px solid #F0FDFA;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <div><strong>${esc(p.name)}</strong>${p.address?` <span style="font-size:11px;color:#64748B;">· ${esc(p.address)}</span>`:''}</div>
+        ${badgeSpan}
+      </div>
+      <div style="font-size:12px;color:#64748B;margin-bottom:8px;">Your hours: <strong style="color:#0D1F3C">${Math.round(ph.owner)}</strong>${state.settings.spouseEnabled?` · ${state.settings.spouseName||'Spouse'}: <strong>${Math.round(ph.spouse)}</strong>`:''}</div>
+      <div class="tcs">${ts.map(t=>`<span class="tc ${t.met?'tc-y':'tc-n'}">${t.name} — ${t.label}${t.met?' ✓':''}</span>`).join('')}</div>
+    </div>`;
+  }).join('')}
+</div>`:''}
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:14px;">Hours by Activity Category</div>
   <table><thead><tr><th>Type</th><th>Activity</th><th>Entries</th><th>Total Hours</th></tr></thead><tbody>
   ${cats.map(c=>`<tr><td><span class="tb tb-${c.trackType==='STR'?'s':'r'}">${c.trackType}</span></td><td>${esc(c.category)}</td><td style="color:#64748B;">${c.count}</td><td><strong>${fmtH(c.hours)}</strong></td></tr>`).join('')}
@@ -2275,7 +2305,7 @@ async function resetAll(){
 function vLTR(){
   return`
 <div class="ph"><h1 class="pg-title">REPS Rules — Real Estate Professional Status</h1><div class="pg-sub">IRC §469(c)(7) · Two-part qualification test for non-passive rental losses</div></div>
-<div class="banner bn-teal" style="margin-bottom:16px;"><div class="bn-ic">⚖️</div><div><div class="bn-title">Why REPS matters</div><div class="bn-sub">Without REPS, rental losses are passive and can only offset passive income. With REPS, rental losses become non-passive and can offset W-2, business, and other active income — potentially eliminating unlimited tax liability.</div></div></div>
+<div class="banner bn-teal" style="margin-bottom:16px;"><div class="bn-ic">⚖️</div><div><div class="bn-title">Why REPS matters</div><div class="bn-sub">Without REPS, rental losses are passive and can only offset passive income. Qualifying as a real estate professional removes that automatic-passive rule — and where you also materially participate in the rental (see below), the losses become non-passive and can offset W-2, business, and other active income, subject to the at-risk, basis, and §461(l) limits described further down.</div></div></div>
 
 <h2 class="sec-lbl">Test 1 of 2 — More Than 750 Hours Required</h2>
 <div class="card card-mb">
@@ -2318,6 +2348,16 @@ function vLTR(){
     <div style="padding:12px;background:#ECFDF5;border-radius:10px;border:.5px solid #6EE7B7;"><div style="font-size:12px;font-weight:700;color:#065F46;margin-bottom:6px;">✓ Pros</div><ul style="font-size:12px;color:#0D1F3C;line-height:1.9;padding-left:16px;"><li>Easier to meet material participation</li><li>Hours from all properties combined</li><li>Losses from one property can offset gains from others</li></ul></div>
     <div style="padding:12px;background:#FEF2F2;border-radius:10px;border:.5px solid #FECACA;"><div style="font-size:12px;font-weight:700;color:#991B1B;margin-bottom:6px;">⚠ Cons</div><ul style="font-size:12px;color:#0D1F3C;line-height:1.9;padding-left:16px;"><li>Cannot be easily revoked once made</li><li>Disposing of one property doesn't trigger full suspended loss recognition</li><li>Must be made on a timely filed original return</li><li>If you missed the deadline, see Rev. Proc. 2011-34 for potential relief</li></ul></div>
   </div>
+</div>
+
+
+<h2 class="sec-lbl">Limits That Still Apply After Losses Are Non-Passive</h2>
+<div class="card card-mb">
+  <div style="font-size:13px;color:#64748B;line-height:1.7;margin-bottom:12px;">Clearing the passive-activity rules under §469 is necessary but not the end of the analysis. Even fully non-passive rental losses can be limited in the year you claim them:</div>
+  <div style="display:grid;grid-template-columns:1fr;gap:8px;">
+    ${[['§461(l) Excess Business Loss','The net business loss an individual can use against non-business income is capped each year (about $313,000 single / $626,000 married filing jointly for 2025, inflation-indexed). Any excess is carried forward as a net operating loss — it is not lost, but it does not all offset W-2 income in the same year.'],['§465 At-Risk Rules','Losses are deductible only up to the amount you have at risk in the activity — generally cash invested plus debt you are personally liable for or qualified nonrecourse financing.'],['Basis (§704(d) / §1366)','You cannot deduct losses beyond your basis in the property or pass-through interest. Excess carries forward until basis is restored.'],['§1411 Net Investment Income Tax','Materially participating can also remove rental income from the 3.8% NIIT — a benefit — but confirm the result with your tax professional based on your facts.']].map(([t,d])=>`<div style="padding:10px 12px;background:#F8FAFC;border-radius:8px;border:.5px solid #E2E8F0;"><div style="font-size:12px;font-weight:700;color:#0D1F3C;margin-bottom:3px;">${t}</div><div style="font-size:12px;color:#64748B;line-height:1.6;">${d}</div></div>`).join('')}
+  </div>
+  <div style="font-size:11px;color:#64748B;line-height:1.6;margin-top:12px;padding:10px 12px;background:#FFFBEB;border:.5px solid #FDE68A;border-radius:8px;">These limits are outside RepsRecord's hour-tracking scope. RepsRecord documents your participation; your tax professional applies the at-risk, basis, and §461(l) limits when preparing your return.</div>
 </div>
 
 <h2 class="sec-lbl">Top Audit Red Flags</h2>
@@ -2567,11 +2607,14 @@ async function remySend(){
         ctx:buildRemyCtx(),
       }),
     });
-    const data=await res.json();
-    if(data.error)throw new Error(data.error);
+    const data=await res.json().catch(()=>({}));
+    if(!res.ok||data.error||!data.reply){throw new Error(data.error||('HTTP '+res.status));}
     addRemyMessage('assistant',data.reply);
   }catch(err){
-    addRemyMessage('assistant',`Sorry, I ran into an error: ${err.message}. Please try again in a moment.`);
+    // AUDIT FIX: never surface raw error text (it can include the upstream model name,
+    // request IDs, or other internals). Log detail to the console; show the user a generic note.
+    console.warn('[remy] request failed:',err);
+    addRemyMessage('assistant','Sorry \u2014 I ran into a problem reaching the assistant. Please try again in a moment.');
   }finally{
     remyLoading=false;
     if(sendBtn){sendBtn.disabled=false;sendBtn.style.opacity='1';}
