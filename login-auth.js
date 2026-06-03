@@ -106,7 +106,9 @@ async function forgotPassword() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  $('signin-btn')?.addEventListener('click', signInEmail);
+  // AUDIT FIX (#10): sign-in is a real <form> submit so password managers reliably offer to
+  // save credentials; preventDefault keeps the password out of the URL (CSP form-action 'self').
+  $('signin-form')?.addEventListener('submit', (e) => { e.preventDefault(); signInEmail(); });
   $('google-btn')?.addEventListener('click', signInGoogle);
   $('forgot-link')?.addEventListener('click', (e) => { e.preventDefault(); forgotPassword(); });
   const trial = $('trial-link');
@@ -114,5 +116,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Enter-to-submit
   $('email')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('password')?.focus(); } });
-  $('password')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); signInEmail(); } });
+  // (Enter in the password field now triggers the form's submit handler above.)
 });
