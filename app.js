@@ -2094,6 +2094,10 @@ function vReports(){
   ye.forEach(e=>{const k=`${e.trackType}|${e.category}`;if(!byCat[k])byCat[k]={trackType:e.trackType,category:e.category,hours:0,count:0};byCat[k].hours+=e.hours||0;byCat[k].count++;});
   const cats=Object.values(byCat).sort((a,b)=>b.hours-a.hours);
   const sorted=[...ye].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  // AUDIT FIX (#7): flag missing / very short descriptions. Contemporaneous logs must be
+  // specific as to the services performed, the property, and the outcome (Pohoski; Moss).
+  const thinNote=e=>((e.notes||'').trim().length<10);
+  const thinCount=sorted.filter(thinNote).length;
   const sps=state.properties.filter(p=>p.type==='STR');
   const ltrs=state.properties.filter(p=>p.type==='LTR');
   const grouped=!!state.settings.groupingElection;
@@ -2176,6 +2180,7 @@ ${ltrs.length?`
 </div>
 <div class="card">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:14px;">Complete Time Log — ${sorted.length} entries</div>
+  ${thinCount>0?`<div style="margin-bottom:12px;font-size:11.5px;color:#92400E;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:9px 13px;line-height:1.6;">⚠ <strong>${thinCount} ${thinCount===1?'entry has':'entries have'} a missing or very short description.</strong> Contemporaneous logs should state what was done, for which property, and the outcome — vague or blank descriptions are a common audit weakness (e.g. <em>Pohoski v. Commissioner</em>, <em>Moss v. Commissioner</em>). Flagged rows are marked ⚠ below.</div>`:''}
   ${sorted.length===0?`<div class="empty" style="padding:20px 0;"><div class="empty-tx">No entries logged yet.</div></div>`:`
   <table style="table-layout:fixed;">
     <thead><tr><th style="width:11%">Date</th><th style="width:17%">Property</th><th style="width:8%">Type</th><th style="width:25%">Activity</th><th style="width:8%">Hours</th><th style="width:31%">Notes</th></tr></thead>
@@ -2185,7 +2190,7 @@ ${ltrs.length?`
       <td><span class="tb tb-${e.trackType==='STR'?'s':'r'}">${e.trackType}</span>${e.isSpouse?'<span class="tb tb-sp">SP</span>':''}</td>
       <td style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;">${esc(e.category)}</td>
       <td><strong>${fmtH(e.hours)}</strong></td>
-      <td style="font-size:11px;color:#64748B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(e.notes||'—')}</td>
+      <td style="font-size:11px;color:#64748B;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${thinNote(e)?'<span style="color:#B45309;font-weight:700;" title="Add a specific description for audit substantiation">⚠ </span>':''}${esc(e.notes||'—')}</td>
     </tr>`;}).join('')}</tbody>
   </table>`}
 </div>`;
