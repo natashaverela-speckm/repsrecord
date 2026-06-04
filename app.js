@@ -931,7 +931,7 @@ function vLog(){
     <div id="import-modal-title" style="font-size:20px;font-weight:900;color:#0D1F3C;margin-bottom:6px;">📊 Import Hours from Excel</div>
     <p style="font-size:13px;color:#64748B;margin-bottom:20px;line-height:1.6;">Upload an Excel (.xlsx) or CSV file. Your file must have these column headers (exact spelling):</p>
     <div style="background:#F0FDFA;border:1px solid #CCFBF1;border-radius:10px;padding:14px 16px;margin-bottom:12px;font-size:12px;font-family:ui-monospace,monospace;color:#0E7490;line-height:2;">
-      <strong>date</strong> &nbsp;|&nbsp; <strong>hours</strong> &nbsp;|&nbsp; <strong>minutes</strong> &nbsp;|&nbsp; <strong>property</strong> &nbsp;|&nbsp; <strong>type</strong> &nbsp;|&nbsp; <strong>category</strong> &nbsp;|&nbsp; <strong>notes</strong>
+      <strong>date</strong> &nbsp;|&nbsp; <strong>hours</strong> &nbsp;|&nbsp; <strong>minutes</strong> &nbsp;|&nbsp; <strong>property</strong> &nbsp;|&nbsp; <strong>type</strong> &nbsp;|&nbsp; <strong>category</strong> &nbsp;|&nbsp; <strong>spouse</strong> &nbsp;|&nbsp; <strong>notes</strong>
     </div>
     <div style="margin-bottom:16px;"><button data-act="downloadImportTemplate" style="background:#ECFDF5;border:1px solid #6EE7B7;color:#065F46;font-size:12px;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:inherit;">⬇ Download Template (.csv)</button></div>
     <div style="font-size:12px;color:#64748B;margin-bottom:16px;line-height:1.7;">
@@ -941,6 +941,7 @@ function vLog(){
       <strong>property</strong> — must match an existing property name exactly<br>
       <strong>type</strong> — REPS or STR<br>
       <strong>category</strong> — any activity category<br>
+      <strong>spouse</strong> — optional; enter <em>Yes</em> if these are your spouse's hours, leave blank for your own<br>
       <strong>notes</strong> — optional description
     </div>
     <div id="import-drop" class="hov-drop" data-act="triggerClick" data-target-id="import-file" style="border:2px dashed #CBD5E1;border-radius:12px;padding:32px;text-align:center;cursor:pointer;background:#F8FAFC;margin-bottom:16px;transition:all .15s;">
@@ -1684,9 +1685,9 @@ function showImportModal(){
 }
 
 function downloadImportTemplate(){
-  const headers='date,hours,minutes,property,type,category,notes';
-  const example1=`${activeYear}-01-15,2,30,My STR Property,STR,Guest Communication,Responded to 3 guest inquiries re check-in instructions`;
-  const example2=`${activeYear}-01-16,1,0,My LTR Property,REPS,Property Management,Called tenant re lease renewal — confirmed another year`;
+  const headers='date,hours,minutes,property,type,category,spouse,notes';
+  const example1=`${activeYear}-01-15,2,30,My STR Property,STR,Guest Communication,,Responded to 3 guest inquiries re check-in instructions`;
+  const example2=`${activeYear}-01-16,1,0,My LTR Property,REPS,Property Management,Yes,"Spouse called tenant re lease renewal, confirmed another year"`;
   const csv=[headers,example1,example2].join('\n');
   const blob=new Blob([csv],{type:'text/csv'});
   const url=URL.createObjectURL(blob);
@@ -1781,6 +1782,10 @@ async function handleImportFile(input){
       }
       // Cap notes length to prevent denial-of-service via huge text
       const notes=(r.notes||'').slice(0, 2000);
+      // AUDIT FIX (Pass 10): read the optional spouse column. Previously hard-coded false, which
+      // silently re-attributed imported spouse hours to the taxpayer — inflating the 750/50% tests
+      // (calcREPS counts only !isSpouse hours). Accepts Yes/Y/True/1 (case-insensitive).
+      const isSpouse=/^(y|yes|true|1)$/i.test((r.spouse||'').trim());
       entries.push({
         id: uid(),
         date: dateStr,
@@ -1790,7 +1795,7 @@ async function handleImportFile(input){
         category: cat,
         hours: total,
         notes: notes,
-        isSpouse: false,
+        isSpouse: isSpouse,
         attachments: []
       });
       matched++;
@@ -1818,15 +1823,30 @@ async function handleImportFile(input){
 }
 
 function parseCSV(text){
-  const lines = text.split('\n').filter(l=>l.trim());
-  if(lines.length < 2) return [];
-  const headers = lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,'').toLowerCase());
-  return lines.slice(1).map(line=>{
-    const vals = line.split(',').map(v=>v.trim().replace(/^"|"$/g,''));
-    const obj = {};
-    headers.forEach((h,i)=>obj[h]=vals[i]||'');
-    return obj;
-  });
+  // AUDIT FIX (Pass 10): RFC-style parser. The previous version split on "," and broke any
+  // row whose notes contained a comma (e.g. "Called tenant, confirmed renewal") — shifting every
+  // later column and corrupting hours/type/category. This honors double-quoted fields, embedded
+  // commas/newlines, and "" escapes.
+  const rows=[];let i=0,field='',row=[],inQ=false;
+  const pushField=()=>{row.push(field);field='';};
+  const pushRow=()=>{rows.push(row);row=[];};
+  while(i<text.length){
+    const c=text[i];
+    if(inQ){
+      if(c==='"'){ if(text[i+1]==='"'){field+='"';i+=2;continue;} inQ=false;i++;continue; }
+      field+=c;i++;continue;
+    }
+    if(c==='"'){inQ=true;i++;continue;}
+    if(c===','){pushField();i++;continue;}
+    if(c==='\r'){i++;continue;}
+    if(c==='\n'){pushField();pushRow();i++;continue;}
+    field+=c;i++;
+  }
+  if(field.length||row.length){pushField();pushRow();}
+  const nonEmpty=rows.filter(r=>r.some(v=>v&&v.trim()!==''));
+  if(nonEmpty.length<2)return [];
+  const headers=nonEmpty[0].map(h=>h.trim().replace(/^"|"$/g,'').toLowerCase());
+  return nonEmpty.slice(1).map(vals=>{const obj={};headers.forEach((h,idx)=>obj[h]=(vals[idx]!=null?String(vals[idx]).trim():''));return obj;});
 }
 
 function confirmImport(){
