@@ -1339,7 +1339,7 @@ ${showPropForm?`
   <div id="str-fields">
   <div class="g2">
     <div class="field"><label class="fl">Avg Rental Period (days)</label><input type="number" id="p-dy" min="0.5" step="0.5" placeholder="e.g. 4.5"/><div class="hint">≤7 days = strongest eligibility. 8–30 days may still qualify. <strong>Don't know yet?</strong> Leave blank — use the <strong>Booking Log</strong> (available after saving this property) to auto-calculate from your individual bookings.</div></div>
-    <div class="field"><label class="fl">Other Participants' Annual Hours</label><input type="number" id="p-ot" min="0" step="1" placeholder="e.g. 50"/><div class="hint">Hours/year your cleaner, co-host, or PM spends on this property — used to check if your hours exceed theirs (key to the most common qualification test).</div></div>
+    <div class="field"><label class="fl">Highest Hours by Any One Other Person</label><input type="number" id="p-ot" min="0" step="1" placeholder="e.g. 50"/><div class="hint">Enter the hours/year of the <strong>single</strong> person (cleaner, co-host, or PM) who spends the <strong>most</strong> time on this property — not everyone combined. Tests 3 &amp; 7 compare you against <em>any one</em> other individual (§1.469-5T(a)(3)), so only the highest single participant matters.</div></div>
     <label class="tog-row" style="margin-top:-4px;"><input type="checkbox" id="p-ot-comp"/><span class="tog-lbl">These hours are paid management (co-host / PM compensated to manage) — disqualifies Test 7 per §1.469-5T(b)(2)(ii)</span></label>
   </div>
   </div>
@@ -1427,7 +1427,7 @@ ${state.properties.map(p=>{
     <div id="ep-str-fields-${p.id}" style="${p.type==='LTR'?'display:none':''}">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
         <div class="field"><label class="fl">Avg Rental Period (days)</label><input type="number" id="ep-dy-${p.id}" value="${p.avgRentalDays||''}" min="0.5" step="0.5" placeholder="e.g. 4.5"/><div class="hint">${(p.bookings&&p.bookings.length>0)?`📅 Auto-calculated from ${p.bookings.length} booking${p.bookings.length>1?'s':''}. Use Booking Log to update.`:'≤7 days = strongest eligibility. 8–30 days may qualify with significant personal services.'}</div></div>
-        <div class="field"><label class="fl">Other Participants' Annual Hours</label><input type="number" id="ep-ot-${p.id}" value="${p.otherHours||0}" min="0" step="1"/><div class="hint">Hours/year your cleaner, co-host, or PM spends on this property.</div></div>
+        <div class="field"><label class="fl">Highest Hours by Any One Other Person</label><input type="number" id="ep-ot-${p.id}" value="${p.otherHours||0}" min="0" step="1"/><div class="hint">The <strong>single</strong> cleaner, co-host, or PM with the <strong>most</strong> hours/year — not everyone combined. Tests 3 &amp; 7 compare you against any one individual.</div></div>
       </div>
       <label class="tog-row" style="margin-bottom:12px;"><input type="checkbox" id="ep-ot-comp-${p.id}" ${p.otherHoursCompensated?'checked':''}/><span class="tog-lbl">These hours are paid management (co-host / PM compensated to manage) — disqualifies Test 7 per §1.469-5T(b)(2)(ii)</span></label>
     </div>
@@ -1974,7 +1974,7 @@ function vMP(){
   <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
     <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 1</span> <span style="color:#64748B;">Your hours &gt; 500</span></div>
     <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 2</span> <span style="color:#64748B;">You = only participant</span></div>
-    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 3</span> <span style="color:#64748B;">Your hours &gt; 100 AND ≥ others' hours</span></div>
+    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 3</span> <span style="color:#64748B;">Your hours &gt; 100 AND ≥ any one other individual's hours</span></div>
     <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 4</span> <span style="color:#64748B;">Each activity 100–499 hrs (SPA) + all SPAs aggregate &gt; 500 hrs</span></div>
     <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 5</span> <span style="color:#64748B;">Qualified in 5 of last 10 years</span></div>
     <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 6</span> <span style="color:#64748B;">Qualified 3 prior years (PSA — does not apply to most STRs)</span></div>
@@ -2020,7 +2020,7 @@ ${sps.map(p=>{
         </div>
         <div class="mp-desc">${t.desc}</div>
         ${!t.auto?`<label class="mp-man"><input type="checkbox" ${t.met?'checked':''} data-chg="togMP" data-id="${p.id}" data-tid="${t.id}"/><span>Mark as met for ${activeYear} — requires supporting documentation</span></label>`:''}
-        ${t.auto&&!t.met&&t.id===3?`<div style="font-size:11px;color:#0F766E;margin-top:6px;">Need ${Math.max(0,Math.ceil(100-(ph.owner+(ph.spouse||0))+0.01))} more hours${(()=>{const mo=(state.settings.spouseHoursPolicy||'majority')==='conservative'?Math.max(ph.spouse||0,p.otherHours||0):(p.otherHours||0);return mo>0?' & must equal or exceed other participants ('+Math.round(mo)+' hrs)':'';})()}</div>`:''}
+        ${t.auto&&!t.met&&t.id===3?`<div style="font-size:11px;color:#0F766E;margin-top:6px;">Need ${Math.max(0,Math.ceil(100-(ph.owner+(ph.spouse||0))+0.01))} more hours${(()=>{const mo=(state.settings.spouseHoursPolicy||'majority')==='conservative'?Math.max(ph.spouse||0,p.otherHours||0):(p.otherHours||0);return mo>0?' & must equal or exceed the highest-hour other participant ('+Math.round(mo)+' hrs)':'';})()}</div>`:''}
         ${t.auto&&!t.met&&t.id===1?`<div style="font-size:11px;color:#0F766E;margin-top:6px;">Need ${Math.max(0,Math.ceil(500-(ph.owner+(ph.spouse||0))+0.01))} more hours for this property</div>`:''}
         ${t.auto&&t.met&&t.id===7?`<div style="font-size:11px;color:#B45309;margin-top:6px;background:#FFF7ED;border:1px solid #FDE68A;border-radius:6px;padding:6px 9px;line-height:1.5;">⚠ Facts-and-circumstances test — the app checks only your hours. Confirm you participate on a regular, continuous, and substantial basis and that <strong>no other person is compensated to manage</strong> this property (§1.469-5T(b)(2)(ii)).</div>`:''}
         ${t.auto&&!t.met&&t.id===7&&p.otherHoursCompensated&&(p.otherHours||0)>0?`<div style="font-size:11px;color:#991B1B;margin-top:6px;background:#FEF2F2;border:1px solid #FECACA;border-radius:6px;padding:6px 9px;line-height:1.5;">⛔ Test 7 unavailable: a paid co-host / property manager (${Math.round(p.otherHours)} hrs) is compensated to manage this property, which disqualifies the facts-and-circumstances test under §1.469-5T(b)(2)(ii). Use another test to qualify, or remove the paid-management flag if it no longer applies.</div>`:''}
@@ -2529,7 +2529,7 @@ function toggleRemy(){
       const ctx=buildRemyCtx();
       const rh=Math.round(ctx.rh||0);
       const greeting=ctx.ok
-        ?`Hi! I'm Remy 👋 You've qualified for REPS this year with ${rh} hrs. What would you like to dig into?`
+        ?`Hi! I'm Remy 👋 Your tracked data meets both REPS tests this year (${rh} hrs). Remember each rental is non-passive only if you also materially participate in it. What would you like to dig into?`
         :`Hi! I'm Remy 👋 You have ${rh} hrs logged — ${Math.max(0,Math.ceil(750-rh+0.01))} more needed to exceed the 750-hr test. How can I help?`;
       addRemyMessage('assistant',greeting);
     }
