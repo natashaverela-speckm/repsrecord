@@ -227,7 +227,7 @@ async function dupePrevDay(){
   const dayEntries=state.entries.filter(e=>e.date===src);
   const ok=await dlgConfirm({title:'Duplicate previous day',body:`Copy all ${dayEntries.length} ${dayEntries.length===1?'entry':'entries'} from ${src} to today (${today})?\n\nEvidence attachments are not copied.`,confirmLabel:'Copy to today'});
   if(!ok)return;
-  const added=dayEntries.map(e=>({...e,id:uid(),date:today,attachments:[]}));
+  const added=dayEntries.map(e=>({...e,id:uid(),createdAt:new Date().toISOString(),date:today,attachments:[]}));
   state.entries.push(...added);
   save();renderView();
   toast(`Copied ${added.length} ${added.length===1?'entry':'entries'} to today.`,'success',{duration:6000,action:'Undo',onAction:()=>{const ids=new Set(added.map(a=>a.id));state.entries=state.entries.filter(e=>!ids.has(e.id));save();renderView();toast('Copy undone.','info');}});
@@ -247,13 +247,14 @@ async function exportTimeLog(){
     if(!rows.length){ _done(); toast('No entries match the current filter.','warn'); return; }
     const pName=e=>state.properties.find(p=>p.id===e.propertyId)?.name||'General RE';
     const fmtHM=h=>{const a=Math.floor(h),b=Math.round((h-a)*60);return b===0?`${a}h`:`${a}h ${b}m`;};
-    const header=['Date','Property','Type','Category','Hours (decimal)','Hours (formatted)','Spouse','Notes'];
-    const body=rows.map(e=>[e.date,pName(e),e.trackType,e.category||'',Math.round((e.hours||0)*100)/100,fmtHM(e.hours||0),e.isSpouse?'Yes':'',e.notes||'']);
+    const fmtLogged=e=>e.createdAt?e.createdAt.slice(0,16).replace('T',' ')+' UTC':'—';
+    const header=['Date','Property','Type','Category','Hours (decimal)','Hours (formatted)','Spouse','Notes','Logged On'];
+    const body=rows.map(e=>[e.date,pName(e),e.trackType,e.category||'',Math.round((e.hours||0)*100)/100,fmtHM(e.hours||0),e.isSpouse?'Yes':'',e.notes||'',fmtLogged(e)]);
     const total=rows.reduce((s,e)=>s+(e.hours||0),0);
-    body.push(['','','','','','','','']);
-    body.push(['TOTAL','','','',Math.round(total*100)/100,fmtHM(total),'','']);
+    body.push(['','','','','','','','','']);
+    body.push(['TOTAL','','','',Math.round(total*100)/100,fmtHM(total),'','','']);
     const ws=XLSX.utils.aoa_to_sheet([header,...body]);
-    ws['!cols']=[{wch:12},{wch:22},{wch:8},{wch:30},{wch:14},{wch:14},{wch:8},{wch:50}];
+    ws['!cols']=[{wch:12},{wch:22},{wch:8},{wch:30},{wch:14},{wch:14},{wch:8},{wch:50},{wch:20}];
     const wb=XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb,ws,'Time Log');
     const fn=`RepsRecord_${activeYear}_TimeLog_${new Date().toISOString().slice(0,10)}.xlsx`;
@@ -275,6 +276,19 @@ const TAX={
   STR_AVG_DAYS:7,                // §1.469-1T(e)(3)(ii)(A) — average rental period ≤7 days
   STR_MID_DAYS:30,               // §1.469-1T(e)(3)(ii)(B) — 8–30 days with significant personal services
 };
+
+// AUDIT FIX (Pass 8 #1): §461(l) excess-business-loss thresholds are inflation-indexed and were
+// RESET DOWNWARD by the OBBBA effective for tax years beginning after 2025. Keep them year-scoped
+// so the rules text always matches the active tax year instead of a hard-coded 2025 figure.
+// [single, married-filing-jointly]. Source: Rev. Proc. inflation adjustments / OBBBA §461(l).
+const EBL_THRESHOLDS={2024:[305000,610000],2025:[313000,626000],2026:[256000,512000]};
+function eblText(y){
+  const yrs=Object.keys(EBL_THRESHOLDS).map(Number);
+  const yy=EBL_THRESHOLDS[y]?Number(y):Math.max(...yrs);   // fall back to latest known year
+  const [s,m]=EBL_THRESHOLDS[yy];
+  const f=n=>'$'+n.toLocaleString('en-US');
+  return `${f(s)} single / ${f(m)} married filing jointly for ${yy}`;
+}
 
 const SK='repsrecord_v1';
 const CUR_YEAR=new Date().getFullYear();
@@ -629,8 +643,8 @@ function renderNav(){
 }
 function updateSB(){
   const r=calcREPS(),pct=Math.min(r.rh/750*100,100);
-  document.getElementById('sb-val').textContent=r.ok?'✓ Qualified!':`${Math.round(r.rh)} / >750 hrs`;
-  document.getElementById('sb-val').style.color=r.ok?'#14B8A6':'#fff';
+  document.getElementById('sb-val').textContent=r.m750?'✓ 750 hrs met':`${Math.round(r.rh)} / >750 hrs`;
+  document.getElementById('sb-val').style.color=r.m750?'#14B8A6':'#fff';
   document.getElementById('sb-fill').style.width=pct+'%';
   document.getElementById('sb-fill').style.background=r.ok?'#10B981':'#14B8A6';
   const strHrs=yearEntries().filter(e=>!e.isSpouse&&e.trackType==='STR').reduce((s,e)=>s+(e.hours||0),0);
@@ -1244,7 +1258,7 @@ async function submitEntry(){
     catch(err){console.error('Upload error:',err);}
   }
   const _eDate=document.getElementById('f-date')?.value||todayStr();
-  state.entries.push({id:entryId,date:_eDate,propertyId:propId,trackType,type:trackType,category:cat,hours:Math.round(h*100)/100,notes:document.getElementById('f-notes')?.value||'',isSpouse:!!document.getElementById('f-spouse')?.checked,attachments});
+  state.entries.push({id:entryId,createdAt:new Date().toISOString(),date:_eDate,propertyId:propId,trackType,type:trackType,category:cat,hours:Math.round(h*100)/100,notes:document.getElementById('f-notes')?.value||'',isSpouse:!!document.getElementById('f-spouse')?.checked,attachments});
   _syncYearToEntry(_eDate);
   save();
   pendingFiles=[];
@@ -1592,6 +1606,7 @@ async function saveQuickLog(propId){
   }
   state.entries.push({
     id:entryId,
+    createdAt:new Date().toISOString(),
     date:document.getElementById('ql-date-'+propId)?.value||todayStr(),
     propertyId:propId,
     trackType:tt,
@@ -1816,7 +1831,7 @@ function parseCSV(text){
 
 function confirmImport(){
   if(!_importRows.length) return;
-  state.entries.push(..._importRows);
+  state.entries.push(..._importRows.map(r=>({...r,createdAt:r.createdAt||new Date().toISOString()})));
   save();
   closeImportModal();
   renderView();
@@ -2360,7 +2375,7 @@ function vLTR(){
 <div class="card card-mb">
   <div style="font-size:13px;color:#64748B;line-height:1.7;margin-bottom:12px;">Clearing the passive-activity rules under §469 is necessary but not the end of the analysis. Even fully non-passive rental losses can be limited in the year you claim them:</div>
   <div style="display:grid;grid-template-columns:1fr;gap:8px;">
-    ${[['§461(l) Excess Business Loss','The net business loss an individual can use against non-business income is capped each year (about $313,000 single / $626,000 married filing jointly for 2025, inflation-indexed). Any excess is carried forward as a net operating loss — it is not lost, but it does not all offset W-2 income in the same year.'],['§465 At-Risk Rules','Losses are deductible only up to the amount you have at risk in the activity — generally cash invested plus debt you are personally liable for or qualified nonrecourse financing.'],['Basis (§704(d) / §1366)','You cannot deduct losses beyond your basis in the property or pass-through interest. Excess carries forward until basis is restored.'],['§1411 Net Investment Income Tax','Materially participating can also remove rental income from the 3.8% NIIT — a benefit — but confirm the result with your tax professional based on your facts.']].map(([t,d])=>`<div style="padding:10px 12px;background:#F8FAFC;border-radius:8px;border:.5px solid #E2E8F0;"><div style="font-size:12px;font-weight:700;color:#0D1F3C;margin-bottom:3px;">${t}</div><div style="font-size:12px;color:#64748B;line-height:1.6;">${d}</div></div>`).join('')}
+    ${[['§461(l) Excess Business Loss','The net business loss an individual can use against non-business income is capped each year (about '+eblText(activeYear)+', inflation-indexed). Any excess is carried forward as a net operating loss — it is not lost, but it does not all offset W-2 income in the same year.'],['§465 At-Risk Rules','Losses are deductible only up to the amount you have at risk in the activity — generally cash invested plus debt you are personally liable for or qualified nonrecourse financing.'],['Basis (§704(d) / §1366)','You cannot deduct losses beyond your basis in the property or pass-through interest. Excess carries forward until basis is restored.'],['§1411 Net Investment Income Tax','Materially participating can also remove rental income from the 3.8% NIIT — a benefit — but confirm the result with your tax professional based on your facts.']].map(([t,d])=>`<div style="padding:10px 12px;background:#F8FAFC;border-radius:8px;border:.5px solid #E2E8F0;"><div style="font-size:12px;font-weight:700;color:#0D1F3C;margin-bottom:3px;">${t}</div><div style="font-size:12px;color:#64748B;line-height:1.6;">${d}</div></div>`).join('')}
   </div>
   <div style="font-size:11px;color:#64748B;line-height:1.6;margin-top:12px;padding:10px 12px;background:#FFFBEB;border:.5px solid #FDE68A;border-radius:8px;">These limits are outside RepsRecord's hour-tracking scope. RepsRecord documents your participation; your tax professional applies the at-risk, basis, and §461(l) limits when preparing your return.</div>
 </div>
