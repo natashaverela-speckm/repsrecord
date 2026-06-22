@@ -42,7 +42,8 @@ function setBusy(b) {
 
 function goApp() {
   // replace() so the back button doesn't return to this sign-in page.
-  window.location.replace(APP_PAGE);
+  const plan = new URLSearchParams(window.location.search).get('plan');
+  window.location.replace(plan ? `${APP_PAGE}?checkout=${plan}` : APP_PAGE);
 }
 
 // Already signed in, or just returned from a Google / password-reset redirect?
