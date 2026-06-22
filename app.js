@@ -2998,7 +2998,8 @@ async function appInit(){
     try{
       _sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
       const{data:{session}}=await _sb.auth.getSession();
-      if(session){_sbUser=session.user;}
+     if(session){_sbUser=session.user;}
+      const emailEl=document.getElementById('sb-email');if(emailEl&&session){emailEl.textContent='✉ '+(session.user.email||'');emailEl.title=session.user.email||'';}
     }catch(e){_sb=null;}
   }
   // Paywall gate: require an active trial/subscription before the app loads.
