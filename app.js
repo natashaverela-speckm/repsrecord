@@ -160,6 +160,7 @@ const CLICK_ACTIONS={
   fillAddr:el=>fillAddr(parseInt(el.dataset.idx)),
   printPage:()=>window.print(),
   exportXLSX:()=>exportXLSX(),
+  shareWithCPA:()=>shareWithCPA(),
   exportTimeLog:()=>exportTimeLog(),
   resetAll:()=>resetAll(),
   closeWalkthrough:()=>closeWalkthrough(),
@@ -2229,6 +2230,7 @@ function vReports(){
     <div class="top-acts" style="display:flex;gap:8px;">
       <button class="btn btn-outline btn-sm" data-act="printPage">🖨 Print</button>
       <button class="btn btn-teal btn-sm" data-act="exportXLSX">📥 Export to Excel</button>
+      <button class="btn btn-sm" data-act="shareWithCPA" style="background:#6366F1;color:#fff;border:none;">📤 Share with CPA</button>
     </div>
   </div>
 </div>
@@ -2828,6 +2830,52 @@ function clearRemyHistory(){
   remyMessages=[];
   try{localStorage.removeItem(REMY_SK);}catch(e){}
   renderRemyMessages();
+}
+
+// ── SHARE WITH CPA ──
+function shareWithCPA(){
+  const r=calcREPS();
+  const email=_sbUser?.email||'';
+  const name=email.split('@')[0]||'Your Client';
+  const repsStatus=r.ok?'QUALIFIED':'NOT YET QUALIFIED';
+  const repsHrs=Math.round(r.rh);
+  const sps=state.properties.filter(p=>p.type==='STR');
+  const ltrs=state.properties.filter(p=>p.type==='LTR');
+  const strQual=sps.filter(p=>strQualifies(p)==='yes').length;
+
+  const subject=encodeURIComponent(`RepsRecord Audit Report — ${activeYear} Tax Year`);
+
+  const body=encodeURIComponent(
+`Hi,
+
+Please find attached my RepsRecord audit report for tax year ${activeYear}, generated for IRS substantiation purposes under IRC §469(c)(7) and Temp. Reg. §1.469-5T.
+
+SUMMARY
+-------
+Tax Year: ${activeYear}
+REPS Status: ${repsStatus}
+RE Hours Logged: ${repsHrs} hrs (required: >750)
+50% Services Test: ${r.m50?'MET':'NOT MET'} (${Math.round(r.pct)}% of personal service hours)${ltrs.length?`
+LTR Properties: ${ltrs.length}`:''} ${sps.length?`
+STR Properties: ${sps.length} (${strQual} qualifying for non-passive treatment)`:''}
+
+ATTACHMENTS
+-----------
+I am attaching the Excel export from RepsRecord which includes:
+• REPS Qualification Summary (IRC §469(c)(7))
+• STR Material Participation results (Temp. Reg. §1.469-5T)
+• Complete time log with dates, properties, activity categories, and descriptions
+• Evidence attachments (receipts, photos, invoices)
+
+The report was prepared using RepsRecord (repsrecord.com), a purpose-built hour-tracking tool for IRC §469 compliance documentation.
+
+Please let me know if you need any additional information.
+
+Thank you`);
+
+  // Open mailto — user's email client handles the rest
+  window.location.href=`mailto:?subject=${subject}&body=${body}`;
+  toast('Email draft opened — attach your Excel export before sending.','success',{duration:8000});
 }
 
 // ── EXCEL EXPORT ──
