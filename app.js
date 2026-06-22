@@ -324,8 +324,22 @@ async function signOut(){
 // ── Paywall gate ──
 // Accounts that always have access (never locked out). Owner addresses go here.
 const PAYWALL_ADMINS=['admin@repsrecord.com','support@repsrecord.com','support@themoneynista.com'];
-const PAY_MONTHLY='https://buy.stripe.com/bJedR19mL8bK7rY3nuebu00';
-const PAY_ANNUAL='https://buy.stripe.com/aFadR17eD9fOfYubU0ebu01';
+const PAY_MONTHLY='https://buy.stripe.com/bJedR19mL8bK7rY3nuebu00';// fallback
+const PAY_ANNUAL='https://buy.stripe.com/aFadR17eD9fOfYubU0ebu01';// fallback
+async function startCheckout(plan){
+  try{
+    const{data:{session}}=await _sb.auth.getSession();
+    if(!session){window.location.href='login.html';return;}
+    const r=await fetch(`${SUPABASE_URL}/functions/v1/create-checkout-session`,{
+      method:'POST',
+      headers:{Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},
+      body:JSON.stringify({plan})
+    });
+    const{url,error}=await r.json();
+    if(url){window.location.href=url;}
+    else{toast('Could not start checkout. '+(error||''),'error');}
+  }catch(e){toast('Could not start checkout.','error');console.error('[startCheckout]',e);}
+}
 // Returns 'ok' | 'blocked' | 'redirect' | 'open'. Fails OPEN on any error so a
 // transient glitch can never lock a legitimate user out of their own data.
 async function enforceSubscription(){
@@ -366,8 +380,8 @@ function showPaywallOverlay(userId,email){
     <div style="font-size:40px;margin-bottom:8px;">🔒</div>
     <h2 style="margin:0 0 8px;font-size:22px;">Your access is paused</h2>
     <p style="margin:0 0 20px;color:#B6C6E0;font-size:15px;line-height:1.5;">Your free trial or subscription isn't active right now. Choose a plan to pick up right where you left off — your data is safe and waiting.</p>
-    <a href="${PAY_MONTHLY}${ref}" style="display:block;background:#14B8A6;color:#fff;text-decoration:none;font-weight:600;padding:13px;border-radius:10px;margin-bottom:10px;">Continue — Monthly</a>
-    <a href="${PAY_ANNUAL}${ref}" style="display:block;background:#0EA5E9;color:#fff;text-decoration:none;font-weight:600;padding:13px;border-radius:10px;">Continue — Annual</a>
+    <button onclick="startCheckout('monthly')" style="display:block;width:100%;background:#14B8A6;color:#fff;border:none;font-weight:600;padding:13px;border-radius:10px;margin-bottom:10px;cursor:pointer;font-size:15px;">Continue — Monthly</button>
+    <button onclick="startCheckout('annual')" style="display:block;width:100%;background:#0EA5E9;color:#fff;border:none;font-weight:600;padding:13px;border-radius:10px;cursor:pointer;font-size:15px;">Continue — Annual</button>
     <button id="paywall-signout" type="button" style="margin-top:18px;background:none;border:none;color:#7C93B8;font-size:13px;cursor:pointer;text-decoration:underline;">Sign out</button>
   </div>`;
   document.body.appendChild(o);
