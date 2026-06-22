@@ -1353,11 +1353,31 @@ ${showPropForm?`
     <div class="field"><label class="fl">ZIP</label><input id="p-zip" placeholder="32801" maxlength="5" autocomplete="postal-code"/></div>
   </div>
   <div id="str-fields">
-  <div class="g2">
-    <div class="field"><label class="fl">Avg Rental Period (days)</label><input type="number" id="p-dy" min="0.5" step="0.5" placeholder="e.g. 4.5"/><div class="hint">≤7 days = strongest eligibility. 8–30 days may still qualify. <strong>Don't know yet?</strong> Leave blank — use the <strong>Booking Log</strong> (available after saving this property) to auto-calculate from your individual bookings.</div></div>
-    <div class="field"><label class="fl">Highest Hours by Any One Other Person</label><input type="number" id="p-ot" min="0" step="1" placeholder="e.g. 50"/><div class="hint">Enter the hours/year of the <strong>single</strong> person (cleaner, co-host, or PM) who spends the <strong>most</strong> time on this property — not everyone combined. Tests 3 &amp; 7 compare you against <em>any one</em> other individual (§1.469-5T(a)(3)), so only the highest single participant matters.</div></div>
-    <label class="tog-row" style="margin-top:-4px;"><input type="checkbox" id="p-ot-comp"/><span class="tog-lbl">These hours are paid management (co-host / PM compensated to manage) — disqualifies Test 7 per §1.469-5T(b)(2)(ii)</span></label>
+  <div style="background:#CFFAFE;border:1px solid #99F6E4;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:13px;color:#0E7490;line-height:1.7;">
+    🏖 <strong>STR-specific fields below.</strong> These two questions determine whether your property qualifies for the short-term rental tax exception. They take 30 seconds but matter a lot — answer as best you can and you can update them anytime.
   </div>
+  <div class="g2">
+    <div class="field">
+      <label class="fl">Average Rental Period (days)</label>
+      <input type="number" id="p-dy" min="0.5" step="0.5" placeholder="e.g. 4.5"/>
+      <div class="hint">
+        <strong>What is this?</strong> The average number of nights each guest stays. Add up all your bookings' nights, divide by the number of bookings.<br>
+        <strong>Example:</strong> 3 bookings of 3, 5, and 7 nights = 15 ÷ 3 = <strong>5 day average ✓</strong><br>
+        <strong>Why it matters:</strong> ≤7 days = your STR qualifies for the tax exception. 8–30 days may still qualify. Over 30 days = needs REPS instead.<br>
+        <strong>Don't know yet?</strong> Leave blank and use the Booking Log after saving to auto-calculate.
+      </div>
+    </div>
+    <div class="field">
+      <label class="fl">Highest Hours by Any One Other Person</label>
+      <input type="number" id="p-ot" min="0" step="1" placeholder="e.g. 50"/>
+      <div class="hint">
+        <strong>What is this?</strong> Think about everyone who works on this property — your cleaner, co-host, or property manager. Who spends the most hours? Enter that one person's hours per year.<br>
+        <strong>Example:</strong> Your cleaner comes weekly for 3 hrs = ~156 hrs/yr. Enter 156.<br>
+        <strong>Why it matters:</strong> To qualify, YOU must spend more hours on this property than any single other person. If your cleaner outworks you, you may not qualify.
+      </div>
+    </div>
+  </div>
+  <label class="tog-row" style="margin-top:-4px;"><input type="checkbox" id="p-ot-comp"/><span class="tog-lbl">That person is a paid manager (cleaner, co-host, or PM you pay to manage this property)</span></label>
   </div>
   <div style="display:flex;gap:8px;">
     <button class="btn btn-teal" data-act="addProp">Save Property</button>
@@ -2251,130 +2271,139 @@ ${ltrs.length?`
 // with clear statement that spouse hours do NOT count toward the taxpayer's REPS tests.
 function vSettings(){
   const s=state.settings;
-  function expandToggle(id,label,content){
+  function expandToggle(label,content){
     return`<details style="margin-top:8px;"><summary style="font-size:12px;color:#0E7490;font-weight:600;cursor:pointer;list-style:none;display:flex;align-items:center;gap:4px;">ⓘ ${label}</summary><div style="margin-top:8px;padding:10px 12px;background:#F0FDFA;border-radius:8px;border:.5px solid #99F6E4;font-size:12px;color:#0F766E;line-height:1.7;">${content}</div></details>`;
-  }
-  function tag(label,color,bg){
-    return`<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:${bg};color:${color};letter-spacing:.03em;margin-left:8px;">${label}</span>`;
   }
   return`
 <div class="ph"><h1 class="pg-title">Settings</h1><div class="pg-sub">Configure your account and tax situation.</div></div>
 
-<!-- ── ACCOUNT ── -->
+<!-- ACCOUNT -->
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">💳 Account &amp; Billing</div>
   <div style="font-size:12px;color:#64748B;margin-bottom:14px;">Manage your subscription, update payment, or view invoices.</div>
   <a href="https://billing.stripe.com/p/login/bJedR19mL8bK7rY3nuebu00" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#0D1F3C;color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:10px 18px;border-radius:8px;">Manage subscription</a>
 </div>
 
-<!-- ── TAX SITUATION ── -->
-<div class="card card-mb">
-  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">📋 Your Tax Situation</div>
-  <div style="font-size:12px;color:#64748B;margin-bottom:18px;">Tell us about your tax situation so we can calculate your tests accurately.</div>
-
-  <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;margin-bottom:12px;">
-    <div style="display:flex;align-items:center;margin-bottom:6px;">
-      <div style="font-size:13px;font-weight:700;color:#0D1F3C;">Non-Real Estate Hours This Year</div>
-      ${tag('LTR / REPS users','#1E40AF','#EFF6FF')}
+<!-- LTR SECTION -->
+<div class="card card-mb" style="border-top:3px solid #38BDF8;">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+    <span style="font-size:22px;">🏡</span>
+    <div>
+      <div style="font-size:15px;font-weight:900;color:#0D1F3C;">I have Long-Term Rentals</div>
+      <div style="font-size:12px;color:#64748B;">Monthly or annual leases — tracking toward Real Estate Professional Status (REPS)</div>
     </div>
-    <div style="font-size:12px;color:#64748B;margin-bottom:10px;">If you have a W-2 job or other non-real-estate business, enter your hours here. Without this, your 50% Services Test can't be verified.</div>
-    <input type="number" min="0" step="1" value="${s.nonREPSHours||''}" placeholder="e.g. 2080 for a full-time W-2 job" data-chg="setNum" data-key="nonREPSHours" style="width:100%;padding:10px 13px;border-radius:8px;border:1.5px solid #CBD5E1;font-size:13px;font-family:inherit;color:#0D1F3C;background:#fff;outline:none;"/>
-    <div style="font-size:11px;color:#94A3B8;margin-top:6px;">Full-time W-2 ≈ 2,080 hrs/yr · Part-time ≈ 1,040 hrs/yr · Only YOUR hours count, not a spouse's.</div>
-    ${expandToggle('t50','Why this matters — 50% Services Test','Your RE hours must exceed 50% of ALL personal services you perform that year. If you have a full-time W-2 (≈2,080 hrs) you would need more than 2,080 REPS hours to pass — a very high bar. If you leave this blank and have RE hours logged, we mark the test as unverified. IRC §469(c)(7)(B)(i).')}
+  </div>
+  <div style="background:#EFF6FF;border-radius:8px;padding:10px 14px;font-size:12px;color:#1E40AF;margin-bottom:18px;line-height:1.6;">
+    💡 For REPS to work, your real estate hours must be more than 50% of ALL hours you work that year. If you have a day job or other business, enter those hours below so we can calculate accurately.
   </div>
 
   <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;margin-bottom:12px;">
-    <div style="display:flex;align-items:center;margin-bottom:6px;">
-      <div style="font-size:13px;font-weight:700;color:#0D1F3C;">Filing Status</div>
-      ${tag('All users','#065F46','#D1FAE5')}
-    </div>
-    <div style="font-size:12px;color:#64748B;margin-bottom:10px;">Used to show your Net Investment Income Tax (NIIT) threshold. Doesn't affect your REPS or MP test calculations.</div>
-    <select data-chg="setStrRender" data-key="filingStatus" style="width:100%;padding:10px 13px;border-radius:8px;border:1.5px solid #CBD5E1;font-size:13px;font-family:inherit;color:#0D1F3C;background:#fff;outline:none;">
-      ${Object.keys(FILING_LABELS).map(k=>`<option value="${k}" ${(s.filingStatus||'MFJ')===k?'selected':''}>${FILING_LABELS[k]}</option>`).join('')}
-    </select>
-    <div style="font-size:11px;color:#94A3B8;margin-top:6px;">Your NIIT threshold: <strong>$${(NIIT_THRESHOLDS[s.filingStatus||'MFJ']||250000).toLocaleString()}</strong> MAGI · 3.8% applies above this.</div>
-    ${expandToggle('tniit','About NIIT and your rental income','REPS status alone does not remove the 3.8% Net Investment Income Tax. To avoid NIIT on rental income you must also materially participate in the rental as a §162 trade or business — a separate analysis. Discuss with your CPA. IRC §1411.')}
+    <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:4px;">How many hours do you work outside of real estate this year?</div>
+    <div style="font-size:12px;color:#64748B;margin-bottom:10px;">Include your W-2 job, other businesses, or any non-real-estate work. If you work a regular full-time job, enter about 2,080 hours.</div>
+    <input type="number" min="0" step="1" value="${s.nonREPSHours||''}" placeholder="e.g. 2080 for a full-time job, 0 if no other work" data-chg="setNum" data-key="nonREPSHours" style="width:100%;padding:10px 13px;border-radius:8px;border:1.5px solid #CBD5E1;font-size:13px;font-family:inherit;color:#0D1F3C;background:#fff;outline:none;"/>
+    <div style="font-size:11px;color:#94A3B8;margin-top:6px;">Full-time W-2 ≈ 2,080 hrs · Part-time ≈ 1,040 hrs · Retired / no other work = 0</div>
+    ${expandToggle('Why this matters','Your RE hours must exceed 50% of ALL personal services you perform. If you have a full-time W-2 (≈2,080 hrs) you would need more than 2,080 REPS hours to pass — a very high bar. If you leave this blank, we mark the 50% test as unverified. IRC §469(c)(7)(B)(i).')}
   </div>
-
-  <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;">
-    <div style="display:flex;align-items:center;margin-bottom:6px;">
-      <div style="font-size:13px;font-weight:700;color:#0D1F3C;">Personal Use Days This Year</div>
-      ${tag('STR owners who also use the property','#92400E','#FEF3C7')}
-    </div>
-    <div style="font-size:12px;color:#64748B;margin-bottom:10px;">If you or your family stayed at any of your rental properties, enter the total days here. This affects the §280A deduction limit — leave blank if you never personally used any rental property.</div>
-    <input type="number" min="0" step="1" value="${s.personalUseDays||''}" placeholder="0 — leave blank if no personal use" data-chg="setNum" data-key="personalUseDays" style="width:100%;padding:10px 13px;border-radius:8px;border:1.5px solid #CBD5E1;font-size:13px;font-family:inherit;color:#0D1F3C;background:#fff;outline:none;"/>
-    <div style="font-size:11px;color:#94A3B8;margin-top:6px;">Includes spouse, children, parents, siblings, or anyone who paid less than fair rental value.</div>
-    ${expandToggle('t280a','§280A Personal-Use Limitation','If personal use exceeds the greater of 14 days or 10% of rental days, your property becomes a "residence" under §280A. Rental loss deductions are then capped at gross rental income — regardless of REPS or material participation status. Consult your CPA; §280A interacts with §469 in complex ways.')}
-  </div>
-</div>
-
-<!-- ── TRACKING OPTIONS ── -->
-<div class="card card-mb">
-  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">⚙️ Tracking Options</div>
-  <div style="font-size:12px;color:#64748B;margin-bottom:18px;">Control how RepsRecord tracks and evaluates your hours.</div>
-
-  <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#38BDF8;margin-bottom:8px;padding-bottom:6px;border-bottom:1.5px solid #E0F7FA;">🏡 Long-Term Rentals / REPS</div>
 
   <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;margin-bottom:12px;">
+    <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:4px;">Does your spouse also work on these properties?</div>
+    <div style="font-size:12px;color:#64748B;margin-bottom:10px;">If yes, we track your spouse's hours separately. This is important — their hours count toward the material participation tests but NOT toward your REPS qualification.</div>
     <label class="tog-row" style="margin-bottom:${s.spouseEnabled?'12px':'0'};">
       <input type="checkbox" ${s.spouseEnabled?'checked':''} data-chg="setBoolRender" data-key="spouseEnabled"/>
-      <div><div class="tog-lbl">Spouse hour tracking</div><div style="font-size:11px;color:#64748B;margin-top:1px;">Track your spouse's hours separately for MP tests</div></div>
+      <div><div class="tog-lbl">Yes, enable spouse hour tracking</div></div>
     </label>
     ${s.spouseEnabled?`
     <div class="g2" style="margin-top:4px;margin-bottom:12px;">
-      <div class="field" style="margin-bottom:0;"><label class="fl">Spouse Name</label><input value="${esc(s.spouseName||'')}" placeholder="First name or initials" data-chg="setStr" data-key="spouseName"/></div>
-      <div class="field" style="margin-bottom:0;"><label class="fl">Tests 3 &amp; 7 — Spouse Hours Treatment</label>
+      <div class="field" style="margin-bottom:0;"><label class="fl">Spouse's Name or Initials</label><input value="${esc(s.spouseName||'')}" placeholder="e.g. Jane or J.S." data-chg="setStr" data-key="spouseName"/></div>
+      <div class="field" style="margin-bottom:0;"><label class="fl">How to count spouse hours in Tests 3 &amp; 7</label>
         <select data-chg="setStrRenderSB" data-key="spouseHoursPolicy">
-          <option value="majority" ${(s.spouseHoursPolicy||'majority')==='majority'?'selected':''}>Majority view (default)</option>
-          <option value="conservative" ${s.spouseHoursPolicy==='conservative'?'selected':''}>Conservative view</option>
+          <option value="majority" ${(s.spouseHoursPolicy||'majority')==='majority'?'selected':''}>Standard / Majority view (recommended)</option>
+          <option value="conservative" ${s.spouseHoursPolicy==='conservative'?'selected':''}>Conservative view (ask your CPA)</option>
         </select>
       </div>
     </div>
-    <div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:8px;padding:10px 12px;font-size:11px;color:#92400E;line-height:1.6;margin-bottom:4px;">
-      ⚠ Spouse hours do <strong>not</strong> count toward your 750-hr or 50% REPS tests — those are individual. Spouse hours <strong>do</strong> apply to per-property MP tests under §469(h)(5).
+    <div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:8px;padding:10px 12px;font-size:11px;color:#92400E;line-height:1.6;">
+      ⚠ Your spouse's hours do <strong>not</strong> count toward your personal 750-hour REPS test — only your own hours count for that. But spouse hours <strong>do</strong> help with the per-property material participation tests.
     </div>
-    ${expandToggle('tsp','Majority vs Conservative view explained','<strong>Majority view:</strong> spouse hours add to yours for every MP test, and the spouse is not treated as "any other individual" on the comparison side of Tests 3 &amp; 7. This is the dominant practitioner reading of §469(h)(5).<br><br><strong>Conservative view:</strong> spouse hours still add to yours, but are also counted on the "other individual" side of Tests 3 &amp; 7 — a more defensive position. Discuss with your CPA; no case or ruling squarely resolves this.')}
     `:''}
   </div>
 
-  <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;margin-bottom:12px;">
+  <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;">
+    <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:4px;">Have you filed a grouping election? <span style="font-size:11px;font-weight:400;color:#94A3B8;">(most people: No)</span></div>
+    <div style="font-size:12px;color:#64748B;margin-bottom:10px;">A grouping election lets you combine the hours from all your LTR properties into one pool, making it easier to qualify for material participation. Most new investors don't have this — check with your CPA before turning it on.</div>
     <label class="tog-row" style="margin-bottom:0;">
       <input type="checkbox" ${s.groupingElection?'checked':''} data-chg="setBool" data-key="groupingElection"/>
-      <div><div class="tog-lbl">§469(c)(7)(A) Grouping election filed for ${activeYear}</div><div style="font-size:11px;color:#64748B;margin-top:1px;">Treat all LTR properties as one combined activity</div></div>
+      <div><div class="tog-lbl">Yes, I filed a §469(c)(7)(A) grouping election for ${activeYear}</div></div>
     </label>
-    ${expandToggle('tge','About the grouping election','Pools all LTR hours into one activity, making MP easier to achieve. Must be filed on a timely filed original return — cannot be easily revoked. If you missed the deadline, see Rev. Proc. 2011-34. Consult your CPA before enabling. STR properties cannot be grouped with LTRs. Treas. Reg. §1.469-9(g).')}
-  </div>
-
-  <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#14B8A6;margin:14px 0 8px;padding-bottom:6px;border-bottom:1.5px solid #CCFBF1;">🏖 Short-Term Rentals / STR</div>
-
-  <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;">
-    <label class="tog-row" style="margin-bottom:0;">
-      <input type="checkbox" ${s.includeSTRinREPS===true?'checked':''} data-chg="setBool" data-key="includeSTRinREPS"/>
-      <div><div class="tog-lbl">Include STR hours in REPS 750-hr total</div><div style="font-size:11px;color:#64748B;margin-top:1px;">Only applies if you materially participate in each STR</div></div>
-    </label>
-    ${expandToggle('tstr','Adverse case law — read before enabling','The Tax Court held in <em>Bailey v. Comm\'r</em> (T.C. Memo 2001-296) that STR hours do <strong>not</strong> count toward the §469(c)(7)(B)(ii) 750-hour test because STRs are not "rental" activities under §469. Some practitioners take the contrary view under §469(c)(7)(C). This toggle should generally be <strong>off</strong> unless your CPA advises otherwise.')}
+    ${expandToggle('What a grouping election does','Pools all LTR hours into one combined activity, making material participation easier to achieve. Must be filed on a timely filed original tax return and cannot easily be revoked. If you missed the deadline, see Rev. Proc. 2011-34. STR properties cannot be grouped with LTRs. Treas. Reg. §1.469-9(g).')}
   </div>
 </div>
 
-<!-- ── TAX CONTEXT (collapsed) ── -->
+<!-- STR SECTION -->
+<div class="card card-mb" style="border-top:3px solid #14B8A6;">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+    <span style="font-size:22px;">🏖</span>
+    <div>
+      <div style="font-size:15px;font-weight:900;color:#0D1F3C;">I have Short-Term Rentals</div>
+      <div style="font-size:12px;color:#64748B;">Airbnb, VRBO, or any property where guests typically stay 7 days or less</div>
+    </div>
+  </div>
+  <div style="background:#F0FDFA;border-radius:8px;padding:10px 14px;font-size:12px;color:#0E7490;margin-bottom:18px;line-height:1.6;">
+    💡 Good news — you don't need REPS for the STR strategy. As long as your average guest stays 7 days or less AND you personally manage the property more than anyone else, your losses can offset your regular income.
+  </div>
+
+  <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;margin-bottom:12px;">
+    <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:4px;">Did you personally stay at any of your rental properties this year?</div>
+    <div style="font-size:12px;color:#64748B;margin-bottom:10px;">If you, your family, or anyone who paid less than full price stayed at your rental, enter the total days here. If your rental is purely for paying guests and you never personally use it, enter 0 or leave blank.</div>
+    <input type="number" min="0" step="1" value="${s.personalUseDays||''}" placeholder="0 — enter 0 if you never personally stayed there" data-chg="setNum" data-key="personalUseDays" style="width:100%;padding:10px 13px;border-radius:8px;border:1.5px solid #CBD5E1;font-size:13px;font-family:inherit;color:#0D1F3C;background:#fff;outline:none;"/>
+    <div style="font-size:11px;color:#94A3B8;margin-top:6px;">Counts any stays by you, spouse, kids, parents, siblings, or friends who didn't pay full market rate.</div>
+    ${expandToggle('Why personal use days matter','If personal use exceeds the greater of 14 days or 10% of your total rental days, the IRS treats the property as a "residence" under §280A. This caps rental loss deductions at gross rental income — regardless of REPS or material participation status. Consult your CPA; §280A interacts with §469 in complex ways.')}
+  </div>
+
+  <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;">
+    <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:4px;">Should STR hours count toward your REPS 750-hour total? <span style="font-size:11px;font-weight:400;color:#94A3B8;">(most people: No)</span></div>
+    <div style="font-size:12px;color:#64748B;margin-bottom:10px;">This only applies if you have BOTH long-term and short-term rentals. Most people leave this off — check with your CPA before turning it on.</div>
+    <label class="tog-row" style="margin-bottom:0;">
+      <input type="checkbox" ${s.includeSTRinREPS===true?'checked':''} data-chg="setBool" data-key="includeSTRinREPS"/>
+      <div><div class="tog-lbl">Include my STR hours in the REPS 750-hour count</div></div>
+    </label>
+    ${expandToggle('Why this is off by default','The Tax Court held in Bailey v. Comm\'r (T.C. Memo 2001-296) that STR hours do not count toward the §469(c)(7)(B)(ii) 750-hour REPS test because STRs are not "rental" activities under §469. Some practitioners take the contrary view. Leave this off unless your CPA specifically advises otherwise.')}
+  </div>
+</div>
+
+<!-- FOR EVERYONE -->
+<div class="card card-mb">
+  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">📋 For Everyone</div>
+  <div style="font-size:12px;color:#64748B;margin-bottom:18px;">These settings apply regardless of your rental type.</div>
+  <div class="field">
+    <label class="fl">Filing Status</label>
+    <select data-chg="setStrRender" data-key="filingStatus">
+      ${Object.keys(FILING_LABELS).map(k=>`<option value="${k}" ${(s.filingStatus||'MFJ')===k?'selected':''}>${FILING_LABELS[k]}</option>`).join('')}
+    </select>
+    <div class="hint">Used to show your Net Investment Income Tax (NIIT) threshold. Your current threshold: <strong>$${(NIIT_THRESHOLDS[s.filingStatus||'MFJ']||250000).toLocaleString()}</strong> MAGI.</div>
+    ${expandToggle('About the NIIT and your rental income','The 3.8% Net Investment Income Tax applies to the lesser of your net investment income or MAGI above your threshold. REPS status alone does not remove NIIT — you must also materially participate in the rental as a §162 trade or business. Discuss with your CPA. IRC §1411.')}
+  </div>
+</div>
+
+<!-- TAX CONTEXT collapsed -->
 <details style="margin-bottom:14px;">
   <summary style="background:#fff;border:.5px solid #CCFBF1;border-radius:12px;padding:16px 18px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;">
-    <div><div style="font-size:14px;font-weight:800;color:#0D1F3C;">📚 Tax Context &amp; Important Notes</div><div style="font-size:12px;color:#64748B;margin-top:2px;">Suspended PALs, NIIT, community property, §461(l) — read when relevant</div></div>
+    <div><div style="font-size:14px;font-weight:800;color:#0D1F3C;">📚 Advanced Tax Notes</div><div style="font-size:12px;color:#64748B;margin-top:2px;">Suspended PALs, §461(l) cap, community property, at-risk rules — for when you need it</div></div>
     <span style="font-size:18px;color:#14B8A6;">›</span>
   </summary>
   <div style="background:#fff;border:.5px solid #CCFBF1;border-top:none;border-radius:0 0 12px 12px;padding:18px;">
-    <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:6px;">Suspended Passive Activity Losses</div>
-    <div style="font-size:12px;color:#64748B;line-height:1.7;margin-bottom:14px;">RepsRecord tracks current-year qualification only. Prior-year suspended PAL carryforwards are separate — qualifying as a REPS in a later year does not automatically free them. They remain suspended until the activity is disposed of. Your CPA should review your carryforward schedule when you first qualify. IRC §469(b).</div>
+    <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:6px;">Suspended Passive Activity Losses (PAL Carryforwards)</div>
+    <div style="font-size:12px;color:#64748B;line-height:1.7;margin-bottom:14px;">If your rentals generated losses in past years when you didn't qualify as a REPS, those losses were "suspended." Qualifying for REPS this year doesn't automatically free those old losses — they stay suspended until you sell the property or another triggering event occurs. Your CPA should review your carryforward schedule. IRC §469(b).</div>
     <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:6px;">§461(l) Excess Business Loss Cap</div>
-    <div style="font-size:12px;color:#64748B;line-height:1.7;margin-bottom:14px;">Even non-passive losses are capped each year — ${eblText(activeYear)}. Any excess carries forward as a net operating loss. RepsRecord documents your participation; your CPA applies this limit on your return.</div>
+    <div style="font-size:12px;color:#64748B;line-height:1.7;margin-bottom:14px;">Even after your losses become non-passive, there's a yearly cap on how much business loss can offset your other income — ${eblText(activeYear)}. Anything above that carries forward as a net operating loss. RepsRecord tracks your hours; your CPA handles this calculation on your return.</div>
     <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:6px;">Community Property States</div>
-    <div style="font-size:12px;color:#64748B;line-height:1.7;margin-bottom:14px;">Arizona, California, Idaho, Louisiana, Nevada, New Mexico, Texas, Washington, and Wisconsin. The §469(c)(7) 750-hour and 50% tests are applied per-taxpayer regardless of community property treatment. Consult your tax professional.</div>
+    <div style="font-size:12px;color:#64748B;line-height:1.7;margin-bottom:14px;">If you live in AZ, CA, ID, LA, NV, NM, TX, WA, or WI — your state's property laws may interact with REPS rules in non-obvious ways. The 750-hour and 50% tests are always individual (per-taxpayer), regardless of community property treatment. Consult your tax professional.</div>
     <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:6px;">§465 At-Risk &amp; Basis Limits</div>
-    <div style="font-size:12px;color:#64748B;line-height:1.7;">Losses are further limited to amounts at risk (§465) and your basis in the property or entity (§704(d)/§1366). These apply after the passive-activity analysis and are outside RepsRecord's scope.</div>
+    <div style="font-size:12px;color:#64748B;line-height:1.7;">Even non-passive losses are further limited to what you have "at risk" in the deal (§465) and your basis in the property (§704(d)/§1366). These limits are outside RepsRecord's scope — your CPA applies them on your return.</div>
   </div>
 </details>
 
-<!-- ── DANGER ZONE ── -->
+<!-- DANGER ZONE -->
 <div class="card" style="background:#FEF2F2;border-color:#FECACA;">
   <div style="font-size:14px;font-weight:800;color:#991B1B;margin-bottom:16px;">⚠ Danger Zone</div>
   <div style="display:flex;flex-direction:column;gap:16px;">
