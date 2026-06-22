@@ -301,8 +301,8 @@ const SK='repsrecord_v1';
 const CUR_YEAR=new Date().getFullYear();
 const YEARS=[CUR_YEAR-3,CUR_YEAR-2,CUR_YEAR-1,CUR_YEAR];
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const REPS_CATS=['— General REPS Hours (Real Estate Professional Activity)','Acquisition & Due Diligence','Property Management','Leasing & Marketing','Maintenance & Repairs','Construction & Development','Financial & Accounting','Legal & Compliance','Tenant Communication','Contractor Coordination','Education & Research (must support active operations — not investor monitoring)','Travel (property-related, active purpose)','Property Selling','Other Qualifying Activity'];
-const STR_CATS=['— Material Participation Hours (STR Active Management)','Guest Communication','Booking & Reservation Management','Check-in / Check-out','Cleaning Coordination','Maintenance & Repairs','Marketing & Listing Management','Financial & Accounting','Furnishing & Setup','Travel (STR property)','Guest Services & Concierge','Other STR Activity'];
+const REPS_CATS=['— Select activity type —','Acquisition & Due Diligence','Property Management','Leasing & Marketing','Maintenance & Repairs','Construction & Development','Financial & Accounting','Legal & Compliance','Tenant Communication','Contractor Coordination','Education & Research (active operations only)','Travel (property-related)','Property Selling','Other Qualifying Activity'];
+const STR_CATS=['— Select activity type —','Guest Communication','Booking & Reservation Management','Check-in / Check-out','Cleaning Coordination','Maintenance & Repairs','Marketing & Listing Management','Financial & Accounting','Furnishing & Setup','Travel (STR property)','Guest Services & Concierge','Other STR Activity'];
 const NAV=[{id:'dashboard',ic:'📊',label:'Dashboard'},{id:'properties',ic:'🏠',label:'Properties'},{id:'log',ic:'⏱',label:'Log Time'},{id:'mp',ic:'✅',label:'Do You Qualify?'},{id:'reports',ic:'📋',label:'Audit Report'},{id:'divider'},{id:'ltr',ic:'🏡',label:'REPS Rules'},{id:'str',ic:'🏖',label:'STR Rules'},{id:'settings',ic:'⚙️',label:'Settings'}];
 
 let state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:false,personalUseDays:0,filingStatus:'MFJ',spouseHoursPolicy:'majority'},properties:[],entries:[],manualMP:{},priorYearMP:{}};
@@ -2222,7 +2222,8 @@ ${sps.length===0&&ltrs.length===0?`
 <div class="empty">
   <div class="empty-ic">✅</div>
   <div style="font-size:15px;font-weight:700;color:#0D1F3C;margin-bottom:8px;">No properties yet</div>
-  <div style="font-size:13px;color:#64748B;margin-bottom:16px;">Add your properties first, then come back here to see if you qualify.</div>
+  <div style="font-size:13px;color:#64748B;margin-bottom:8px;line-height:1.6;">This page automatically checks whether your rental activity qualifies for the <strong>STR tax exception</strong> or <strong>Real Estate Professional Status (REPS)</strong> — which can let you use your rental losses to offset your W-2 or other income.</div>
+  <div style="font-size:13px;color:#64748B;margin-bottom:16px;">Add your properties first, then come back here to see where you stand.</div>
   <a href="#" data-act="addPropType" data-proptype="STR" data-prevent="1" style="display:inline-block;background:#14B8A6;color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:10px 20px;border-radius:8px;">+ Add a Property →</a>
 </div>`:''}
 
@@ -2304,7 +2305,7 @@ function vReports(){
   return`
 <div class="ph">
   <div class="ph-row">
-    <div><h1 class="pg-title">Audit Report <span style='font-size:13px;font-weight:400;color:#64748B;'>/ Contemporaneous Activity Log</span></h1><div class="pg-sub">IRC §469(c)(7) REPS &amp; Temp. Reg. §1.469-5T STR — Tax Year ${activeYear} — Prepared for IRS substantiation</div></div>
+    <div><h1 class="pg-title">Audit Report <span style='font-size:13px;font-weight:400;color:#64748B;'>/ Real-Time Hour Log</span></h1><div class="pg-sub">IRC §469(c)(7) REPS &amp; Temp. Reg. §1.469-5T STR — Tax Year ${activeYear} — Prepared for IRS substantiation</div></div>
     <div class="top-acts" style="display:flex;gap:8px;">
       <button class="btn btn-outline btn-sm" data-act="printPage">🖨 Print</button>
       <button class="btn btn-teal btn-sm" data-act="exportXLSX">📥 Export to Excel</button>

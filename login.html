@@ -28,6 +28,10 @@ label.fl{display:block;font-size:10px;font-weight:700;text-transform:uppercase;l
 .field{margin-bottom:16px;}
 .field input{width:100%;padding:11px 13px;border-radius:9px;border:1.5px solid #CBD5E1;font-size:15px;font-family:inherit;color:#0D1F3C;background:#F8FAFC;outline:none;transition:border-color .15s,box-shadow .15s;}
 .field input:focus{border-color:#14B8A6;box-shadow:0 0 0 3px rgba(20,184,166,.18);background:#fff;}
+.pw-wrap{position:relative;}
+.pw-wrap input{padding-right:42px;}
+.pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94A3B8;font-size:16px;padding:2px;line-height:1;}
+.pw-toggle:hover{color:#64748B;}
 .hint{font-size:11px;color:#94A3B8;margin-top:5px;line-height:1.5;}
 .btn{width:100%;padding:12px;border-radius:10px;border:none;cursor:pointer;font-size:15px;font-weight:800;font-family:inherit;transition:opacity .15s,background .15s;}
 .btn:disabled{opacity:.6;cursor:default;}
@@ -79,7 +83,10 @@ label.fl{display:block;font-size:10px;font-weight:700;text-transform:uppercase;l
         </div>
         <div class="field">
           <label class="fl" for="password">Password</label>
-          <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Your password"/>
+          <div class="pw-wrap">
+            <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Your password"/>
+            <button type="button" class="pw-toggle" onclick="togglePw('password',this)" tabindex="-1" aria-label="Show password">👁</button>
+          </div>
         </div>
         <div class="row-between">
           <button id="forgot-link" class="link" type="button">Forgot password?</button>
@@ -105,12 +112,18 @@ label.fl{display:block;font-size:10px;font-weight:700;text-transform:uppercase;l
         </div>
         <div class="field">
           <label class="fl" for="signup-password">Password</label>
-          <input id="signup-password" name="new-password" type="password" autocomplete="new-password" placeholder="At least 8 characters"/>
+          <div class="pw-wrap">
+            <input id="signup-password" name="new-password" type="password" autocomplete="new-password" placeholder="At least 8 characters"/>
+            <button type="button" class="pw-toggle" onclick="togglePw('signup-password',this)" tabindex="-1" aria-label="Show password">👁</button>
+          </div>
           <div class="hint">At least 8 characters — you'll use this to log in each time.</div>
         </div>
         <div class="field">
           <label class="fl" for="signup-password2">Confirm password</label>
-          <input id="signup-password2" name="confirm-password" type="password" autocomplete="new-password" placeholder="Same password again"/>
+          <div class="pw-wrap">
+            <input id="signup-password2" name="confirm-password" type="password" autocomplete="new-password" placeholder="Same password again"/>
+            <button type="button" class="pw-toggle" onclick="togglePw('signup-password2',this)" tabindex="-1" aria-label="Show password">👁</button>
+          </div>
         </div>
         <button id="signup-btn" class="btn btn-teal" type="submit">Create account &amp; start trial</button>
       </form>
@@ -141,6 +154,16 @@ label.fl{display:block;font-size:10px;font-weight:700;text-transform:uppercase;l
     </div>
 
   </div>
+  <script>
+  function togglePw(id, btn) {
+    const input = document.getElementById(id);
+    if (!input) return;
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    btn.textContent = show ? '🙈' : '👁';
+    btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+  }
+  </script>
   <script src="login-auth.js"></script>
 </body>
 </html>
