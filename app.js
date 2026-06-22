@@ -652,10 +652,7 @@ function renderNav(){
     if(n.id==='divider')return`<div role="separator" style="height:.5px;background:#1E3A5F;margin:8px 10px;"></div>`;
     const isActive=view===n.id;
     return`<div class="ni${isActive?' active':''}" role="menuitem" tabindex="0" aria-current="${isActive?'page':'false'}" aria-label="${n.label}" data-act="nav" data-target="${n.id}" data-kd="activate"><span class="ni-ic" aria-hidden="true">${n.ic}</span>${n.label}</div>`;
- }).join('')+(function(){
-    const emailHtml=_sbUser?'<div style="font-size:11px;color:#7C93B8;margin-bottom:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+esc(_sbUser.email||'')+'">✉ '+esc(_sbUser.email||'')+'</div>':'';
-    return '<div style="margin-top:auto;padding:12px 10px 0;border-top:1px solid #1E3A5F;">'+emailHtml+'<div class="ni" role="menuitem" tabindex="0" data-act="signOut" data-kd="activate" style="color:#F87171;"><span class="ni-ic" aria-hidden="true">🚪</span>Sign out</div></div>';
-  })();
+  }).join('');
 }
 function updateSB(){
   const r=calcREPS(),pct=Math.min(r.rh/750*100,100);
