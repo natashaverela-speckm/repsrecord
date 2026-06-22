@@ -833,19 +833,22 @@ document.addEventListener('click',function(e){
 </script>
 <script>
 // ── Hash anchor routing — scroll to section on direct URL load ──
-// e.g. repsrecord.com/#pricing scrolls to the pricing section
 (function(){
   function scrollToHash(hash){
-    if(!hash)return;
-    const el=document.querySelector(hash);
+    if(!hash||hash==='#')return;
+    var el=document.querySelector(hash);
     if(!el)return;
-    // Small delay so the page fully renders before scrolling
-    setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'start'}),120);
+    el.scrollIntoView({behavior:'smooth',block:'start'});
   }
-  // On page load
-  if(window.location.hash)scrollToHash(window.location.hash);
-  // On hash change (e.g. browser back/forward)
-  window.addEventListener('hashchange',()=>scrollToHash(window.location.hash));
+  var hash=window.location.hash;
+  if(hash){
+    // First attempt on load, second at 700ms to beat Vimeo/embed layout shifts
+    window.addEventListener('load',function(){
+      scrollToHash(hash);
+      setTimeout(function(){scrollToHash(hash);},700);
+    });
+  }
+  window.addEventListener('hashchange',function(){scrollToHash(window.location.hash);});
 })();
 </script>
 </body>
