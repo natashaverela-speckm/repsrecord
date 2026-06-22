@@ -2013,144 +2013,154 @@ async function delBooking(pid,bid){
 function vMP(){
   const sps=state.properties.filter(p=>p.type==='STR');
   const ltrs=state.properties.filter(p=>p.type==='LTR');
-  return`
-<div class="ph"><h1 class="pg-title">Material Participation Tests</h1><div class="pg-sub">All 7 tests under Temp. Reg. §1.469-5T, evaluated automatically for each STR property and for your long-term rentals. Passing any one test makes that activity’s losses non-passive.</div></div>
+  const grouped=!!state.settings.groupingElection;
 
-<div style="background:#F0FDFA;border:1px solid #CCFBF1;border-left:4px solid #14B8A6;border-radius:12px;padding:20px 22px;margin-bottom:20px;">
-  <div style="font-size:13px;font-weight:800;color:#0D1F3C;margin-bottom:10px;">📊 How this page works</div>
-<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:10px;padding:11px 14px;margin-bottom:16px;font-size:12px;color:#1E40AF;line-height:1.7;">
-  📖 <strong>Key Terms:</strong> <strong>SPA</strong> = Significant Participation Activity (100–499 hrs in a single activity per §1.469-5T(a)(4)). <strong>PSA</strong> = Personal Service Activity (relevant to Test 6 — does not apply to most STRs; applies to medical, law, engineering, etc.). <strong>MP</strong> = Material Participation.
+  // ── Plain-English test descriptions ──
+  const TEST_PLAIN=[
+    {id:1,q:'Did YOU work more than 500 hours on this property this year?',hint:'This is the easiest test to understand — if you personally clocked 500+ hours managing, maintaining, or operating this property, you pass.',auto:true},
+    {id:2,q:'Were you basically the only person who worked on this property?',hint:'If a cleaner, co-host, or property manager also put in significant time, this test probably doesn\'t apply to you. It\'s for solo operators only.',auto:false},
+    {id:3,q:'Did you work more than 100 hours AND more than any other single person?',hint:'This is the most common test for STR owners. If your cleaner works 3 hrs/week (~156 hrs/yr), you just need to work more than 156 hours AND more than 100 hours total.',auto:true},
+    {id:4,q:'Do you have multiple activities each taking 100–499 hours, totaling over 500 hours combined?',hint:'This is an advanced test for people juggling multiple investment activities. Rarely applies to typical STR owners. Marked manually.',auto:false},
+    {id:5,q:'Did you materially participate in this property in at least 5 of the last 10 years?',hint:'If you\'ve been actively managing this property for years, you may qualify on history alone — even if this year was light.',auto:false},
+    {id:6,q:'Was this a professional service business in any 3 prior years?',hint:'This almost never applies to rental properties. It\'s designed for medical practices, law firms, etc. You can ignore this for most STRs.',auto:false},
+    {id:7,q:'Did you participate regularly and substantially — and more than any paid manager?',hint:'This catches active owners who don\'t hit 500 hours but are clearly running the show. Requires 100+ hours minimum. If you pay a co-host or PM to manage, this test is NOT available to you.',auto:true},
+  ];
+
+  function renderTestRow(t,pid,ph,p,manualId){
+    const plain=TEST_PLAIN.find(x=>x.id===t.id)||{q:t.label,hint:t.desc};
+    const policy=(state.settings&&state.settings.spouseHoursPolicy)||'majority';
+    const ownerEff=ph.owner+(ph.spouse||0);
+    const mo=policy==='conservative'?Math.max(ph.spouse||0,p.otherHours||0):(p.otherHours||0);
+    const paid=!!p.otherHoursCompensated&&(p.otherHours||0)>0;
+
+    let statusBadge='';
+    let statusNote='';
+
+    if(t.met){
+      statusBadge=`<span style="background:#D1FAE5;color:#065F46;font-size:11px;font-weight:800;padding:3px 10px;border-radius:99px;">✓ Yes — you pass this test</span>`;
+    } else if(!t.auto){
+      statusBadge=`<span style="background:#F0FDFA;color:#64748B;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;">Mark manually below</span>`;
+    } else {
+      statusBadge=`<span style="background:#FEF3C7;color:#92400E;font-size:11px;font-weight:700;padding:3px 10px;border-radius:99px;">Not yet</span>`;
+    }
+
+    if(t.auto&&!t.met&&t.id===1){
+      statusNote=`<div style="font-size:12px;color:#0E7490;margin-top:6px;">You have <strong>${Math.round(ownerEff)} hrs</strong> logged — need <strong>${Math.max(0,Math.ceil(500-ownerEff+0.01))} more hours</strong> to pass.</div>`;
+    }
+    if(t.auto&&!t.met&&t.id===3){
+      const need=Math.max(0,Math.ceil(100-ownerEff+0.01));
+      const behind=mo>0&&ownerEff<mo;
+      statusNote=`<div style="font-size:12px;color:#0E7490;margin-top:6px;">You have <strong>${Math.round(ownerEff)} hrs</strong>.${need>0?` Need <strong>${need} more hours</strong> to hit the 100-hour floor.`:''}${behind?` Also need to outwork the highest other participant (<strong>${Math.round(mo)} hrs</strong>).`:' You already outwork everyone else ✓'}</div>`;
+    }
+    if(t.auto&&!t.met&&t.id===7&&paid){
+      statusNote=`<div style="font-size:12px;color:#991B1B;margin-top:6px;background:#FEF2F2;border-radius:6px;padding:6px 10px;">⛔ Not available — you have a paid co-host or property manager. This test is only for owners who run it themselves.</div>`;
+    }
+    if(t.auto&&t.met&&t.id===7){
+      statusNote=`<div style="font-size:12px;color:#B45309;margin-top:6px;background:#FFF7ED;border-radius:6px;padding:6px 10px;">⚠ Likely yes — but confirm you participate regularly and no paid manager handles more than you do.</div>`;
+    }
+
+    return`<div style="display:flex;gap:14px;padding:14px 0;border-bottom:.5px solid #F0FDFA;align-items:flex-start;">
+      <div style="width:32px;height:32px;border-radius:8px;background:${t.met?'#D1FAE5':'#F0FDFA'};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:${t.met?'#065F46':'#94A3B8'};flex-shrink:0;border:.5px solid ${t.met?'#6EE7B7':'#CCFBF1'};">${t.met?'✓':t.id}</div>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:4px;">${plain.q}</div>
+        <div style="font-size:12px;color:#64748B;line-height:1.5;margin-bottom:6px;">${plain.hint}</div>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          ${statusBadge}
+          <span style="font-size:10px;color:#CBD5E1;font-family:ui-monospace,monospace;">${t.cite}</span>
+        </div>
+        ${statusNote}
+        ${!t.auto?`<label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer;font-size:12px;font-weight:600;color:#0D1F3C;"><input type="checkbox" ${t.met?'checked':''} data-chg="togMP" data-id="${manualId}" data-tid="${t.id}" style="accent-color:#14B8A6;width:15px;height:15px;"/>Yes — I qualify for this test (I'll keep documentation)</label>`:''}
+      </div>
+    </div>`;
+  }
+
+  function renderPropertyCard(p,tests,ph,badge,gateMsg){
+    const any=tests.some(t=>t.met);
+    const best=tests.find(t=>t.met);
+    return`<div class="card card-mb">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;flex-wrap:wrap;gap:10px;">
+        <div>
+          <div style="font-size:16px;font-weight:800;color:#0D1F3C;">${esc(p.name||'Combined Activity')}</div>
+          <div style="font-size:12px;color:#64748B;margin-top:2px;">
+            Your hours: <strong>${Math.round(ph.owner)}</strong>${state.settings.spouseEnabled?` · ${state.settings.spouseName||'Spouse'}: <strong>${Math.round(ph.spouse||0)}</strong>`:''}${(p.otherHours||0)>0?` · Others logged: <strong>${Math.round(p.otherHours)}</strong>`:''}
+          </div>
+        </div>
+        ${badge}
+      </div>
+      ${any?`<div style="background:#ECFDF5;border-radius:8px;padding:10px 14px;font-size:13px;color:#065F46;margin-bottom:14px;font-weight:600;">🏆 You pass via <strong>Test ${best.id} — ${best.label}</strong>. Your losses on this property can be non-passive.</div>`:`<div style="background:#FFF7ED;border-radius:8px;padding:10px 14px;font-size:13px;color:#92400E;margin-bottom:14px;">⏳ You haven't passed any test yet for this property. Keep logging hours — Test 3 is usually the easiest to hit.</div>`}
+      ${gateMsg?`<div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:8px;padding:10px 12px;font-size:12px;color:#92400E;line-height:1.6;margin-bottom:14px;">${gateMsg}</div>`:''}
+      ${tests.map(t=>renderTestRow(t,p.id,ph,p,p.id||'__ltrgroup')).join('')}
+    </div>`;
+  }
+
+  return`
+<div class="ph">
+  <h1 class="pg-title">Do You Qualify?</h1>
+  <div class="pg-sub">For each property, the IRS requires you to personally manage it "enough." Pass just ONE of the 7 checks below and your losses become non-passive — meaning they can offset your regular income.</div>
 </div>
-  <div style="font-size:13px;color:#334155;line-height:1.8;">
-    The results on this page are calculated automatically from two sources:
-    <br><strong>1. Your logged hours</strong> — every time entry you log for an STR property counts toward your participation hours for that property.
-    <br><strong>2. "Other Participants' Hours"</strong> — the number you entered on each property card for your cleaner, co-host, or property manager. This is used for Tests 3 and 7.
-  </div>
-  <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;">
-    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 1</span> <span style="color:#64748B;">Your hours &gt; 500</span></div>
-    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 2</span> <span style="color:#64748B;">You = only participant</span></div>
-    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 3</span> <span style="color:#64748B;">Your hours &gt; 100 AND ≥ any one other individual's hours</span></div>
-    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 4</span> <span style="color:#64748B;">Each activity 100–499 hrs (SPA) + all SPAs aggregate &gt; 500 hrs</span></div>
-    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 5</span> <span style="color:#64748B;">Qualified in 5 of last 10 years</span></div>
-    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;"><span style="font-weight:700;color:#0D1F3C;">Test 6</span> <span style="color:#64748B;">Qualified 3 prior years (PSA — does not apply to most STRs)</span></div>
-    <div style="background:#fff;border-radius:8px;padding:10px 12px;border:1px solid #CCFBF1;grid-column:1/-1;"><span style="font-weight:700;color:#0D1F3C;">Test 7</span> <span style="color:#64748B;">Regular, continuous & substantial basis (facts & circumstances)</span></div>
-  </div>
-  <div style="margin-top:12px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E;">
-    ⚠️ <strong>Tests 5 and 6</strong> require historical data across multiple tax years. RepsRecord evaluates these based only on data logged within the app. You may manually override test results below if you have prior year documentation. Always consult your tax professional for final determination.
+
+<div style="background:#F0FDFA;border:1px solid #CCFBF1;border-left:4px solid #14B8A6;border-radius:12px;padding:16px 18px;margin-bottom:20px;">
+  <div style="font-size:13px;font-weight:800;color:#0D1F3C;margin-bottom:8px;">🧠 How to read this page</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px;color:#334155;line-height:1.7;">
+    <div>✅ <strong>Green = you pass this test.</strong> You only need ONE green test per property. Once you have one, you're done for that property.</div>
+    <div>⏳ <strong>Yellow = not yet.</strong> Keep logging hours — most people get there with Test 3 (100 hrs + more than your cleaner).</div>
+    <div>📋 <strong>Tests 2, 4, 5, 6</strong> can't be auto-calculated. Check the box if you qualify and keep supporting documents.</div>
+    <div>🕐 <strong>Hours come from your Log Time entries.</strong> The more specific your entries, the stronger your audit record.</div>
   </div>
 </div>
+
+${sps.length===0&&ltrs.length===0?`
+<div class="empty">
+  <div class="empty-ic">✅</div>
+  <div style="font-size:15px;font-weight:700;color:#0D1F3C;margin-bottom:8px;">No properties yet</div>
+  <div style="font-size:13px;color:#64748B;margin-bottom:16px;">Add your properties first, then come back here to see if you qualify.</div>
+  <a href="#" data-act="nav" data-target="properties" data-prevent="1" style="display:inline-block;background:#14B8A6;color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:10px 20px;border-radius:8px;">+ Add a Property →</a>
+</div>`:''}
 
 ${sps.length>0?`
-<h2 class="sec-lbl" style="margin-bottom:12px;">🏖 Short-Term Rental Properties — Material Participation Tests</h2>
+<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#14B8A6;margin-bottom:12px;padding-bottom:6px;border-bottom:1.5px solid #CCFBF1;">🏖 Short-Term Rentals — Material Participation</div>
+<div style="background:#F0FDFA;border-radius:8px;padding:10px 14px;font-size:12px;color:#0E7490;margin-bottom:14px;line-height:1.6;">For your STRs to get the tax exception, guests must stay an average of 7 days or less AND you must pass one of the tests below. Both conditions are required.</div>
 ${sps.map(p=>{
-  const ph=pH(p.id),ts=mpT(p.id),any=ts.some(t=>t.met);
-  const gate=strGate(p),q=strQualifies(p);
-  const badgeSpan=q==='yes'
-    ?'<span class="badge b-met" style="font-size:12px;padding:5px 13px;">✅ Qualifies (≤7-day + MP)</span>'
+  const ph=pH(p.id);
+  const ts=mpT(p.id);
+  const any=ts.some(t=>t.met);
+  const q=strQualifies(p);
+  const gate=strGate(p);
+  const badge=q==='yes'
+    ?`<span style="background:#D1FAE5;color:#065F46;font-size:12px;font-weight:800;padding:5px 14px;border-radius:99px;">✅ Fully qualifies</span>`
     :any
-      ?'<span class="badge" style="font-size:12px;padding:5px 13px;background:#FEF3C7;color:#92400E;">'+(q==='conditional'?'⚠ MP met · 8–30-day avg':'⚠ MP met · period gate not met')+'</span>'
-      :'<span class="badge b-no" style="font-size:12px;padding:5px 13px;">❌ Does Not Currently Qualify</span>';
-  const gateMsg=any&&q!=='yes'?(gate==='services'
-      ?'Average rental period is 8–30 days. This property is non-rental <strong>only if significant personal services are provided</strong> (Reg. §1.469-1T(e)(3)(ii)(B)) — material participation alone is not enough.'
-      :gate==='rental'
-      ?'Average rental period exceeds 30 days, so the STR exception does not apply. These losses need REPS for non-passive treatment.'
-      :'Set this property\u2019s average rental period (use the Booking Log) to confirm the ≤7-day STR exception — material participation alone does not make losses non-passive.'):'';
-  return`<div class="card card-mb">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div>
-        <div style="font-size:16px;font-weight:800;color:#0D1F3C;">${esc(p.name)}${p.avgRentalDays?` <span style="font-size:11px;font-weight:600;color:${gate==='exempt'?'#10B981':'#F59E0B'};">· Avg ${p.avgRentalDays}d</span>`:''}</div>
-        <div style="font-size:12px;color:#64748B;margin-top:2px;">Your hours: <strong>${Math.round(ph.owner)}</strong>${state.settings.spouseEnabled?` · ${state.settings.spouseName||'Spouse'}: <strong>${Math.round(ph.spouse)}</strong>`:''}${p.otherHours>0?` · Others: <strong>${p.otherHours}</strong>`:''}</div>
-      </div>
-      ${badgeSpan}
-    </div>
-    ${gateMsg?`<div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;font-size:11.5px;color:#92400E;line-height:1.55;margin-bottom:14px;">${gateMsg}</div>`:''}
-    ${ts.map(t=>`
-    <div class="mp-row">
-      <div class="mp-num ${t.met?'met':'unm'}">${t.met?'✓':t.id}</div>
-      <div style="flex:1;">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <div class="mp-name">${t.name} — ${t.label}</div>
-          <span style="font-size:10px;color:#94A3B8;font-family:ui-monospace,monospace;padding:1px 6px;background:#F0FDFA;border-radius:4px;">${t.cite}</span>
-          ${t.met?(t.id===7?'<span style="font-size:11px;font-weight:700;color:#B45309;">✓ Likely met</span>':'<span style="font-size:11px;font-weight:700;color:#10B981;">✓ Met</span>'):''}
-        </div>
-        <div class="mp-desc">${t.desc}</div>
-        ${!t.auto?`<label class="mp-man"><input type="checkbox" ${t.met?'checked':''} data-chg="togMP" data-id="${p.id}" data-tid="${t.id}"/><span>Mark as met for ${activeYear} — requires supporting documentation</span></label>`:''}
-        ${t.auto&&!t.met&&t.id===3?`<div style="font-size:11px;color:#0F766E;margin-top:6px;">Need ${Math.max(0,Math.ceil(100-(ph.owner+(ph.spouse||0))+0.01))} more hours${(()=>{const mo=(state.settings.spouseHoursPolicy||'majority')==='conservative'?Math.max(ph.spouse||0,p.otherHours||0):(p.otherHours||0);return mo>0?' & must equal or exceed the highest-hour other participant ('+Math.round(mo)+' hrs)':'';})()}</div>`:''}
-        ${t.auto&&!t.met&&t.id===1?`<div style="font-size:11px;color:#0F766E;margin-top:6px;">Need ${Math.max(0,Math.ceil(500-(ph.owner+(ph.spouse||0))+0.01))} more hours for this property</div>`:''}
-        ${t.auto&&t.met&&t.id===7?`<div style="font-size:11px;color:#B45309;margin-top:6px;background:#FFF7ED;border:1px solid #FDE68A;border-radius:6px;padding:6px 9px;line-height:1.5;">⚠ Facts-and-circumstances test — the app checks only your hours. Confirm you participate on a regular, continuous, and substantial basis and that <strong>no other person is compensated to manage</strong> this property (§1.469-5T(b)(2)(ii)).</div>`:''}
-        ${t.auto&&!t.met&&t.id===7&&p.otherHoursCompensated&&(p.otherHours||0)>0?`<div style="font-size:11px;color:#991B1B;margin-top:6px;background:#FEF2F2;border:1px solid #FECACA;border-radius:6px;padding:6px 9px;line-height:1.5;">⛔ Test 7 unavailable: a paid co-host / property manager (${Math.round(p.otherHours)} hrs) is compensated to manage this property, which disqualifies the facts-and-circumstances test under §1.469-5T(b)(2)(ii). Use another test to qualify, or remove the paid-management flag if it no longer applies.</div>`:''}
-      </div>
-    </div>`).join('')}
-  </div>`;}).join('')}`:''}
+      ?`<span style="background:#FEF3C7;color:#92400E;font-size:12px;font-weight:700;padding:5px 14px;border-radius:99px;">${q==='conditional'?'⚠ Passes tests · check avg rental period':'⚠ Passes tests · avg rental period issue'}</span>`
+      :`<span style="background:#FEE2E2;color:#991B1B;font-size:12px;font-weight:700;padding:5px 14px;border-radius:99px;">Not qualifying yet</span>`;
+  const gateMsg=q!=='yes'&&any?(
+    gate==='services'?'Your average rental period is 8–30 days. You pass the participation tests, but this band also requires "significant personal services" — confirm with your CPA.'
+    :gate==='rental'?'Your average rental period is over 30 days. The STR exception doesn\'t apply here — you\'d need full REPS status instead.'
+    :gate==='unknown'?'You haven\'t set an average rental period yet. Go to Properties → edit this property and add it so we can confirm eligibility.':''
+  ):'';
+  return renderPropertyCard(p,ts,ph,badge,gateMsg);
+}).join('')}`:''}
 
-${ltrs.length>0?(function(){
-  const grouped=!!state.settings.groupingElection;
-  const heading='<h2 class="sec-lbl" style="margin-bottom:12px;margin-top:24px;">🏡 Long-Term Rental Properties — Material Participation</h2>';
-  // AUDIT FIX (Critical): REPS status (750-hr + 50%) is the GATEWAY, not the material-
-  // participation test. Under Reg. §1.469-9(e) an LTR is non-passive only if the taxpayer
-  // ALSO materially participates in it — per property, or in the single combined activity
-  // when a §469(c)(7)(A) grouping election is on file.
-  const intro='<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-left:4px solid #38BDF8;border-radius:12px;padding:16px 20px;margin-bottom:16px;font-size:13px;color:#1D4ED8;line-height:1.7;">'
-    +'ℹ️ <strong>REPS status is the gateway, not the finish line.</strong> Clearing the 750-hour and 50% tests removes the automatic-passive rule, but each long-term rental is non-passive <strong>only if you also materially participate in it</strong> (Reg. §1.469-9(e)). '
-    +(grouped
-      ?'Your <strong>§469(c)(7)(A) grouping election</strong> is on file, so all rentals are tested together as one activity below.'
-      :'Without a grouping election, each rental is tested separately. You can elect to treat all rentals as one activity in <a href="#" data-act="nav" data-target="settings" data-prevent="1" style="color:#1D4ED8;font-weight:700;">Settings</a>.')
-    +'</div>';
-  function row(t,owner,spouse,otherHrs,paid,manualId){
-    return `<div class="mp-row">
-      <div class="mp-num ${t.met?'met':'unm'}">${t.met?'✓':t.id}</div>
-      <div style="flex:1;">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-          <div class="mp-name">${t.name} — ${t.label}</div>
-          <span style="font-size:10px;color:#94A3B8;font-family:ui-monospace,monospace;padding:1px 6px;background:#F0FDFA;border-radius:4px;">${t.cite}</span>
-          ${t.met?(t.id===7?'<span style="font-size:11px;font-weight:700;color:#B45309;">✓ Likely met</span>':'<span style="font-size:11px;font-weight:700;color:#10B981;">✓ Met</span>'):''}
-        </div>
-        <div class="mp-desc">${t.desc}</div>
-        ${!t.auto?`<label class="mp-man"><input type="checkbox" ${t.met?'checked':''} data-chg="togMP" data-id="${manualId}" data-tid="${t.id}"/><span>Mark as met for ${activeYear} — requires supporting documentation</span></label>`:''}
-        ${t.auto&&!t.met&&t.id===1?`<div style="font-size:11px;color:#0F766E;margin-top:6px;">Need ${Math.max(0,Math.ceil(500-(owner+spouse)+0.01))} more hours</div>`:''}
-        ${t.auto&&!t.met&&t.id===3?`<div style="font-size:11px;color:#0F766E;margin-top:6px;">Need ${Math.max(0,Math.ceil(100-(owner+spouse)+0.01))} more hours${(()=>{const pol=(state.settings.spouseHoursPolicy||'majority')==='conservative'?Math.max(spouse||0,otherHrs||0):(otherHrs||0);return pol>0?' & must equal or exceed other participants ('+Math.round(pol)+' hrs)':'';})()}</div>`:''}
-        ${t.auto&&!t.met&&t.id===7&&paid?`<div style="font-size:11px;color:#991B1B;margin-top:6px;background:#FEF2F2;border:1px solid #FECACA;border-radius:6px;padding:6px 9px;line-height:1.5;">⛔ Test 7 unavailable: a compensated co-host / property manager disqualifies the facts-and-circumstances test (§1.469-5T(b)(2)(ii)). Use another test, or remove the paid-management flag if it no longer applies.</div>`:''}
-      </div>
-    </div>`;
-  }
-  if(grouped){
-    const g=mpGroupedLTR(), any=g.tests.some(t=>t.met);
-    const badgeSpan=any
-      ?'<span class="badge b-met" style="font-size:12px;padding:5px 13px;">✅ Materially participates (combined)</span>'
-      :'<span class="badge b-no" style="font-size:12px;padding:5px 13px;">❌ MP not yet met (combined)</span>';
-    return heading+intro+`<div class="card card-mb">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <div>
-          <div style="font-size:16px;font-weight:800;color:#0D1F3C;">Combined Rental Real Estate Activity <span style="font-size:11px;font-weight:600;color:#64748B;">· ${g.properties} propert${g.properties===1?'y':'ies'} grouped</span></div>
-          <div style="font-size:12px;color:#64748B;margin-top:2px;">Your hours: <strong>${Math.round(g.owner)}</strong>${state.settings.spouseEnabled?` · ${state.settings.spouseName||'Spouse'}: <strong>${Math.round(g.spouse)}</strong>`:''}${g.other>0?` · Others: <strong>${Math.round(g.other)}</strong>`:''} · <strong>Pooled: ${Math.round(g.ownerEff)}</strong></div>
-        </div>
-        ${badgeSpan}
-      </div>
-      ${!any?`<div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;font-size:11.5px;color:#92400E;line-height:1.55;margin-bottom:14px;">The grouping election pools your rental hours but does not by itself establish material participation. Meet at least one test below (most commonly Test 1 — more than 500 combined hours) or the grouped rental losses remain passive.</div>`:''}
-      ${g.tests.map(t=>row(t,g.owner,g.spouse,g.other,g.paidManager,LTR_GROUP_ID)).join('')}
-    </div>`;
-  }
-  return heading+intro+ltrs.map(p=>{
-    const ph=pH(p.id),ts=mpT(p.id),any=ts.some(t=>t.met);
-    const paid=!!p.otherHoursCompensated&&(p.otherHours||0)>0;
-    const badgeSpan=any
-      ?'<span class="badge b-met" style="font-size:12px;padding:5px 13px;">✅ Materially participates</span>'
-      :'<span class="badge b-no" style="font-size:12px;padding:5px 13px;">❌ MP not yet met</span>';
-    return `<div class="card card-mb">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <div>
-          <div style="font-size:16px;font-weight:800;color:#0D1F3C;">${esc(p.name)} <span class="badge b-amber" style="font-size:10px;">LTR</span></div>
-          <div style="font-size:12px;color:#64748B;margin-top:2px;">Your hours: <strong>${Math.round(ph.owner)}</strong>${state.settings.spouseEnabled?` · ${state.settings.spouseName||'Spouse'}: <strong>${Math.round(ph.spouse)}</strong>`:''}${p.otherHours>0?` · Others: <strong>${p.otherHours}</strong>`:''}</div>
-        </div>
-        ${badgeSpan}
-      </div>
-      ${!any?`<div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:8px;padding:8px 12px;font-size:11.5px;color:#92400E;line-height:1.55;margin-bottom:14px;">REPS status alone does not make this rental non-passive — meet at least one test below (most commonly Test 1 — more than 500 hours on this property).</div>`:''}
-      ${ts.map(t=>row(t,ph.owner,ph.spouse||0,p.otherHours||0,paid,p.id)).join('')}
-    </div>`;
-  }).join('');
-})():''}
-
-${state.properties.length===0?`<div class="empty"><div class="empty-ic">✅</div><div class="empty-tx">Add properties first to evaluate material participation. <a href="#" data-act="nav" data-target="properties" data-prevent="1" style="color:#14B8A6;text-decoration:none;font-weight:600;">Add a property →</a></div></div>`:''}`;
+${ltrs.length>0?`
+<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#38BDF8;margin-bottom:12px;padding-bottom:6px;border-bottom:1.5px solid #E0F7FA;margin-top:${sps.length>0?'24px':'0'};">🏡 Long-Term Rentals — Material Participation</div>
+<div style="background:#EFF6FF;border-radius:8px;padding:10px 14px;font-size:12px;color:#1E40AF;margin-bottom:14px;line-height:1.6;">For long-term rentals, REPS qualification (750 hrs + 50% test) removes the automatic passive rule — but each property still needs to pass one of these tests to make its losses non-passive. ${grouped?'Your grouping election combines all LTR hours into one pool below.':'Without a grouping election, each property is tested separately.'}</div>
+${grouped?(function(){
+  const g=mpGroupedLTR();
+  const any=g.tests.some(t=>t.met);
+  const best=g.tests.find(t=>t.met);
+  const badge=any
+    ?`<span style="background:#D1FAE5;color:#065F46;font-size:12px;font-weight:800;padding:5px 14px;border-radius:99px;">✅ Combined activity qualifies</span>`
+    :`<span style="background:#FEE2E2;color:#991B1B;font-size:12px;font-weight:700;padding:5px 14px;border-radius:99px;">Not qualifying yet</span>`;
+  const fakeProp={id:LTR_GROUP_ID,name:'All LTR Properties (Grouped)',otherHours:g.other,otherHoursCompensated:g.paidManager};
+  const fakePH={owner:g.owner,spouse:g.spouse||0};
+  return renderPropertyCard(fakeProp,g.tests,fakePH,badge,'');
+})():ltrs.map(p=>{
+  const ph=pH(p.id);
+  const ts=mpT(p.id);
+  const any=ts.some(t=>t.met);
+  const badge=any
+    ?`<span style="background:#D1FAE5;color:#065F46;font-size:12px;font-weight:800;padding:5px 14px;border-radius:99px;">✅ Qualifies</span>`
+    :`<span style="background:#FEE2E2;color:#991B1B;font-size:12px;font-weight:700;padding:5px 14px;border-radius:99px;">Not qualifying yet</span>`;
+  return renderPropertyCard(p,ts,ph,badge,'');
+}).join('')}`:''}`;
 }
 
 function togMP(pid,tid,val){if(!state.manualMP)state.manualMP={};if(!state.manualMP[pid])state.manualMP[pid]={};state.manualMP[pid][tid]=val;save();renderView();}
