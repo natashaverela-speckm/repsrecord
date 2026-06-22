@@ -2251,91 +2251,105 @@ ${ltrs.length?`
 // with clear statement that spouse hours do NOT count toward the taxpayer's REPS tests.
 function vSettings(){
   const s=state.settings;
+  function expandToggle(id,label,content){
+    return`<details style="margin-top:8px;"><summary style="font-size:12px;color:#0E7490;font-weight:600;cursor:pointer;list-style:none;display:flex;align-items:center;gap:4px;">ⓘ ${label}</summary><div style="margin-top:8px;padding:10px 12px;background:#F0FDFA;border-radius:8px;border:.5px solid #99F6E4;font-size:12px;color:#0F766E;line-height:1.7;">${content}</div></details>`;
+  }
   return`
-<div class="ph"><h1 class="pg-title">Settings</h1><div class="pg-sub">Configure your tax situation for accurate qualification tracking.</div></div>
+<div class="ph"><h1 class="pg-title">Settings</h1><div class="pg-sub">Configure your account and tax situation.</div></div>
+
 <div class="card card-mb">
-  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">Subscription &amp; Billing</div>
-  <div style="font-size:12px;color:#64748B;margin-bottom:14px;line-height:1.6;">Update your payment method, view invoices, or cancel your subscription. Opens a secure Stripe page in a new tab.</div>
+  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">💳 Account &amp; Billing</div>
+  <div style="font-size:12px;color:#64748B;margin-bottom:14px;">Manage your subscription, update payment, or view invoices.</div>
   <a href="https://billing.stripe.com/p/login/bJedR19mL8bK7rY3nuebu00" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#0D1F3C;color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:10px 18px;border-radius:8px;">Manage subscription</a>
 </div>
+
 <div class="card card-mb">
-  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">50% Personal Services Test — IRC §469(c)(7)(B)(i)</div>
-  <div style="font-size:12px;color:#64748B;margin-bottom:14px;line-height:1.6;">Enter your total hours in non-real-estate activities this year (W-2, other businesses). Used to calculate whether RE hours exceed 50% of ALL personal services.</div>
-  <div class="field"><label class="fl">Non-Real Estate Hours This Year</label><input type="number" min="0" step="1" value="${s.nonREPSHours||''}" placeholder="0" data-chg="setNum" data-key="nonREPSHours"/><div class="hint">Enter your hours in W-2 jobs, other businesses, or any non-real-estate activity. Example: a full-time W-2 job = ~2,080 hrs/yr (52 weeks × 40 hrs). Only YOUR hours count — not a spouse's W-2.</div></div>
-</div>
-<div class="card card-mb">
-  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:10px;">Spouse / Co-Participant Tracking</div>
-  <div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;color:#92400E;line-height:1.7;">
-    <strong>⚠ Important — REPS qualification is individual:</strong> A spouse's hours do <strong>not</strong> count toward <em>your</em> 750-hour test or 50% personal services test (IRC §469(c)(7)(B)). These are tested per-taxpayer, not jointly.
-    <br><br>
-    Spouse hours <strong>do</strong> apply to per-property Material Participation testing under §469(h)(5) and Temp. Reg. §1.469-5T(f)(3):
-    <ul style="margin-top:6px;padding-left:16px;line-height:1.9;">
-      <li>Test 1 (500 hrs) — spouse hours combine with yours</li>
-      <li>Tests 5 &amp; 6 — prior-year history tests apply jointly</li>
-      <li>Tests 3 &amp; 7 — <strong>majority view:</strong> spouse hours combine with yours and are excluded from "any other individual"; <strong>conservative view</strong> (used by some practitioners): spouse may be treated as a third-party participant. Discuss with your CPA — your position should align with your filing status.</li>
-    </ul>
-    <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #FCD34D;">One nuance on the 750-hour test: spouse hours are <strong>never added</strong> to your 750 total, but under §469(h)(5) they can help establish your <em>material participation</em> in a real property trade or business — and the 750 counts only your hours in businesses in which you materially participate. So a spouse's hours can indirectly help <em>qualify the activity</em> whose hours you then count, without ever counting toward the 750 themselves.</div>
-    <span style="color:#B45309;font-weight:600;display:block;margin-top:8px;">Do not rely on spouse hours to help you qualify for REPS qualification itself.</span>
-  </div>
-  <label class="tog-row"><input type="checkbox" ${s.spouseEnabled?'checked':''} data-chg="setBoolRender" data-key="spouseEnabled"/><span class="tog-lbl">Enable spouse hour tracking</span></label>
-  ${s.spouseEnabled?`<div class="field"><label class="fl">Spouse Name</label><input value="${esc(s.spouseName||'')}" placeholder="First name or initials" data-chg="setStr" data-key="spouseName"/></div>`:''}
-  ${s.spouseEnabled?`
-  <div class="field">
-    <label class="fl">Tests 3 &amp; 7 — Spouse Hours Treatment</label>
-    <select data-chg="setStrRenderSB" data-key="spouseHoursPolicy">
-      <option value="majority" ${(s.spouseHoursPolicy||'majority')==='majority'?'selected':''}>Majority view — spouse hours combine with yours per §469(h)(5) (regulatory position · default)</option>
-      <option value="conservative" ${s.spouseHoursPolicy==='conservative'?'selected':''}>Conservative — spouse also counted as a competing participant in Tests 3 &amp; 7 (defensive)</option>
-    </select>
-    <div class="hint">
-      <strong>How spouse hours are counted (both views):</strong> per IRC §469(h)(5) and §1.469-5T(f)(3), a spouse's participation is always added to your own hours for every test — including Test 1's 500-hour floor and the 100-hour floors of Tests 3 &amp; 7. The two views differ only on the "more than any other individual" comparison in Tests 3 &amp; 7.<br>
-      <strong>Majority view (default):</strong> the spouse is treated as you, so spouse hours are not also counted on the "other individual" side. This is the dominant practitioner reading of §469(h)(5).<br>
-      <strong>Conservative view:</strong> the spouse's hours are additionally compared against you on the others' side of Tests 3 &amp; 7 — a more defensive position. Confirm the position you take with your CPA; it should align with your filing status.<br>
-      <strong>Note — unsettled:</strong> no case or ruling squarely resolves whether a spouse is "any other individual" for Tests 3 &amp; 7. Both readings appear in practice, so this remains a judgment call for you and your CPA.
+  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">📋 Your Tax Situation</div>
+  <div style="font-size:12px;color:#64748B;margin-bottom:18px;">These inputs affect how your qualification tests are calculated.</div>
+  <div class="g2">
+    <div class="field">
+      <label class="fl">Non-Real Estate Hours This Year</label>
+      <input type="number" min="0" step="1" value="${s.nonREPSHours||''}" placeholder="0" data-chg="setNum" data-key="nonREPSHours"/>
+      <div class="hint">W-2 job, other businesses, etc. A full-time W-2 ≈ 2,080 hrs/yr.</div>
+      ${expandToggle('t50','Why this matters — 50% Services Test','Your RE hours must exceed 50% of ALL personal services you perform. If you have a W-2 job and don\'t enter those hours, your 50% test result will show as unverified. Only YOUR hours count — not a spouse\'s W-2. IRC §469(c)(7)(B)(i).')}
     </div>
-  </div>`:''}
-</div>
-<div class="card card-mb">
-  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">§469(c)(7)(A) Grouping Election</div>
-  <div style="font-size:12px;color:#64748B;margin-bottom:12px;line-height:1.6;">If you have multiple LTR properties, this election combines all your hours into one pool — making material participation easier to achieve. <strong>Most new investors should consult their CPA before enabling this.</strong> Cannot be easily revoked once filed.</div>
-  <label class="tog-row"><input type="checkbox" ${s.groupingElection?'checked':''} data-chg="setBool" data-key="groupingElection"/><span class="tog-lbl">Grouping election filed for ${activeYear}</span></label>
-  <div class="hint" style="margin-top:2px;padding:8px 10px;background:#EFF6FF;border-radius:6px;border:.5px solid #BFDBFE;color:#1E40AF;">⚠ This tracks your election status only. The actual grouping election must be attached to your timely filed original tax return per Treas. Reg. §1.469-9(g). Note: The §469(c)(7)(A) election and the §1.469-9 grouping election are related but distinct — your tax professional should confirm which applies. If you missed the filing deadline, see Rev. Proc. 2011-34 for potential relief. Consult your tax professional before filing.</div>
-</div>
-<div class="card card-mb">
-  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">Count STR Hours Toward REPS 750-Hr Test</div>
-  <div style="font-size:12px;color:#64748B;margin-bottom:12px;line-height:1.6;">STR hours count toward the 750-hr test only if you materially participate in each STR property as a trade or business (not merely as passive owner). Consult your tax advisor for your specific situation.</div>
-  <div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:10px;padding:11px 14px;margin-bottom:12px;font-size:12px;color:#991B1B;line-height:1.7;">
-    ⚠ <strong>Important — adverse case law:</strong> The Tax Court has held in <em>Bailey v. Comm'r</em>, T.C. Memo 2001-296 and <em>Bailey v. Comm'r</em>, T.C. Summary 2011-22 that hours spent on short-term rentals (≤7-day average rental period) do <strong>not</strong> count toward the §469(c)(7)(B)(ii) 750-hour REPS test, because STRs are not "rental" activities under §469. Under that reading, this toggle should be <strong>off</strong>. Some practitioners take the contrary view that STR hours qualify as services in a real property trade or business under §469(c)(7)(C). Discuss with your CPA before relying on this setting.
+    <div class="field">
+      <label class="fl">Filing Status</label>
+      <select data-chg="setStrRender" data-key="filingStatus">
+        ${Object.keys(FILING_LABELS).map(k=>`<option value="${k}" ${(s.filingStatus||'MFJ')===k?'selected':''}>${FILING_LABELS[k]}</option>`).join('')}
+      </select>
+      <div class="hint">Used to calculate your §1411 NIIT threshold.</div>
+      ${expandToggle('tniit','NIIT threshold for your filing status','The 3.8% Net Investment Income Tax applies to the lesser of net investment income or MAGI above $'+(NIIT_THRESHOLDS[s.filingStatus||'MFJ']||250000).toLocaleString()+'. REPS status alone does not remove NIIT — you must also materially participate in the activity as a §162 trade or business. Discuss with your CPA.')}
+    </div>
   </div>
-  <label class="tog-row"><input type="checkbox" ${s.includeSTRinREPS===true?'checked':''} data-chg="setBool" data-key="includeSTRinREPS"/><span class="tog-lbl">Include STR hours in REPS 750-hr total</span></label>
-</div>
-<div class="card card-mb">
-  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">Suspended Passive Activity Losses (PAL Carryforwards)</div>
-  <div style="font-size:12px;color:#64748B;margin-bottom:10px;line-height:1.7;">RepsRecord tracks your current-year qualification status. It does not track prior-year suspended PAL carryforwards, which are a separate but important consideration.</div>
-  <div style="background:#F0FDFA;border:.5px solid #CCFBF1;border-radius:8px;padding:12px 14px;font-size:12px;color:#0F766E;line-height:1.7;">
-    <strong>What this means for you:</strong> If your rental properties generated passive losses in years when you were not REPS-qualified, those losses are suspended under IRC §469(b). Qualifying as a REPS taxpayer in a <em>later</em> year does not automatically free prior-year suspended PALs — they remain suspended until the activity is disposed of or other triggering events occur. Your tax professional should review your carryforward schedule when you first qualify.
+  <div class="field">
+    <label class="fl">Personal Use Days This Year</label>
+    <input type="number" min="0" step="1" value="${s.personalUseDays||''}" placeholder="0" data-chg="setNum" data-key="personalUseDays"/>
+    <div class="hint">Days you (or family) personally used any rental property. Affects §280A deduction limits.</div>
+    ${expandToggle('t280a','§280A Personal-Use Limitation','If personal use exceeds the greater of 14 days or 10% of rental days, the property becomes a "residence" and rental loss deductions are capped at gross rental income — regardless of REPS or MP status. Consult your CPA; §280A interacts with §469 in complex ways.')}
   </div>
 </div>
+
 <div class="card card-mb">
-  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">Net Investment Income Tax (NIIT) — IRC §1411</div>
-  <div style="font-size:12px;color:#64748B;line-height:1.7;margin-bottom:10px;">REPS qualification does <strong>not</strong> automatically remove the 3.8% Net Investment Income Tax on rental income.</div>
-  <div style="background:#F0FDFA;border:.5px solid #CCFBF1;border-radius:8px;padding:12px 14px;font-size:12px;color:#0F766E;line-height:1.7;">
-    <strong>Why this matters:</strong> §1411 has its own trade-or-business and material-participation analysis. Rental income avoids NIIT only when (1) the rental activity rises to a §162 trade or business AND (2) you materially participate. REPS status alone — without the underlying trade-or-business posture — may not be enough. The position depends on facts (services provided, scale of operations, hours, etc.). Discuss the §1411 analysis with your CPA separately from your §469 analysis.
+  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">⚙️ Tracking Options</div>
+  <div style="font-size:12px;color:#64748B;margin-bottom:18px;">Control how RepsRecord tracks and evaluates your hours.</div>
+
+  <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;margin-bottom:12px;">
+    <label class="tog-row" style="margin-bottom:${s.spouseEnabled?'12px':'0'};">
+      <input type="checkbox" ${s.spouseEnabled?'checked':''} data-chg="setBoolRender" data-key="spouseEnabled"/>
+      <div><div class="tog-lbl">Spouse hour tracking</div><div style="font-size:11px;color:#64748B;margin-top:1px;">Track your spouse's hours separately for MP tests</div></div>
+    </label>
+    ${s.spouseEnabled?`
+    <div class="g2" style="margin-top:4px;margin-bottom:12px;">
+      <div class="field" style="margin-bottom:0;"><label class="fl">Spouse Name</label><input value="${esc(s.spouseName||'')}" placeholder="First name or initials" data-chg="setStr" data-key="spouseName"/></div>
+      <div class="field" style="margin-bottom:0;"><label class="fl">Tests 3 &amp; 7 — Spouse Hours Treatment</label>
+        <select data-chg="setStrRenderSB" data-key="spouseHoursPolicy">
+          <option value="majority" ${(s.spouseHoursPolicy||'majority')==='majority'?'selected':''}>Majority view (default)</option>
+          <option value="conservative" ${s.spouseHoursPolicy==='conservative'?'selected':''}>Conservative view</option>
+        </select>
+      </div>
+    </div>
+    <div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:8px;padding:10px 12px;font-size:11px;color:#92400E;line-height:1.6;margin-bottom:4px;">
+      ⚠ Spouse hours do <strong>not</strong> count toward your 750-hr or 50% REPS tests — those are individual. Spouse hours <strong>do</strong> apply to per-property MP tests under §469(h)(5).
+    </div>
+    ${expandToggle('tsp','Majority vs Conservative view explained','<strong>Majority view:</strong> spouse hours add to yours for every MP test, and the spouse is not treated as "any other individual" on the comparison side of Tests 3 &amp; 7. This is the dominant practitioner reading of §469(h)(5).<br><br><strong>Conservative view:</strong> spouse hours still add to yours, but are also counted on the "other individual" side of Tests 3 &amp; 7 — a more defensive position. Discuss with your CPA; no case or ruling squarely resolves this.')}
+    `:''}
   </div>
-  <div class="field" style="margin-top:14px;"><label class="fl">Filing status</label>
-    <select data-chg="setStrRender" data-key="filingStatus">
-      ${Object.keys(FILING_LABELS).map(k=>`<option value="${k}" ${(s.filingStatus||'MFJ')===k?'selected':''}>${FILING_LABELS[k]}</option>`).join('')}
-    </select>
-    <div class="hint">Your §1411 MAGI threshold: <strong>$${(NIIT_THRESHOLDS[s.filingStatus||'MFJ']||250000).toLocaleString()}</strong>. The 3.8% NIIT applies to the lesser of net investment income or MAGI above this threshold. These thresholds are fixed by statute and are <strong>not</strong> adjusted for inflation. This figure is informational only — RepsRecord does not compute your NIIT.</div>
+
+  <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;margin-bottom:12px;">
+    <label class="tog-row" style="margin-bottom:0;">
+      <input type="checkbox" ${s.groupingElection?'checked':''} data-chg="setBool" data-key="groupingElection"/>
+      <div><div class="tog-lbl">§469(c)(7)(A) Grouping election filed for ${activeYear}</div><div style="font-size:11px;color:#64748B;margin-top:1px;">Treat all LTR properties as one combined activity</div></div>
+    </label>
+    ${expandToggle('tge','About the grouping election','Pools all LTR hours into one activity, making MP easier to achieve. Must be filed on a timely filed original return — cannot be easily revoked. If you missed the deadline, see Rev. Proc. 2011-34. Consult your CPA before enabling. STR properties cannot be grouped with LTRs. Treas. Reg. §1.469-9(g).')}
   </div>
-<div class="card card-mb">
-  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">§280A Personal-Use Limitation</div>
-  <div style="font-size:12px;color:#64748B;line-height:1.7;margin-bottom:10px;">If you use a dwelling unit as a residence — defined as personal use exceeding the greater of <strong>14 days</strong> or <strong>10% of total rental days</strong> — IRC §280A limits the deductions you can claim against the rental income. Net losses may be disallowed entirely, regardless of REPS or material participation status.</div>
-  <div class="field"><label class="fl">Total personal use days this year (across all STR/LTR properties)</label><input type="number" min="0" step="1" value="${s.personalUseDays||''}" placeholder="0" data-chg="setNum" data-key="personalUseDays"/><div class="hint">Includes days used by you, family members (spouse, kids, siblings, parents, grandparents), or anyone paying less than fair rental value. A property meeting the 14-day-or-10% threshold becomes a "residence" under §280A and loss deductibility is capped at gross rental income. Consult your CPA — §280A interacts with §469 in complex ways.</div></div>
+
+  <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;">
+    <label class="tog-row" style="margin-bottom:0;">
+      <input type="checkbox" ${s.includeSTRinREPS===true?'checked':''} data-chg="setBool" data-key="includeSTRinREPS"/>
+      <div><div class="tog-lbl">Include STR hours in REPS 750-hr total</div><div style="font-size:11px;color:#64748B;margin-top:1px;">Only applies if you materially participate in each STR</div></div>
+    </label>
+    ${expandToggle('tstr','Adverse case law — read before enabling','The Tax Court held in <em>Bailey v. Comm\'r</em> (T.C. Memo 2001-296) that STR hours do <strong>not</strong> count toward the §469(c)(7)(B)(ii) 750-hour test because STRs are not "rental" activities under §469. Some practitioners take the contrary view under §469(c)(7)(C). This toggle should generally be <strong>off</strong> unless your CPA advises otherwise.')}
+  </div>
 </div>
-<div class="card card-mb">
-  <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">Community Property States</div>
-  <div style="font-size:12px;color:#64748B;line-height:1.7;">If you are married and reside in a community property state — Arizona, California, Idaho, Louisiana, Nevada, New Mexico, Texas, Washington, or Wisconsin — your state's income and property rules may interact with the REPS individual-testing requirements in non-obvious ways. The IRC §469(c)(7) 750-hour and 50% tests are applied per-taxpayer regardless of community property treatment. Consult your tax professional about how your state's rules affect your specific situation before relying on RepsRecord's calculations.</div>
-</div>
+
+<details style="margin-bottom:14px;">
+  <summary style="background:#fff;border:.5px solid #CCFBF1;border-radius:12px;padding:16px 18px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;">
+    <div><div style="font-size:14px;font-weight:800;color:#0D1F3C;">📚 Tax Context &amp; Important Notes</div><div style="font-size:12px;color:#64748B;margin-top:2px;">Suspended PALs, NIIT, community property, §461(l) — read when relevant</div></div>
+    <span style="font-size:18px;color:#14B8A6;">›</span>
+  </summary>
+  <div style="background:#fff;border:.5px solid #CCFBF1;border-top:none;border-radius:0 0 12px 12px;padding:18px;">
+    <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:6px;">Suspended Passive Activity Losses</div>
+    <div style="font-size:12px;color:#64748B;line-height:1.7;margin-bottom:14px;">RepsRecord tracks current-year qualification only. Prior-year suspended PAL carryforwards are separate — qualifying as a REPS in a later year does not automatically free them. They remain suspended until the activity is disposed of. Your CPA should review your carryforward schedule when you first qualify. IRC §469(b).</div>
+    <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:6px;">§461(l) Excess Business Loss Cap</div>
+    <div style="font-size:12px;color:#64748B;line-height:1.7;margin-bottom:14px;">Even non-passive losses are capped each year — ${eblText(activeYear)}. Any excess carries forward as a net operating loss. RepsRecord documents your participation; your CPA applies this limit on your return.</div>
+    <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:6px;">Community Property States</div>
+    <div style="font-size:12px;color:#64748B;line-height:1.7;margin-bottom:14px;">Arizona, California, Idaho, Louisiana, Nevada, New Mexico, Texas, Washington, and Wisconsin. The §469(c)(7) 750-hour and 50% tests are applied per-taxpayer regardless of community property treatment. Consult your tax professional.</div>
+    <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:6px;">§465 At-Risk &amp; Basis Limits</div>
+    <div style="font-size:12px;color:#64748B;line-height:1.7;">Losses are further limited to amounts at risk (§465) and your basis in the property or entity (§704(d)/§1366). These apply after the passive-activity analysis and are outside RepsRecord's scope.</div>
+  </div>
+</details>
+
 <div class="card" style="background:#FEF2F2;border-color:#FECACA;">
   <div style="font-size:14px;font-weight:800;color:#991B1B;margin-bottom:16px;">⚠ Danger Zone</div>
   <div style="display:flex;flex-direction:column;gap:16px;">
@@ -2343,7 +2357,6 @@ function vSettings(){
       <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:4px;">Reset All Data</div>
       <div style="font-size:12px;color:#64748B;margin-bottom:10px;">Permanently deletes all entries, properties, and settings. Does not affect your subscription.</div>
       <button class="btn btn-danger" data-act="resetAll">Reset Everything</button>
-      <div class="hint" style="margin-top:6px;color:#EF4444;">⚠ A second confirmation will be required.</div>
     </div>
     <div>
       <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:4px;">Delete Account</div>
@@ -2353,6 +2366,7 @@ function vSettings(){
   </div>
 </div>`;
 }
+
 
 function setSetting(k,v){state.settings[k]=v;save();updateSB();}
 async function resetAll(){
