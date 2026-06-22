@@ -327,7 +327,7 @@ async function signOut(){
 const PAYWALL_ADMINS=['admin@repsrecord.com','support@repsrecord.com','support@themoneynista.com'];
 const PAY_MONTHLY='https://buy.stripe.com/bJedR19mL8bK7rY3nuebu00';// fallback
 const PAY_ANNUAL='https://buy.stripe.com/aFadR17eD9fOfYubU0ebu01';// fallback
-async function startCheckout(plan){
+window.startCheckout=async function startCheckout(plan){
   try{
     const{data:{session}}=await _sb.auth.getSession();
     if(!session){window.location.href='login.html';return;}
