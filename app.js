@@ -772,13 +772,13 @@ function vDashboard(){
         '<div style="background:#fff;border-radius:12px;padding:20px;border:1.5px solid #CCFBF1;cursor:pointer;" class="hov-blue" data-act="addPropType" data-proptype="LTR">'+
           '<div style="font-size:22px;margin-bottom:10px;">🏡</div>'+
           '<div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">Long-Term Rentals</div>'+
-          '<div style="font-size:12px;color:#64748B;line-height:1.6;margin-bottom:14px;">Track hours toward Real Estate Professional Status (REPS). Make rental losses non-passive to offset your W-2 or business income.</div>'+
+          '<div style="font-size:12px;color:#64748B;line-height:1.6;margin-bottom:14px;">For properties with long-term tenants (month-to-month or annual leases). Track your hours to qualify as a Real Estate Professional — which can let you use rental losses to reduce your tax bill.</div>'+
           '<div style="display:inline-block;background:#38BDF8;color:#fff;font-size:12px;font-weight:700;padding:7px 16px;border-radius:8px;">+ Add LTR Property</div>'+
         '</div>'+
         '<div style="background:#fff;border-radius:12px;padding:20px;border:1.5px solid #CCFBF1;cursor:pointer;" class="hov-teal" data-act="addPropType" data-proptype="STR">'+
           '<div style="font-size:22px;margin-bottom:10px;">🏖</div>'+
           '<div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">Short-Term Rentals</div>'+
-          '<div style="font-size:12px;color:#64748B;line-height:1.6;margin-bottom:14px;">Track material participation tests for Airbnb, VRBO, and similar properties. No REPS required — this strategy is available to any investor.</div>'+
+          '<div style="font-size:12px;color:#64748B;line-height:1.6;margin-bottom:14px;">For Airbnb, VRBO, and other short-term rentals. Track your management hours to qualify for the STR tax exception — no special status required, available to any rental investor.</div>'+
           '<div style="display:inline-block;background:#14B8A6;color:#fff;font-size:12px;font-weight:700;padding:7px 16px;border-radius:8px;">+ Add STR Property</div>'+
         '</div>'+
       '</div>'+
@@ -1038,6 +1038,7 @@ function vLog(){
     </div>
   </div>
   <div class="field"><label class="fl">Activity Category</label>
+    ${trackType==='STR'?'<div style="font-size:11px;color:#0E7490;background:#F0FDFA;border:.5px solid #CCFBF1;border-radius:6px;padding:7px 10px;margin-bottom:8px;line-height:1.6;">✅ <strong>What counts for STRs:</strong> Guest messages, check-in/out coordination, cleaning oversight, listing updates, maintenance calls, pricing, bookkeeping, property visits — any active management work.</div>':'<div style="font-size:11px;color:#0E7490;background:#F0FDFA;border:.5px solid #CCFBF1;border-radius:6px;padding:7px 10px;margin-bottom:8px;line-height:1.6;">✅ <strong>What counts for REPS:</strong> Property management, maintenance, repairs, leasing, tenant communication, contractor coordination, acquisition research, financial/accounting work, and travel to/from properties for active purposes.</div>'}
     <select id="f-cat"><option value="">Select qualifying activity...</option>${cats.map(c=>`<option value="${c}">${c}</option>`).join('')}</select>
     <div class="hint" id="cat-hint" style="margin-top:4px;">${trackType==='STR'?'<strong>Material Participation Hours</strong> = active hands-on management of this STR property. Choose a specific category below for better audit documentation.':'<strong>General REPS Hours</strong> = any qualifying real estate professional activity. Choose a specific category below for stronger audit records.'}</div>
   </div>
@@ -1047,8 +1048,9 @@ function vLog(){
       <select id="f-mins"><option value="0">0 min</option><option value="15">15 min</option><option value="30">30 min</option><option value="45">45 min</option></select>
     </div>
   </div>
-  <div class="field"><label class="fl">Notes / Description <span style="font-weight:400;text-transform:none;color:#94A3B8;">— recommended for audit substantiation</span></label>
-    <textarea id="f-notes" placeholder="Describe the activity, who you contacted, decisions made, outcome..."></textarea>
+  <div class="field"><label class="fl">Notes / Description <span style="font-weight:400;text-transform:none;color:#E53E3E;">— required for IRS audit defence</span></label>
+    <textarea id="f-notes" placeholder="Be specific: who you called, what was discussed, what was decided, and the outcome. 'Managed property' is not enough — the IRS can reject vague entries."></textarea>
+    <div class="hint" style="margin-top:4px;color:#92400E;">⚠ The IRS requires specific, contemporaneous descriptions. Log what you actually did and why — this is your evidence if you're ever audited.</div>
   </div>
   <div class="field">
     <label class="fl">Evidence / Attachments <span style="font-weight:400;text-transform:none;color:#94A3B8;">— receipts, photos, invoices, contracts</span></label>
