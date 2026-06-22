@@ -341,6 +341,21 @@ window.startCheckout=async function startCheckout(plan){
     else{toast('Could not start checkout. '+(error||''),'error');}
   }catch(e){toast('Could not start checkout.','error');console.error('[startCheckout]',e);}
 }
+window.manageBilling=async function manageBilling(){
+  try{
+    const{data:{session}}=await _sb.auth.getSession();
+    if(!session){window.location.href='login.html';return;}
+    const btn=document.getElementById('manage-billing-btn');
+    if(btn){btn.textContent='Opening…';btn.disabled=true;}
+    const r=await fetch(`${SUPABASE_URL}/functions/v1/create-portal-session`,{
+      method:'POST',
+      headers:{Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'}
+    });
+    const{url,error}=await r.json();
+    if(url){window.location.href=url;}
+    else{toast('Could not open billing portal. '+(error||''),'error');if(btn){btn.textContent='Manage subscription';btn.disabled=false;}}
+  }catch(e){toast('Could not open billing portal.','error');console.error('[manageBilling]',e);}
+}
 // Returns 'ok' | 'blocked' | 'redirect' | 'open'. Fails OPEN on any error so a
 // transient glitch can never lock a legitimate user out of their own data.
 async function enforceSubscription(){
@@ -2291,7 +2306,7 @@ function vSettings(){
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">💳 Account &amp; Billing</div>
   <div style="font-size:12px;color:#64748B;margin-bottom:14px;">Manage your subscription, update payment, or view invoices.</div>
-  <a href="https://billing.stripe.com/p/login/bJedR19mL8bK7rY3nuebu00" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#0D1F3C;color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:10px 18px;border-radius:8px;">Manage subscription</a>
+  <button id="manage-billing-btn" onclick="manageBilling()" style="display:inline-block;background:#0D1F3C;color:#fff;border:none;font-weight:700;font-size:13px;padding:10px 18px;border-radius:8px;cursor:pointer;font-family:inherit;">Manage subscription</button>
 </div>
 
 <!-- LTR SECTION -->
