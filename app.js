@@ -647,6 +647,8 @@ function strQualifies(p){
   if(g==='exempt')return'yes';
   if(g==='services')return'conditional';
   return'no';
+}
+
 function renderNav(){
   document.getElementById('sb-nav').innerHTML=NAV.map(n=>{
     if(n.id==='divider')return`<div role="separator" style="height:.5px;background:#1E3A5F;margin:8px 10px;"></div>`;
@@ -3018,12 +3020,6 @@ async function appInit(){
     }
     renderView();
     setTimeout(showWalkthrough,800);
-    // Auto-trigger checkout if redirected from pricing page
-    const _plan = new URLSearchParams(window.location.search).get('checkout');
-    if (_plan && _gate === 'ok') {
-      history.replaceState({}, '', 'app.html');
-      setTimeout(() => window.startCheckout(_plan), 800);
-    }
   }catch(e){
     // Never strand the user on the loading spinner — surface the failure and render what we can.
     console.error('[appInit]',e);
