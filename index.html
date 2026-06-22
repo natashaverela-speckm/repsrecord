@@ -831,5 +831,22 @@ document.addEventListener('click',function(e){
   }
 });
 </script>
+<script>
+// ── Hash anchor routing — scroll to section on direct URL load ──
+// e.g. repsrecord.com/#pricing scrolls to the pricing section
+(function(){
+  function scrollToHash(hash){
+    if(!hash)return;
+    const el=document.querySelector(hash);
+    if(!el)return;
+    // Small delay so the page fully renders before scrolling
+    setTimeout(()=>el.scrollIntoView({behavior:'smooth',block:'start'}),120);
+  }
+  // On page load
+  if(window.location.hash)scrollToHash(window.location.hash);
+  // On hash change (e.g. browser back/forward)
+  window.addEventListener('hashchange',()=>scrollToHash(window.location.hash));
+})();
+</script>
 </body>
 </html>
