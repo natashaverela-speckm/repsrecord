@@ -3020,6 +3020,12 @@ async function appInit(){
     }
     renderView();
     setTimeout(showWalkthrough,800);
+    // Auto-trigger checkout if redirected from pricing page
+    const _plan = new URLSearchParams(window.location.search).get('checkout');
+    if (_plan && _gate === 'ok') {
+      history.replaceState({}, '', 'app.html');
+      setTimeout(() => window.startCheckout(_plan), 800);
+    }
   }catch(e){
     // Never strand the user on the loading spinner — surface the failure and render what we can.
     console.error('[appInit]',e);
