@@ -184,6 +184,7 @@ const CHANGE_ACTIONS={
   updateQLCats:el=>updateQLCats(el.dataset.id),
   toggleEditPropType:el=>toggleEditPropType(el.dataset.id),
   togMP:el=>togMP(el.dataset.id,parseInt(el.dataset.tid),el.checked),
+  togPriorYear:el=>togPriorYear(el.dataset.pid,parseInt(el.dataset.yr),el.checked),
   setNum:el=>setSetting(el.dataset.key,parseFloat(el.value)||0),
   setStr:el=>setSetting(el.dataset.key,el.value),
   setStrRender:el=>{setSetting(el.dataset.key,el.value);renderView();},
@@ -304,7 +305,7 @@ const REPS_CATS=['— General REPS Hours (Real Estate Professional Activity)','A
 const STR_CATS=['— Material Participation Hours (STR Active Management)','Guest Communication','Booking & Reservation Management','Check-in / Check-out','Cleaning Coordination','Maintenance & Repairs','Marketing & Listing Management','Financial & Accounting','Furnishing & Setup','Travel (STR property)','Guest Services & Concierge','Other STR Activity'];
 const NAV=[{id:'dashboard',ic:'📊',label:'Dashboard'},{id:'properties',ic:'🏠',label:'Properties'},{id:'log',ic:'⏱',label:'Log Time'},{id:'mp',ic:'✅',label:'Do You Qualify?'},{id:'reports',ic:'📋',label:'Audit Report'},{id:'divider'},{id:'ltr',ic:'🏡',label:'REPS Rules'},{id:'str',ic:'🏖',label:'STR Rules'},{id:'settings',ic:'⚙️',label:'Settings'}];
 
-let state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:false,personalUseDays:0,filingStatus:'MFJ',spouseHoursPolicy:'majority'},properties:[],entries:[],manualMP:{}};
+let state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:false,personalUseDays:0,filingStatus:'MFJ',spouseHoursPolicy:'majority'},properties:[],entries:[],manualMP:{},priorYearMP:{}};
 let activeYear=CUR_YEAR;
 let view='dashboard',chartInst=null,showPropForm=false,trackType='REPS';
 // Feature state
@@ -481,6 +482,7 @@ async function load(){
         state=cloudData;
         if(state.properties){state.properties.forEach(p=>{if(!p.bookings)p.bookings=[];});}
         if(!state.manualMP)state.manualMP={};
+        if(!state.priorYearMP)state.priorYearMP={};
         // BATCH 2: forward-compat defaults for new settings
         if(state.settings){
           if(state.settings.personalUseDays==null)state.settings.personalUseDays=0;
@@ -500,6 +502,7 @@ async function load(){
       state=JSON.parse(s);
       if(state.properties){state.properties.forEach(p=>{if(!p.bookings)p.bookings=[];});}
       if(!state.manualMP)state.manualMP={};
+      if(!state.priorYearMP)state.priorYearMP={};
       // BATCH 2: forward-compat defaults for new settings
       if(state.settings){
         if(state.settings.personalUseDays==null)state.settings.personalUseDays=0;
@@ -607,7 +610,7 @@ function mpT(pid){
     {id:2,name:'Test 2',label:'Substantially All',cite:'§1.469-5T(a)(2)',desc:'Substantially all participation in the activity was yours. "Substantially all" is not quantified in the regulation; practitioners commonly use a 95%+ safe harbor (others combined < 5%).',auto:false,met:!!mn[2]},
     {id:3,name:'Test 3',label:'100 Hrs + Most',cite:'§1.469-5T(a)(3)',desc:'More than 100 hours AND not less than any other individual\u2019s participation in the activity (including paid staff).',auto:true,met:ownerEff>TAX.MP_TEST3_HOURS&&ownerEff>=mo},
     {id:4,name:'Test 4',label:'SPA Aggregate',cite:'§1.469-5T(a)(4)',desc:'Activity is a Significant Participation Activity (>100 hrs in a trade or business in which you do not otherwise materially participate) and all your SPAs aggregate to more than 500 hours for the year. SPAs are non-rental trade-or-business activities only; LTR rental activities cannot generate SPAs.',auto:false,met:!!mn[4]},
-    {id:5,name:'Test 5',label:'5 of Last 10 Yrs',cite:'§1.469-5T(a)(5)',desc:'Materially participated in this activity in any 5 of the last 10 taxable years.',auto:false,met:!!mn[5]},
+    {id:5,name:'Test 5',label:'5 of Last 10 Yrs',cite:'§1.469-5T(a)(5)',desc:'Materially participated in this activity in any 5 of the 10 immediately preceding taxable years.',auto:true,met:(()=>{const py=(state.priorYearMP||{})[pid]||{};const last10=Array.from({length:10},(_,i)=>activeYear-1-i);return last10.filter(y=>py[y]).length>=5;})()},
     {id:6,name:'Test 6',label:'3 Prior Yrs (Personal Service Activity)',cite:'§1.469-5T(a)(6)',desc:'Materially participated 3 prior years when the activity was a personal service activity. Does not apply to most STRs — STR properties are almost never personal service activities (medical, law, engineering, etc.).',auto:false,met:!!mn[6]},
     {id:7,name:'Test 7',label:'Facts & Circumstances',cite:'§1.469-5T(a)(7)',desc:'Participate on a regular, continuous, and substantial basis. Requires more than 100 hours of participation (§1.469-5T(b)(2)(iii)). Does NOT apply if any other person is compensated for managing the activity, or if any other individual performs more management hours than you (§1.469-5T(b)(2)(ii)). Document frequency, duration, and nature of involvement.',auto:true,met:ownerEff>TAX.MP_TEST7_MIN&&ownerEff>=mo&&!paidManager},
   ];
@@ -638,7 +641,7 @@ function mpGroupedLTR(){
       {id:1,name:'Test 1',label:'500 Hours',cite:'§1.469-5T(a)(1)',desc:'More than 500 hours across all grouped long-term rentals during the year.',auto:true,met:ownerEff>TAX.MP_TEST1_HOURS},
       {id:2,name:'Test 2',label:'Substantially All',cite:'§1.469-5T(a)(2)',desc:'Substantially all participation in the combined rental activity was yours.',auto:false,met:!!mn[2]},
       {id:3,name:'Test 3',label:'100 Hrs + Most',cite:'§1.469-5T(a)(3)',desc:'More than 100 hours across the combined activity AND not less than any other individual\u2019s participation.',auto:true,met:ownerEff>TAX.MP_TEST3_HOURS&&ownerEff>=mo},
-      {id:5,name:'Test 5',label:'5 of Last 10 Yrs',cite:'§1.469-5T(a)(5)',desc:'Materially participated in this combined rental activity in any 5 of the last 10 taxable years.',auto:false,met:!!mn[5]},
+      {id:5,name:'Test 5',label:'5 of Last 10 Yrs',cite:'§1.469-5T(a)(5)',desc:'Materially participated in this combined rental activity in any 5 of the last 10 taxable years.',auto:true,met:(()=>{const py=(state.priorYearMP||{})[LTR_GROUP_ID]||{};const last10=Array.from({length:10},(_,i)=>activeYear-1-i);return last10.filter(y=>py[y]).length>=5;})()},
       {id:7,name:'Test 7',label:'Facts & Circumstances',cite:'§1.469-5T(a)(7)',desc:'Regular, continuous, and substantial participation in the combined activity. Requires more than 100 hours (§1.469-5T(b)(2)(iii)); unavailable if any grouped property is managed by a compensated person (§1.469-5T(b)(2)(ii)).',auto:true,met:ownerEff>TAX.MP_TEST7_MIN&&ownerEff>=mo&&!paidManager},
     ]
   };
@@ -2111,7 +2114,7 @@ function vMP(){
     {id:2,q:'Were you basically the only person who worked on this property?',hint:'If a cleaner, co-host, or property manager also put in significant time, this test probably doesn\'t apply to you. It\'s for solo operators only.',auto:false},
     {id:3,q:'Did you work more than 100 hours AND more than any other single person?',hint:'This is the most common test for STR owners. If your cleaner works 3 hrs/week (~156 hrs/yr), you just need to work more than 156 hours AND more than 100 hours total.',auto:true},
     {id:4,q:'Do you have multiple activities each taking 100–499 hours, totaling over 500 hours combined?',hint:'This is an advanced test for people juggling multiple investment activities. Rarely applies to typical STR owners. Marked manually.',auto:false},
-    {id:5,q:'Did you materially participate in this property in at least 5 of the last 10 years?',hint:'If you\'ve been actively managing this property for years, you may qualify on history alone — even if this year was light.',auto:false},
+    {id:5,q:'Did you materially participate in this property in at least 5 of the last 10 years?',hint:'Check off each prior year below. Once you confirm 5 or more years, this test is automatically met — no matter how many hours you logged this year.',auto:true},
     {id:6,q:'Was this a professional service business in any 3 prior years?',hint:'This almost never applies to rental properties. It\'s designed for medical practices, law firms, etc. You can ignore this for most STRs.',auto:false},
     {id:7,q:'Did you participate regularly and substantially — and more than any paid manager?',hint:'This catches active owners who don\'t hit 500 hours but are clearly running the show. Requires 100+ hours minimum. If you pay a co-host or PM to manage, this test is NOT available to you.',auto:true},
   ];
@@ -2159,7 +2162,21 @@ function vMP(){
           <span style="font-size:10px;color:#CBD5E1;font-family:ui-monospace,monospace;">${t.cite}</span>
         </div>
         ${statusNote}
-        ${!t.auto?`<label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer;font-size:12px;font-weight:600;color:#0D1F3C;"><input type="checkbox" ${t.met?'checked':''} data-chg="togMP" data-id="${manualId}" data-tid="${t.id}" style="accent-color:#14B8A6;width:15px;height:15px;"/>Yes — I qualify for this test (I'll keep documentation)</label>`:''}
+        ${t.id===5?(()=>{
+          const py=(state.priorYearMP||{})[manualId]||{};
+          const last10=Array.from({length:10},(_,i)=>activeYear-1-i);
+          const metCount=last10.filter(y=>py[y]).length;
+          return`<div style="margin-top:10px;">
+            <div style="font-size:11px;font-weight:700;color:#64748B;margin-bottom:8px;">Check each prior year you materially participated in this property — need 5 of the last 10 (${metCount}/10 checked, need 5):</div>
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;">
+              ${last10.map(yr=>`<label style="display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:6px;background:${py[yr]?'#D1FAE5':'#F8FAFC'};border:1px solid ${py[yr]?'#6EE7B7':'#E2E8F0'};cursor:pointer;font-size:12px;font-weight:${py[yr]?'700':'400'};color:${py[yr]?'#065F46':'#64748B'};">
+                <input type="checkbox" ${py[yr]?'checked':''} data-chg="togPriorYear" data-pid="${manualId}" data-yr="${yr}" style="accent-color:#14B8A6;width:14px;height:14px;flex-shrink:0;"/>
+                ${yr}
+              </label>`).join('')}
+            </div>
+            ${metCount>=5?'<div style="margin-top:8px;font-size:11px;color:#065F46;font-weight:700;">✓ 5+ years confirmed — Test 5 met automatically.</div>':'<div style="margin-top:8px;font-size:11px;color:#64748B;">Keep records (tax returns, prior logs) to substantiate each checked year in case of audit.</div>'}
+          </div>`;
+        })():t.id===6?`<div style="margin-top:10px;padding:8px 10px;background:#FFFBEB;border-radius:6px;border:.5px solid #FDE68A;font-size:11px;color:#92400E;line-height:1.6;">⚠ This test almost never applies to rental properties. It's for personal service activities (law, medicine, engineering). If you're unsure, ask your CPA — but for most STR/LTR investors you can skip this.<br><label style="display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer;font-weight:600;color:#0D1F3C;"><input type="checkbox" ${t.met?'checked':''} data-chg="togMP" data-id="${manualId}" data-tid="${t.id}" style="accent-color:#14B8A6;width:14px;height:14px;"/>Yes — this was a personal service activity and I materially participated for 3 prior years</label></div>`:!t.auto?`<label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer;font-size:12px;font-weight:600;color:#0D1F3C;"><input type="checkbox" ${t.met?'checked':''} data-chg="togMP" data-id="${manualId}" data-tid="${t.id}" style="accent-color:#14B8A6;width:15px;height:15px;"/>Yes — I qualify for this test (I'll keep documentation)</label>`:''}
       </div>
     </div>`;
   }
@@ -2254,6 +2271,7 @@ ${grouped?(function(){
 }
 
 function togMP(pid,tid,val){if(!state.manualMP)state.manualMP={};if(!state.manualMP[pid])state.manualMP[pid]={};state.manualMP[pid][tid]=val;save();renderView();}
+function togPriorYear(pid,yr,val){if(!state.priorYearMP)state.priorYearMP={};if(!state.priorYearMP[pid])state.priorYearMP[pid]={};state.priorYearMP[pid][yr]=val;save();renderView();}
 
 // ── REPORTS ──
 function vReports(){
@@ -2528,7 +2546,7 @@ async function resetAll(){
   if(!ok)return;
   const code=await dlgPrompt({title:'Confirm reset',body:'Type RESET to permanently erase all data.',placeholder:'RESET',confirmLabel:'Reset everything',danger:true,expectedText:'RESET'});
   if(code===null)return;
-  state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:false,personalUseDays:0,filingStatus:'MFJ',spouseHoursPolicy:'majority'},properties:[],entries:[],manualMP:{}};
+  state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:false,personalUseDays:0,filingStatus:'MFJ',spouseHoursPolicy:'majority'},properties:[],entries:[],manualMP:{},priorYearMP:{}};
   save();renderView();
   toast('All data reset.','success');
 }
