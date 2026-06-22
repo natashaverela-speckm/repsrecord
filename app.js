@@ -166,6 +166,7 @@ const CLICK_ACTIONS={
   walkBack:()=>walkBack(),
   walkNext:()=>walkNext(),
   remySend:()=>remySend(),
+  deleteAccount:()=>deleteAccount(),
 };
 const CHANGE_ACTIONS={
   setYear:el=>{activeYear=parseInt(el.value);renderView();},
@@ -2340,6 +2341,11 @@ function vSettings(){
   <div style="font-size:12px;color:#64748B;margin-bottom:12px;">Permanently deletes all entries, properties, and settings.</div>
   <button class="btn btn-danger" data-act="resetAll">Reset Everything</button>
   <div class="hint" style="margin-top:8px;color:#EF4444;">⚠ A second confirmation will be required. This action cannot be undone.</div>
+</div>
+<div class="card" style="background:#FEF2F2;border-color:#FECACA;margin-top:16px;">
+  <div style="font-size:14px;font-weight:800;color:#991B1B;margin-bottom:6px;">Delete Account</div>
+  <div style="font-size:12px;color:#64748B;margin-bottom:12px;line-height:1.6;">Permanently cancels your subscription and erases all your data. This cannot be undone.</div>
+  <button class="btn btn-danger" data-act="deleteAccount">Delete My Account</button>
 </div>`;
 }
 
@@ -2353,7 +2359,36 @@ async function resetAll(){
   save();renderView();
   toast('All data reset.','success');
 }
-
+async function deleteAccount(){
+  const ok=await dlgConfirm({title:'Delete your account?',body:'This will immediately cancel your subscription and permanently erase all your tracked hours, properties, and settings. This cannot be undone.',confirmLabel:'Continue',danger:true});
+  if(!ok)return;
+  const typed=await dlgPrompt({title:'Type DELETE to confirm',body:'This is permanent and irreversible — your subscription will be canceled and all data erased.',placeholder:'DELETE',confirmLabel:'Delete my account',danger:true,expectedText:'DELETE'});
+  if(typed===null)return;
+  const t=toast('Deleting your account…','info',{duration:0});
+  try{
+    const{data:{session}}=await _sb.auth.getSession();
+    if(!session){toast('Please sign in again.','error');return;}
+    const r=await fetch(`${SUPABASE_URL}/functions/v1/delete-account`,{
+      method:'POST',
+      headers:{Authorization:`Bearer ${session.access_token}`,'Content-Type':'application/json'},
+      body:JSON.stringify({confirm:'DELETE'})
+    });
+    if(r.ok){
+      t();
+      await _sb.auth.signOut();
+      window.location.href='/?deleted=1';
+    } else {
+      const err=await r.json().catch(()=>({}));
+      t();
+      toast('Could not delete account. Please contact support@repsrecord.com','error',{duration:0});
+      console.error('[deleteAccount]',err);
+    }
+  }catch(e){
+    t();
+    toast('Could not delete account. Please contact support@repsrecord.com','error',{duration:0});
+    console.error('[deleteAccount]',e);
+  }
+}
 
 // ── LTR RULES ──
 function vLTR(){
