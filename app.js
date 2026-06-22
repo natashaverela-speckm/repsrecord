@@ -152,6 +152,8 @@ const CLICK_ACTIONS={
   togglePropEntries:el=>togglePropEntries(el.dataset.id),
   toggleBookingLog:el=>toggleBookingLog(el.dataset.id),
   rmProp:el=>rmProp(el.dataset.id),
+  archiveProp:el=>archiveProp(el.dataset.id),
+  restoreProp:el=>restoreProp(el.dataset.id),
   saveQuickLog:el=>saveQuickLog(el.dataset.id),
   hideQuickLog:el=>{const x=document.getElementById('quick-log-'+el.dataset.id);if(x)x.style.display='none';},
   savePropEdit:el=>savePropEdit(el.dataset.id),
@@ -623,7 +625,7 @@ function mpT(pid){
 // Tests 4 (SPA) and 6 (PSA) are omitted: neither applies to a pooled rental activity.
 const LTR_GROUP_ID='__ltrgroup';
 function mpGroupedLTR(){
-  const ltrs=state.properties.filter(p=>p.type==='LTR');
+  const ltrs=state.properties.filter(p=>p.type==='LTR'&&!p.sold);
   const mn=(state.manualMP||{})[LTR_GROUP_ID]||{};
   const policy=(state.settings&&state.settings.spouseHoursPolicy)||'majority';
   let owner=0,spouse=0,other=0,paidManager=false;
@@ -681,8 +683,7 @@ function updateSB(){
   document.getElementById('sb-fill').style.width=pct+'%';
   document.getElementById('sb-fill').style.background=r.ok?'#10B981':'#14B8A6';
   const strHrs=yearEntries().filter(e=>!e.isSpouse&&e.trackType==='STR').reduce((s,e)=>s+(e.hours||0),0);
-  const strPs=state.properties.filter(p=>p.type==='STR');
-  const strQ=strPs.map(p=>strQualifies(p));
+  const strPs=state.properties.filter(p=>p.type==='STR'&&!p.sold);
   const strQual=strQ.filter(v=>v==='yes').length;
   const strEl=document.getElementById('sb-str-val');
   const strPropsEl=document.getElementById('sb-str-props');
@@ -707,9 +708,8 @@ function svgRing(val,max,color,bg,sz=110,sw=10){
 function vDashboard(){
   const r=calcREPS(),{rh,pct,m750,m50,ok}=r;
   const tot=rh+(state.settings.nonREPSHours||0);
-  const strPs=state.properties.filter(p=>p.type==='STR');
-  const ltrPs=state.properties.filter(p=>p.type==='LTR');
-  const repsHrs=rh;
+  const strPs=state.properties.filter(p=>p.type==='STR'&&!p.sold);
+  const ltrPs=state.properties.filter(p=>p.type==='LTR'&&!p.sold);
   const propIds=new Set(state.properties.map(p=>p.id));
   const strHrs=yearEntries().filter(e=>!e.isSpouse&&e.trackType==='STR'&&propIds.has(e.propertyId)).reduce((s,e)=>s+(e.hours||0),0);
   const _strQ=strPs.map(p=>strQualifies(p));
@@ -1414,7 +1414,7 @@ ${showPropForm?`
   </div>
 </div></div>`:''}
 ${state.properties.length===0?`<div class="empty"><div class="empty-ic">🏠</div><div class="empty-tx">No properties yet — add your first LTR or STR above.</div></div>`:''}
-${state.properties.map(p=>{
+${state.properties.filter(p=>!p.sold).map(p=>{
   const hrs=yearEntries().filter(e=>e.propertyId===p.id&&!e.isSpouse).reduce((s,e)=>s+(e.hours||0),0);
   const propEntries=yearEntries().filter(e=>e.propertyId===p.id).sort((a,b)=>new Date(b.date)-new Date(a.date));
   return`<div class="prop-c ${p.type==='LTR'?'ltr':''}" style="flex-direction:column;gap:0;position:relative;">
@@ -1439,6 +1439,7 @@ ${state.properties.map(p=>{
         <button class="btn btn-sm" style="background:#F0FDFA;border:1px solid #CCFBF1;color:#0E7490;font-size:11px;" data-act="togglePropEntries" data-id="${p.id}">📋 View Entries (${propEntries.length})</button>
         ${p.type==='STR'?`<button class="btn btn-sm" style="background:#FEF3C7;border:1px solid #FDE68A;color:#92400E;font-size:11px;" data-act="toggleBookingLog" data-id="${p.id}">📅 Bookings (${(p.bookings||[]).length})</button>`:''}
         <button class="btn btn-sm" style="background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;font-size:11px;" data-act="toggleEditProp" data-id="${p.id}">✏️ Edit</button>
+        <button class="btn btn-sm" style="background:#F0F9FF;border:1px solid #BAE6FD;color:#0369A1;font-size:11px;" data-act="archiveProp" data-id="${p.id}">🏁 Sold / Archive</button>
         <button class="btn btn-sm btn-danger" style="display:flex;align-items:center;gap:4px;font-size:11px;" aria-label="Delete property ${esc(p.name)}" data-act="rmProp" data-id="${p.id}">🗑 Delete</button>
       </div>
     </div>
@@ -1574,7 +1575,39 @@ ${state.properties.map(p=>{
       </div>
     </div>`).join('')}
   </div>
-</div>`;}).join('')}`;
+</div>`;}).join('')}
+${(()=>{
+  const archived=state.properties.filter(p=>p.sold);
+  if(!archived.length)return'';
+  return`<details style="margin-top:24px;">
+  <summary style="cursor:pointer;list-style:none;display:flex;align-items:center;gap:10px;padding:12px 16px;background:#F8FAFC;border:.5px solid #E2E8F0;border-radius:10px;font-size:13px;font-weight:700;color:#64748B;">
+    <span style="font-size:16px;">🏁</span> Sold / Archived Properties (${archived.length})
+    <span style="font-size:11px;font-weight:400;color:#94A3B8;margin-left:4px;">— hours preserved for audit history</span>
+    <span style="margin-left:auto;font-size:16px;color:#CBD5E1;">›</span>
+  </summary>
+  <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px;">
+    ${archived.map(p=>{
+      const totalHrs=state.entries.filter(e=>e.propertyId===p.id&&!e.isSpouse).reduce((s,e)=>s+(e.hours||0),0);
+      return`<div style="background:#F8FAFC;border:.5px solid #E2E8F0;border-radius:12px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;opacity:.8;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:14px;font-weight:700;color:#64748B;">${esc(p.name)}</span>
+            <span class="badge" style="background:#F1F5F9;color:#64748B;font-size:10px;">${p.type}</span>
+            <span class="badge" style="background:#F1F5F9;color:#94A3B8;font-size:10px;">🏁 ${p.soldDate?'Sold '+p.soldDate:'Archived'}</span>
+          </div>
+          ${p.address?`<div style="font-size:11px;color:#94A3B8;margin-top:2px;">${esc(p.address)}</div>`:''}
+          <div style="font-size:11px;color:#94A3B8;margin-top:4px;">${Math.round(totalHrs)} hrs logged (all years) — preserved in audit report</div>
+          <div style="font-size:11px;color:#B45309;margin-top:4px;padding:4px 8px;background:#FFFBEB;border-radius:4px;display:inline-block;">📋 IRC §469(g): Suspended PAL losses may be released upon complete disposition. Confirm with your CPA.</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button class="btn btn-sm" data-act="restoreProp" data-id="${p.id}" style="background:#ECFDF5;border:1px solid #6EE7B7;color:#065F46;font-size:11px;">↩ Restore</button>
+          <button class="btn btn-sm btn-danger" data-act="rmProp" data-id="${p.id}" style="font-size:11px;">🗑 Delete</button>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>
+</details>`;
+})()}`;
 }
 
 // ── ADDRESS AUTOCOMPLETE (OpenStreetMap Nominatim - free, no key) ──
@@ -1949,6 +1982,30 @@ function addProp(){
   state.properties.push({id:uid(),name:nm,address,street,city,state:state2,zip,type:tp,avgRentalDays:parseFloat(document.getElementById('p-dy')?.value)||null,otherHours:parseFloat(document.getElementById('p-ot')?.value)||0,otherHoursCompensated:!!document.getElementById('p-ot-comp')?.checked,bookings:[]});
   save();showPropForm=false;renderView();
 }
+async function archiveProp(id){
+  const prop=state.properties.find(p=>p.id===id);
+  if(!prop)return;
+  const ok=await dlgConfirm({
+    title:`Mark "${prop.name}" as Sold / Archived?`,
+    body:`This moves the property to your archive. All logged hours and entries are preserved for your audit history.\n\n⚠ IRC §469(g) note: If you sold this property, suspended passive activity losses may be released upon complete disposition. Confirm the tax treatment with your CPA before filing.`,
+    confirmLabel:'Archive Property',
+  });
+  if(!ok)return;
+  prop.sold=true;
+  prop.soldDate=todayStr();
+  save();renderView();
+  toast(`"${prop.name}" archived. Hours preserved. Reminder: check §469(g) PAL release with your CPA.`,'success',{duration:8000});
+}
+
+function restoreProp(id){
+  const prop=state.properties.find(p=>p.id===id);
+  if(!prop)return;
+  prop.sold=false;
+  prop.soldDate=null;
+  save();renderView();
+  toast(`"${prop.name}" restored to active properties.`,'success');
+}
+
 async function rmProp(id){
   const prop=state.properties.find(p=>p.id===id);
   if(!prop)return;
@@ -2043,8 +2100,8 @@ async function delBooking(pid,bid){
 
 // ── MP TESTS ──
 function vMP(){
-  const sps=state.properties.filter(p=>p.type==='STR');
-  const ltrs=state.properties.filter(p=>p.type==='LTR');
+  const sps=state.properties.filter(p=>p.type==='STR'&&!p.sold);
+  const ltrs=state.properties.filter(p=>p.type==='LTR'&&!p.sold);
   const grouped=!!state.settings.groupingElection;
 
   // ── Plain-English test descriptions ──
