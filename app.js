@@ -2254,45 +2254,66 @@ function vSettings(){
   function expandToggle(id,label,content){
     return`<details style="margin-top:8px;"><summary style="font-size:12px;color:#0E7490;font-weight:600;cursor:pointer;list-style:none;display:flex;align-items:center;gap:4px;">ⓘ ${label}</summary><div style="margin-top:8px;padding:10px 12px;background:#F0FDFA;border-radius:8px;border:.5px solid #99F6E4;font-size:12px;color:#0F766E;line-height:1.7;">${content}</div></details>`;
   }
+  function tag(label,color,bg){
+    return`<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:99px;background:${bg};color:${color};letter-spacing:.03em;margin-left:8px;">${label}</span>`;
+  }
   return`
 <div class="ph"><h1 class="pg-title">Settings</h1><div class="pg-sub">Configure your account and tax situation.</div></div>
 
+<!-- ── ACCOUNT ── -->
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">💳 Account &amp; Billing</div>
   <div style="font-size:12px;color:#64748B;margin-bottom:14px;">Manage your subscription, update payment, or view invoices.</div>
   <a href="https://billing.stripe.com/p/login/bJedR19mL8bK7rY3nuebu00" target="_blank" rel="noopener noreferrer" style="display:inline-block;background:#0D1F3C;color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:10px 18px;border-radius:8px;">Manage subscription</a>
 </div>
 
+<!-- ── TAX SITUATION ── -->
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">📋 Your Tax Situation</div>
-  <div style="font-size:12px;color:#64748B;margin-bottom:18px;">These inputs affect how your qualification tests are calculated.</div>
-  <div class="g2">
-    <div class="field">
-      <label class="fl">Non-Real Estate Hours This Year</label>
-      <input type="number" min="0" step="1" value="${s.nonREPSHours||''}" placeholder="0" data-chg="setNum" data-key="nonREPSHours"/>
-      <div class="hint">W-2 job, other businesses, etc. A full-time W-2 ≈ 2,080 hrs/yr.</div>
-      ${expandToggle('t50','Why this matters — 50% Services Test','Your RE hours must exceed 50% of ALL personal services you perform. If you have a W-2 job and don\'t enter those hours, your 50% test result will show as unverified. Only YOUR hours count — not a spouse\'s W-2. IRC §469(c)(7)(B)(i).')}
+  <div style="font-size:12px;color:#64748B;margin-bottom:18px;">Tell us about your tax situation so we can calculate your tests accurately.</div>
+
+  <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;margin-bottom:6px;">
+      <div style="font-size:13px;font-weight:700;color:#0D1F3C;">Non-Real Estate Hours This Year</div>
+      ${tag('LTR / REPS users','#1E40AF','#EFF6FF')}
     </div>
-    <div class="field">
-      <label class="fl">Filing Status</label>
-      <select data-chg="setStrRender" data-key="filingStatus">
-        ${Object.keys(FILING_LABELS).map(k=>`<option value="${k}" ${(s.filingStatus||'MFJ')===k?'selected':''}>${FILING_LABELS[k]}</option>`).join('')}
-      </select>
-      <div class="hint">Used to calculate your §1411 NIIT threshold.</div>
-      ${expandToggle('tniit','NIIT threshold for your filing status','The 3.8% Net Investment Income Tax applies to the lesser of net investment income or MAGI above $'+(NIIT_THRESHOLDS[s.filingStatus||'MFJ']||250000).toLocaleString()+'. REPS status alone does not remove NIIT — you must also materially participate in the activity as a §162 trade or business. Discuss with your CPA.')}
-    </div>
+    <div style="font-size:12px;color:#64748B;margin-bottom:10px;">If you have a W-2 job or other non-real-estate business, enter your hours here. Without this, your 50% Services Test can't be verified.</div>
+    <input type="number" min="0" step="1" value="${s.nonREPSHours||''}" placeholder="e.g. 2080 for a full-time W-2 job" data-chg="setNum" data-key="nonREPSHours" style="width:100%;padding:10px 13px;border-radius:8px;border:1.5px solid #CBD5E1;font-size:13px;font-family:inherit;color:#0D1F3C;background:#fff;outline:none;"/>
+    <div style="font-size:11px;color:#94A3B8;margin-top:6px;">Full-time W-2 ≈ 2,080 hrs/yr · Part-time ≈ 1,040 hrs/yr · Only YOUR hours count, not a spouse's.</div>
+    ${expandToggle('t50','Why this matters — 50% Services Test','Your RE hours must exceed 50% of ALL personal services you perform that year. If you have a full-time W-2 (≈2,080 hrs) you would need more than 2,080 REPS hours to pass — a very high bar. If you leave this blank and have RE hours logged, we mark the test as unverified. IRC §469(c)(7)(B)(i).')}
   </div>
-  <div class="field">
-    <label class="fl">Personal Use Days This Year</label>
-    <input type="number" min="0" step="1" value="${s.personalUseDays||''}" placeholder="0" data-chg="setNum" data-key="personalUseDays"/>
-    <div class="hint">Days you (or family) personally used any rental property. Affects §280A deduction limits.</div>
-    ${expandToggle('t280a','§280A Personal-Use Limitation','If personal use exceeds the greater of 14 days or 10% of rental days, the property becomes a "residence" and rental loss deductions are capped at gross rental income — regardless of REPS or MP status. Consult your CPA; §280A interacts with §469 in complex ways.')}
+
+  <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;margin-bottom:12px;">
+    <div style="display:flex;align-items:center;margin-bottom:6px;">
+      <div style="font-size:13px;font-weight:700;color:#0D1F3C;">Filing Status</div>
+      ${tag('All users','#065F46','#D1FAE5')}
+    </div>
+    <div style="font-size:12px;color:#64748B;margin-bottom:10px;">Used to show your Net Investment Income Tax (NIIT) threshold. Doesn't affect your REPS or MP test calculations.</div>
+    <select data-chg="setStrRender" data-key="filingStatus" style="width:100%;padding:10px 13px;border-radius:8px;border:1.5px solid #CBD5E1;font-size:13px;font-family:inherit;color:#0D1F3C;background:#fff;outline:none;">
+      ${Object.keys(FILING_LABELS).map(k=>`<option value="${k}" ${(s.filingStatus||'MFJ')===k?'selected':''}>${FILING_LABELS[k]}</option>`).join('')}
+    </select>
+    <div style="font-size:11px;color:#94A3B8;margin-top:6px;">Your NIIT threshold: <strong>$${(NIIT_THRESHOLDS[s.filingStatus||'MFJ']||250000).toLocaleString()}</strong> MAGI · 3.8% applies above this.</div>
+    ${expandToggle('tniit','About NIIT and your rental income','REPS status alone does not remove the 3.8% Net Investment Income Tax. To avoid NIIT on rental income you must also materially participate in the rental as a §162 trade or business — a separate analysis. Discuss with your CPA. IRC §1411.')}
+  </div>
+
+  <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;">
+    <div style="display:flex;align-items:center;margin-bottom:6px;">
+      <div style="font-size:13px;font-weight:700;color:#0D1F3C;">Personal Use Days This Year</div>
+      ${tag('STR owners who also use the property','#92400E','#FEF3C7')}
+    </div>
+    <div style="font-size:12px;color:#64748B;margin-bottom:10px;">If you or your family stayed at any of your rental properties, enter the total days here. This affects the §280A deduction limit — leave blank if you never personally used any rental property.</div>
+    <input type="number" min="0" step="1" value="${s.personalUseDays||''}" placeholder="0 — leave blank if no personal use" data-chg="setNum" data-key="personalUseDays" style="width:100%;padding:10px 13px;border-radius:8px;border:1.5px solid #CBD5E1;font-size:13px;font-family:inherit;color:#0D1F3C;background:#fff;outline:none;"/>
+    <div style="font-size:11px;color:#94A3B8;margin-top:6px;">Includes spouse, children, parents, siblings, or anyone who paid less than fair rental value.</div>
+    ${expandToggle('t280a','§280A Personal-Use Limitation','If personal use exceeds the greater of 14 days or 10% of rental days, your property becomes a "residence" under §280A. Rental loss deductions are then capped at gross rental income — regardless of REPS or material participation status. Consult your CPA; §280A interacts with §469 in complex ways.')}
   </div>
 </div>
 
+<!-- ── TRACKING OPTIONS ── -->
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">⚙️ Tracking Options</div>
   <div style="font-size:12px;color:#64748B;margin-bottom:18px;">Control how RepsRecord tracks and evaluates your hours.</div>
+
+  <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#38BDF8;margin-bottom:8px;padding-bottom:6px;border-bottom:1.5px solid #E0F7FA;">🏡 Long-Term Rentals / REPS</div>
 
   <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;margin-bottom:12px;">
     <label class="tog-row" style="margin-bottom:${s.spouseEnabled?'12px':'0'};">
@@ -2324,6 +2345,8 @@ function vSettings(){
     ${expandToggle('tge','About the grouping election','Pools all LTR hours into one activity, making MP easier to achieve. Must be filed on a timely filed original return — cannot be easily revoked. If you missed the deadline, see Rev. Proc. 2011-34. Consult your CPA before enabling. STR properties cannot be grouped with LTRs. Treas. Reg. §1.469-9(g).')}
   </div>
 
+  <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#14B8A6;margin:14px 0 8px;padding-bottom:6px;border-bottom:1.5px solid #CCFBF1;">🏖 Short-Term Rentals / STR</div>
+
   <div style="padding:14px;background:#F8FAFC;border-radius:10px;border:.5px solid #E2E8F0;">
     <label class="tog-row" style="margin-bottom:0;">
       <input type="checkbox" ${s.includeSTRinREPS===true?'checked':''} data-chg="setBool" data-key="includeSTRinREPS"/>
@@ -2333,6 +2356,7 @@ function vSettings(){
   </div>
 </div>
 
+<!-- ── TAX CONTEXT (collapsed) ── -->
 <details style="margin-bottom:14px;">
   <summary style="background:#fff;border:.5px solid #CCFBF1;border-radius:12px;padding:16px 18px;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;">
     <div><div style="font-size:14px;font-weight:800;color:#0D1F3C;">📚 Tax Context &amp; Important Notes</div><div style="font-size:12px;color:#64748B;margin-top:2px;">Suspended PALs, NIIT, community property, §461(l) — read when relevant</div></div>
@@ -2350,6 +2374,7 @@ function vSettings(){
   </div>
 </details>
 
+<!-- ── DANGER ZONE ── -->
 <div class="card" style="background:#FEF2F2;border-color:#FECACA;">
   <div style="font-size:14px;font-weight:800;color:#991B1B;margin-bottom:16px;">⚠ Danger Zone</div>
   <div style="display:flex;flex-direction:column;gap:16px;">
@@ -2366,7 +2391,6 @@ function vSettings(){
   </div>
 </div>`;
 }
-
 
 function setSetting(k,v){state.settings[k]=v;save();updateSB();}
 async function resetAll(){
