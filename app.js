@@ -167,6 +167,7 @@ const CLICK_ACTIONS={
   walkNext:()=>walkNext(),
   remySend:()=>remySend(),
   deleteAccount:()=>deleteAccount(),
+  manageBilling:()=>manageBilling(),
 };
 const CHANGE_ACTIONS={
   setYear:el=>{activeYear=parseInt(el.value);renderView();},
@@ -2306,7 +2307,7 @@ function vSettings(){
 <div class="card card-mb">
   <div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">💳 Account &amp; Billing</div>
   <div style="font-size:12px;color:#64748B;margin-bottom:14px;">Manage your subscription, update payment, or view invoices.</div>
-  <button id="manage-billing-btn" onclick="manageBilling()" style="display:inline-block;background:#0D1F3C;color:#fff;border:none;font-weight:700;font-size:13px;padding:10px 18px;border-radius:8px;cursor:pointer;font-family:inherit;">Manage subscription</button>
+  <button id="manage-billing-btn" data-act="manageBilling" style="display:inline-block;background:#0D1F3C;color:#fff;border:none;font-weight:700;font-size:13px;padding:10px 18px;border-radius:8px;cursor:pointer;font-family:inherit;">Manage subscription</button>
 </div>
 
 <!-- LTR SECTION -->
