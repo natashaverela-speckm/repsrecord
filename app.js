@@ -675,7 +675,7 @@ function renderNav(){
 }
 function updateSB(){
   const r=calcREPS(),pct=Math.min(r.rh/750*100,100);
-  document.getElementById('sb-val').textContent=r.m750?'✓ 750 hrs met':`${Math.round(r.rh)} / >750 hrs`;
+  document.getElementById('sb-val').textContent=r.m750?'✓ 750 hrs met':`${Math.round(r.rh)} hrs logged`;
   document.getElementById('sb-val').style.color=r.m750?'#14B8A6':'#fff';
   document.getElementById('sb-fill').style.width=pct+'%';
   document.getElementById('sb-fill').style.background=r.ok?'#10B981':'#14B8A6';
@@ -750,6 +750,16 @@ function vDashboard(){
   // ── No properties: clean onboarding ──
   if(hasNeither){
     return settingsBanner+pageHeader+
+    '<div style="margin-bottom:16px;background:#0D1F3C;border-radius:14px;padding:20px 24px;display:flex;gap:10px;align-items:flex-start;">'+
+      '<div>'+
+        '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#14B8A6;margin-bottom:10px;">GET STARTED IN 3 STEPS</div>'+
+        '<div style="display:flex;flex-direction:column;gap:8px;">'+
+          '<div style="display:flex;align-items:center;gap:10px;"><div style="width:22px;height:22px;border-radius:50%;background:#14B8A6;color:#fff;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div><div style="font-size:13px;color:#fff;font-weight:600;">Add your rental properties below</div></div>'+
+          '<div style="display:flex;align-items:center;gap:10px;"><div style="width:22px;height:22px;border-radius:50%;background:#1E3A5F;color:#7DD3FC;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div><div style="font-size:13px;color:#7DD3FC;">Log your first hour in Log Time</div></div>'+
+          '<div style="display:flex;align-items:center;gap:10px;"><div style="width:22px;height:22px;border-radius:50%;background:#1E3A5F;color:#7DD3FC;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">3</div><div style="font-size:13px;color:#7DD3FC;">Check your qualification status in Do You Qualify?</div></div>'+
+        '</div>'+
+      '</div>'+
+    '</div>'+
     '<div style="margin-bottom:24px;background:#F0FDFA;border:1px solid #CCFBF1;border-radius:14px;padding:24px 28px;">'+
       '<div style="font-size:16px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">👋 Welcome to RepsRecord</div>'+
       '<div style="font-size:13px;color:#64748B;margin-bottom:20px;line-height:1.6;">Start by adding your rental properties. The type you add determines which tax strategy we track.</div>'+
@@ -1019,6 +1029,7 @@ function vLog(){
       })()}</select>
       ${trackType==='STR'&&!state.properties.some(p=>p.type==='STR')?'<div class="hint" style="color:#F59E0B;margin-top:4px;">No STR properties yet. <a href="#" data-act="nav" data-target="properties" data-prevent="1" style="color:#14B8A6;font-weight:600;">Add one in Properties →</a></div>':''}
       ${trackType==='REPS'&&!state.properties.some(p=>p.type==='LTR')?'<div class="hint" style="margin-top:4px;">No LTR properties yet — <a href="#" data-act="nav" data-target="properties" data-prevent="1" style="color:#14B8A6;font-weight:600;">add one in Properties →</a> or select general above.</div>':''}
+      ${trackType==='REPS'&&state.properties.some(p=>p.type==='LTR')&&!state.settings.groupingElection?'<div class="hint" style="margin-top:6px;padding:7px 10px;background:#FFF7ED;border-radius:6px;border:.5px solid #FDE68A;color:#92400E;font-size:11px;">⚠ <strong>Tip:</strong> Without a grouping election, hours need to be tracked per-property for Material Participation tests. Use "General RE" only for hours that genuinely span your whole portfolio (e.g. education, meetings with your CPA). Attribute property-specific work to the actual property.</div>':''}
     </div>
   </div>
   <div class="field"><label class="fl">Activity Category</label>
@@ -1414,9 +1425,12 @@ ${state.properties.map(p=>{
       <div class="prop-nm">${esc(p.name)}</div>${p.address?`<div class="prop-addr">${esc(p.address)}</div>`:''}
       <div class="prop-tags">
         <span class="badge ${p.type==='STR'?'b-blue':'b-amber'}">${p.type}</span>
-        ${p.type==='STR'&&p.avgRentalDays?`<span class="badge ${p.avgRentalDays<=7?'b-met':'b-no'}">Avg ${p.avgRentalDays}d ${p.avgRentalDays<=7?'✓':'⚠'}${p.bookings&&p.bookings.length?' 📅':''}</span>`:''}
+        ${p.type==='STR'&&p.avgRentalDays?`<span class="badge ${p.avgRentalDays<=7?'b-met':p.avgRentalDays<=30?'b-amber':'b-no'}">Avg ${p.avgRentalDays}d ${p.avgRentalDays<=7?'✓ qualifies':p.avgRentalDays<=30?'⚠ needs personal services':'✗ >30 days'}${p.bookings&&p.bookings.length?' 📅':''}</span>`:''}
         ${p.otherHours>0?`<span style="font-size:11px;color:#64748B;">Others: ${p.otherHours}h/yr</span>`:''}
       </div>
+      ${p.type==='STR'&&p.avgRentalDays>7&&p.avgRentalDays<=30?`<div style="margin-top:8px;font-size:11px;color:#92400E;background:#FFF7ED;border:1px solid #FDE68A;border-radius:6px;padding:6px 10px;line-height:1.6;">⚠ <strong>8–30 day average rental period:</strong> Material participation alone may not be enough. The IRS also requires "significant personal services" under §1.469-1T(e)(3)(ii)(B). Confirm with your CPA.</div>`:''}
+      ${p.type==='STR'&&p.avgRentalDays>30?`<div style="margin-top:8px;font-size:11px;color:#991B1B;background:#FEF2F2;border:1px solid #FECACA;border-radius:6px;padding:6px 10px;line-height:1.6;">⛔ <strong>Average rental period over 30 days</strong> — the STR exception does not apply. This property is treated as a standard rental under §469 and needs REPS for non-passive treatment.</div>`:''}
+      ${p.type==='STR'&&!p.avgRentalDays?`<div style="margin-top:8px;font-size:11px;color:#92400E;background:#FFFBEB;border:1px solid #FDE68A;border-radius:6px;padding:6px 10px;">⚠ No average rental period set — edit this property or use the Booking Log to calculate it. This is required to confirm STR exception eligibility.</div>`:''}
     </div>
     <div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
       <div style="font-size:26px;font-weight:900;color:#0D1F3C;margin-top:28px;">${Math.round(hrs)}<span style="font-size:13px;font-weight:400;color:#64748B;"> hrs</span></div>
@@ -2394,7 +2408,7 @@ function vSettings(){
       <input type="checkbox" ${s.includeSTRinREPS===true?'checked':''} data-chg="setBool" data-key="includeSTRinREPS"/>
       <div><div class="tog-lbl">Include my STR hours in the REPS 750-hour count</div></div>
     </label>
-    ${expandToggle('Why this is off by default','The Tax Court held in Bailey v. Comm\'r (T.C. Memo 2001-296) that STR hours do not count toward the §469(c)(7)(B)(ii) 750-hour REPS test because STRs are not "rental" activities under §469. Some practitioners take the contrary view. Leave this off unless your CPA specifically advises otherwise.')}
+    ${expandToggle('Why this is off by default','The Tax Court held in Bailey v. Comm\'r (T.C. Memo 2001-296) that STR hours do not count toward the §469(c)(7)(B)(ii) 750-hour REPS test because STRs are not "rental" activities under §469. Some practitioners take the contrary view under §469(c)(7)(C). A third position exists: if the STR is operated as a §162 trade or business, those hours may qualify as hours in a "real property trade or business" — a distinct analysis. Leave this off unless your CPA specifically advises otherwise based on your facts.')}
   </div>
 </div>
 
@@ -2448,7 +2462,7 @@ function vSettings(){
 </div>`;
 }
 
-function setSetting(k,v){state.settings[k]=v;save();updateSB();}
+function setSetting(k,v){state.settings[k]=v;save();updateSB();toast('Setting saved.','success',{duration:1500});}
 async function resetAll(){
   const ok=await dlgConfirm({title:'Reset all data?',body:'This permanently deletes all entries, properties, and settings. This cannot be undone.',confirmLabel:'Continue',danger:true});
   if(!ok)return;
