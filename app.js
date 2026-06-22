@@ -684,6 +684,7 @@ function updateSB(){
   document.getElementById('sb-fill').style.background=r.ok?'#10B981':'#14B8A6';
   const strHrs=yearEntries().filter(e=>!e.isSpouse&&e.trackType==='STR').reduce((s,e)=>s+(e.hours||0),0);
   const strPs=state.properties.filter(p=>p.type==='STR'&&!p.sold);
+  const strQ=strPs.map(p=>strQualifies(p));
   const strQual=strQ.filter(v=>v==='yes').length;
   const strEl=document.getElementById('sb-str-val');
   const strPropsEl=document.getElementById('sb-str-props');
