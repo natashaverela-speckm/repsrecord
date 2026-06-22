@@ -2337,15 +2337,20 @@ function vSettings(){
   <div style="font-size:12px;color:#64748B;line-height:1.7;">If you are married and reside in a community property state — Arizona, California, Idaho, Louisiana, Nevada, New Mexico, Texas, Washington, or Wisconsin — your state's income and property rules may interact with the REPS individual-testing requirements in non-obvious ways. The IRC §469(c)(7) 750-hour and 50% tests are applied per-taxpayer regardless of community property treatment. Consult your tax professional about how your state's rules affect your specific situation before relying on RepsRecord's calculations.</div>
 </div>
 <div class="card" style="background:#FEF2F2;border-color:#FECACA;">
-  <div style="font-size:14px;font-weight:800;color:#991B1B;margin-bottom:6px;">Reset All Data</div>
-  <div style="font-size:12px;color:#64748B;margin-bottom:12px;">Permanently deletes all entries, properties, and settings.</div>
-  <button class="btn btn-danger" data-act="resetAll">Reset Everything</button>
-  <div class="hint" style="margin-top:8px;color:#EF4444;">⚠ A second confirmation will be required. This action cannot be undone.</div>
-</div>
-<div class="card" style="background:#FEF2F2;border-color:#FECACA;margin-top:16px;">
-  <div style="font-size:14px;font-weight:800;color:#991B1B;margin-bottom:6px;">Delete Account</div>
-  <div style="font-size:12px;color:#64748B;margin-bottom:12px;line-height:1.6;">Permanently cancels your subscription and erases all your data. This cannot be undone.</div>
-  <button class="btn btn-danger" data-act="deleteAccount">Delete My Account</button>
+  <div style="font-size:14px;font-weight:800;color:#991B1B;margin-bottom:16px;">⚠ Danger Zone</div>
+  <div style="display:flex;flex-direction:column;gap:16px;">
+    <div style="padding-bottom:16px;border-bottom:1px solid #FECACA;">
+      <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:4px;">Reset All Data</div>
+      <div style="font-size:12px;color:#64748B;margin-bottom:10px;">Permanently deletes all entries, properties, and settings. Does not affect your subscription.</div>
+      <button class="btn btn-danger" data-act="resetAll">Reset Everything</button>
+      <div class="hint" style="margin-top:6px;color:#EF4444;">⚠ A second confirmation will be required.</div>
+    </div>
+    <div>
+      <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:4px;">Delete Account</div>
+      <div style="font-size:12px;color:#64748B;margin-bottom:10px;">Cancels your subscription and permanently erases all your data. This cannot be undone.</div>
+      <button class="btn btn-danger" data-act="deleteAccount">Delete My Account</button>
+    </div>
+  </div>
 </div>`;
 }
 
