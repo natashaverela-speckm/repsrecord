@@ -168,6 +168,7 @@ const CLICK_ACTIONS={
   remySend:()=>remySend(),
   deleteAccount:()=>deleteAccount(),
   manageBilling:()=>manageBilling(),
+  addPropType:el=>{showPropForm=true;go('properties');setTimeout(()=>{const tp=document.getElementById('p-tp');if(tp){tp.value=el.dataset.proptype;togglePropType();}},50);},
 };
 const CHANGE_ACTIONS={
   setYear:el=>{activeYear=parseInt(el.value);renderView();},
@@ -753,13 +754,13 @@ function vDashboard(){
       '<div style="font-size:16px;font-weight:800;color:#0D1F3C;margin-bottom:6px;">👋 Welcome to RepsRecord</div>'+
       '<div style="font-size:13px;color:#64748B;margin-bottom:20px;line-height:1.6;">Start by adding your rental properties. The type you add determines which tax strategy we track.</div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">'+
-        '<div style="background:#fff;border-radius:12px;padding:20px;border:1.5px solid #CCFBF1;cursor:pointer;" class="hov-blue" data-act="nav" data-target="properties">'+
+        '<div style="background:#fff;border-radius:12px;padding:20px;border:1.5px solid #CCFBF1;cursor:pointer;" class="hov-blue" data-act="addPropType" data-proptype="LTR">'+
           '<div style="font-size:22px;margin-bottom:10px;">🏡</div>'+
           '<div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">Long-Term Rentals</div>'+
           '<div style="font-size:12px;color:#64748B;line-height:1.6;margin-bottom:14px;">Track hours toward Real Estate Professional Status (REPS). Make rental losses non-passive to offset your W-2 or business income.</div>'+
           '<div style="display:inline-block;background:#38BDF8;color:#fff;font-size:12px;font-weight:700;padding:7px 16px;border-radius:8px;">+ Add LTR Property</div>'+
         '</div>'+
-        '<div style="background:#fff;border-radius:12px;padding:20px;border:1.5px solid #CCFBF1;cursor:pointer;" class="hov-teal" data-act="nav" data-target="properties">'+
+        '<div style="background:#fff;border-radius:12px;padding:20px;border:1.5px solid #CCFBF1;cursor:pointer;" class="hov-teal" data-act="addPropType" data-proptype="STR">'+
           '<div style="font-size:22px;margin-bottom:10px;">🏖</div>'+
           '<div style="font-size:14px;font-weight:800;color:#0D1F3C;margin-bottom:4px;">Short-Term Rentals</div>'+
           '<div style="font-size:12px;color:#64748B;line-height:1.6;margin-bottom:14px;">Track material participation tests for Airbnb, VRBO, and similar properties. No REPS required — this strategy is available to any investor.</div>'+
@@ -2130,7 +2131,7 @@ ${sps.length===0&&ltrs.length===0?`
   <div class="empty-ic">✅</div>
   <div style="font-size:15px;font-weight:700;color:#0D1F3C;margin-bottom:8px;">No properties yet</div>
   <div style="font-size:13px;color:#64748B;margin-bottom:16px;">Add your properties first, then come back here to see if you qualify.</div>
-  <a href="#" data-act="nav" data-target="properties" data-prevent="1" style="display:inline-block;background:#14B8A6;color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:10px 20px;border-radius:8px;">+ Add a Property →</a>
+  <a href="#" data-act="addPropType" data-proptype="STR" data-prevent="1" style="display:inline-block;background:#14B8A6;color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:10px 20px;border-radius:8px;">+ Add a Property →</a>
 </div>`:''}
 
 ${sps.length>0?`
