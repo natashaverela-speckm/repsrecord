@@ -719,6 +719,7 @@ function svgRing(val,max,color,bg,sz=110,sw=10){
 // ── DASHBOARD ──
 function vDashboard(){
   const r=calcREPS(),{rh,pct,m750,m50,ok}=r;
+  const repsHrs=rh; // alias used throughout this function
   const tot=rh+(state.settings.nonREPSHours||0);
   const strPs=state.properties.filter(p=>p.type==='STR'&&!p.sold);
   const ltrPs=state.properties.filter(p=>p.type==='LTR'&&!p.sold);
