@@ -3360,6 +3360,13 @@ const steps=[
 let walkStep=0;
 
 function showWalkthrough(){
+  // If arriving from Stripe checkout, always show the walkthrough regardless of localStorage
+  const fromCheckout=new URLSearchParams(window.location.search).get('upgraded');
+  if(fromCheckout){
+    localStorage.removeItem(WALK_KEY);
+    // Clean up URL
+    window.history.replaceState({},'',window.location.pathname);
+  }
   if(localStorage.getItem(WALK_KEY))return;
   const el=document.getElementById('walk-overlay');
   if(el){el.style.display='flex';renderWalkStep();}
