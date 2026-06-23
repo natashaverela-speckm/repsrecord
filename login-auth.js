@@ -86,6 +86,22 @@ async function signInEmail() {
   const btn = $('signin-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
   showMsg('');
+
+  // Check if this account was deleted before attempting sign-in
+  try {
+    const delCheck = await fetch(
+      `${SUPABASE_URL}/rest/v1/deleted_accounts?email=eq.${encodeURIComponent(email.toLowerCase())}&select=email`,
+      { headers: { apikey: SUPABASE_ANON_KEY, Accept: 'application/json' } }
+    );
+    const delRows = await delCheck.json();
+    if (Array.isArray(delRows) && delRows.length > 0) {
+      showMsg('This account has been deleted. If you believe this is an error, contact support@repsrecord.com.');
+      if (btn) { btn.disabled = false; btn.textContent = 'Sign in'; }
+      return;
+    }
+  } catch (e) {
+    // If check fails, continue with normal sign-in — don't block the user
+  }
   try {
     const { error } = await sb.auth.signInWithPassword({ email, password });
     if (error) {
