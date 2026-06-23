@@ -2923,15 +2923,12 @@ function clearRemyHistory(){
 function shareWithCPA(){
   const r=calcREPS();
   const email=_sbUser?.email||'';
-  const name=email.split('@')[0]||'Your Client';
   const repsStatus=r.ok?'QUALIFIED':'NOT YET QUALIFIED';
   const repsHrs=Math.round(r.rh);
-  const sps=state.properties.filter(p=>p.type==='STR');
-  const ltrs=state.properties.filter(p=>p.type==='LTR');
+  const sps=state.properties.filter(p=>p.type==='STR'&&!p.sold);
+  const ltrs=state.properties.filter(p=>p.type==='LTR'&&!p.sold);
   const strQual=sps.filter(p=>strQualifies(p)==='yes').length;
-
   const subject=encodeURIComponent(`RepsRecord Audit Report — ${activeYear} Tax Year`);
-
   const body=encodeURIComponent(
 `Hi,
 
@@ -2942,17 +2939,15 @@ SUMMARY
 Tax Year: ${activeYear}
 REPS Status: ${repsStatus}
 RE Hours Logged: ${repsHrs} hrs (required: >750)
-50% Services Test: ${r.m50?'MET':'NOT MET'} (${Math.round(r.pct)}% of personal service hours)${ltrs.length?`
-LTR Properties: ${ltrs.length}`:''} ${sps.length?`
-STR Properties: ${sps.length} (${strQual} qualifying for non-passive treatment)`:''}
+50% Services Test: ${r.m50?'MET':'NOT MET'} (${Math.round(r.pct)}% of personal service hours)${ltrs.length?`\nLTR Properties: ${ltrs.length}`:''}${sps.length?`\nSTR Properties: ${sps.length} (${strQual} qualifying for non-passive treatment)`:''}
 
 ATTACHMENTS
 -----------
-I am attaching the Excel export from RepsRecord which includes:
+Attached: RepsRecord_${activeYear}_AuditReport.xlsx
+This file includes:
 • REPS Qualification Summary (IRC §469(c)(7))
 • STR Material Participation results (Temp. Reg. §1.469-5T)
 • Complete time log with dates, properties, activity categories, and descriptions
-• Evidence attachments (receipts, photos, invoices)
 
 The report was prepared using RepsRecord (repsrecord.com), a purpose-built hour-tracking tool for IRC §469 compliance documentation.
 
@@ -2960,9 +2955,70 @@ Please let me know if you need any additional information.
 
 Thank you`);
 
-  // Open mailto — user's email client handles the rest
-  window.location.href=`mailto:?subject=${subject}&body=${body}`;
-  toast('Email draft opened — attach your Excel export before sending.','success',{duration:8000});
+  // Show a two-step modal — download first, then email
+  if(document.getElementById('cpa-share-modal'))return;
+  const m=document.createElement('div');
+  m.id='cpa-share-modal';
+  m.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;padding:24px;';
+  m.innerHTML=`<div style="background:#fff;border-radius:16px;max-width:460px;width:100%;padding:28px;box-shadow:0 30px 60px rgba(0,0,0,.3);">
+    <div style="font-size:22px;margin-bottom:8px;">📤 Share with CPA</div>
+    <div style="font-size:14px;color:#64748B;line-height:1.7;margin-bottom:20px;">Your email client can't attach files automatically. Follow these 2 steps:</div>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
+      <div style="display:flex;align-items:flex-start;gap:14px;padding:14px;background:#F0FDFA;border-radius:10px;border:1px solid #CCFBF1;">
+        <div style="width:28px;height:28px;border-radius:50%;background:#14B8A6;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">1</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:4px;">Download your Excel report</div>
+          <div style="font-size:12px;color:#64748B;margin-bottom:10px;">This saves the file to your Downloads folder so you can attach it to the email.</div>
+          <button id="cpa-dl-btn" style="background:#14B8A6;color:#fff;border:none;font-weight:700;font-size:13px;padding:8px 18px;border-radius:8px;cursor:pointer;">📥 Download Excel Report</button>
+        </div>
+      </div>
+      <div style="display:flex;align-items:flex-start;gap:14px;padding:14px;background:#F8FAFC;border-radius:10px;border:1px solid #E2E8F0;" id="cpa-step2">
+        <div style="width:28px;height:28px;border-radius:50%;background:#94A3B8;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;">2</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#64748B;margin-bottom:4px;">Open email draft &amp; attach the file</div>
+          <div style="font-size:12px;color:#94A3B8;margin-bottom:10px;">Opens a pre-written email in your mail app. Attach the file you just downloaded before sending.</div>
+          <button id="cpa-email-btn" disabled style="background:#E2E8F0;color:#94A3B8;border:none;font-weight:700;font-size:13px;padding:8px 18px;border-radius:8px;cursor:not-allowed;">✉ Open Email Draft</button>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;">
+      <button id="cpa-close-btn" style="background:none;border:1px solid #E2E8F0;color:#64748B;font-size:13px;padding:8px 16px;border-radius:8px;cursor:pointer;">Close</button>
+    </div>
+  </div>`;
+  document.body.appendChild(m);
+
+  // Step 1 — download
+  document.getElementById('cpa-dl-btn').addEventListener('click',async()=>{
+    const btn=document.getElementById('cpa-dl-btn');
+    btn.textContent='Downloading…';btn.disabled=true;
+    await exportXLSX();
+    // Unlock step 2
+    btn.textContent='✓ Downloaded';btn.style.background='#065F46';
+    const step2=document.getElementById('cpa-step2');
+    step2.style.background='#F0FDFA';step2.style.borderColor='#CCFBF1';
+    const s2title=step2.querySelector('div>div');if(s2title)s2title.style.color='#0D1F3C';
+    const s2sub=step2.querySelectorAll('div>div')[1];if(s2sub)s2sub.style.color='#64748B';
+    const circle=step2.querySelector('div:first-child');if(circle)circle.style.background='#14B8A6';
+    const emailBtn=document.getElementById('cpa-email-btn');
+    emailBtn.disabled=false;emailBtn.style.background='#6366F1';emailBtn.style.color='#fff';emailBtn.style.cursor='pointer';
+  });
+
+  // Step 2 — open email
+  document.getElementById('cpa-email-btn').addEventListener('click',()=>{
+    window.location.href=`mailto:?subject=${subject}&body=${body}`;
+    document.getElementById('cpa-email-btn').textContent='✓ Email draft opened';
+    setTimeout(()=>{
+      const modal=document.getElementById('cpa-share-modal');
+      if(modal)modal.remove();
+    },1500);
+  });
+
+  // Close
+  document.getElementById('cpa-close-btn').addEventListener('click',()=>{
+    const modal=document.getElementById('cpa-share-modal');
+    if(modal)modal.remove();
+  });
+  m.addEventListener('click',(e)=>{if(e.target===m){m.remove();}});
 }
 
 // ── EXCEL EXPORT ──
