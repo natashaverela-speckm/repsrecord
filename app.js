@@ -2924,7 +2924,7 @@ function shareWithCPA(){
   const r=calcREPS();
   const email=_sbUser?.email||'';
   const repsStatus=r.ok?'QUALIFIED':'NOT YET QUALIFIED';
-  const repsHrs=Math.round(r.rh);
+  const _cpaRepsHrs=Math.round(r.rh);
   const sps=state.properties.filter(p=>p.type==='STR'&&!p.sold);
   const ltrs=state.properties.filter(p=>p.type==='LTR'&&!p.sold);
   const strQual=sps.filter(p=>strQualifies(p)==='yes').length;
@@ -2938,7 +2938,7 @@ SUMMARY
 -------
 Tax Year: ${activeYear}
 REPS Status: ${repsStatus}
-RE Hours Logged: ${repsHrs} hrs (required: >750)
+RE Hours Logged: ${_cpaRepsHrs} hrs (required: >750)
 50% Services Test: ${r.m50?'MET':'NOT MET'} (${Math.round(r.pct)}% of personal service hours)${ltrs.length?`\nLTR Properties: ${ltrs.length}`:''}${sps.length?`\nSTR Properties: ${sps.length} (${strQual} qualifying for non-passive treatment)`:''}
 
 ATTACHMENTS
