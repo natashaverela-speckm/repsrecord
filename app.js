@@ -393,6 +393,14 @@ async function enforceSubscription(){
   }catch(e){ return 'open'; }
 }
 function showPaywallOverlay(userId,email){
+  // If the user just signed up from a pricing CTA, auto-trigger checkout instead of showing the wall
+  const autoCheckout=new URLSearchParams(window.location.search).get('checkout');
+  if(autoCheckout==='monthly'||autoCheckout==='annual'){
+    // Clean up URL so refresh doesn't re-trigger
+    window.history.replaceState({},'',window.location.pathname);
+    startCheckout(autoCheckout);
+    return;
+  }
   if(document.getElementById('paywall-overlay'))return;
   const ref=`?client_reference_id=${encodeURIComponent(userId)}&prefilled_email=${encodeURIComponent(email)}`;
   const o=document.createElement('div');

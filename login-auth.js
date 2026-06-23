@@ -151,6 +151,18 @@ async function forgotPassword() {
 
 // ── DOM Ready ──
 document.addEventListener('DOMContentLoaded', () => {
+  // ── Password show/hide toggles ──
+  function togglePw(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    btn.textContent = show ? '🙈' : '👁';
+    btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+  }
+  document.getElementById('toggle-password')?.addEventListener('click', function(){ togglePw('password', this); });
+  document.getElementById('toggle-signup-password')?.addEventListener('click', function(){ togglePw('signup-password', this); });
+  document.getElementById('toggle-signup-password2')?.addEventListener('click', function(){ togglePw('signup-password2', this); });
   // Mode tabs
   $('tab-signin')?.addEventListener('click', () => setMode('signin'));
   $('tab-signup')?.addEventListener('click', () => setMode('signup'));

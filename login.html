@@ -85,7 +85,7 @@ label.fl{display:block;font-size:10px;font-weight:700;text-transform:uppercase;l
           <label class="fl" for="password">Password</label>
           <div class="pw-wrap">
             <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Your password"/>
-            <button type="button" class="pw-toggle" onclick="togglePw('password',this)" tabindex="-1" aria-label="Show password">👁</button>
+            <button type="button" class="pw-toggle" id="toggle-password" tabindex="-1" aria-label="Show password">👁</button>
           </div>
         </div>
         <div class="row-between">
@@ -114,7 +114,7 @@ label.fl{display:block;font-size:10px;font-weight:700;text-transform:uppercase;l
           <label class="fl" for="signup-password">Password</label>
           <div class="pw-wrap">
             <input id="signup-password" name="new-password" type="password" autocomplete="new-password" placeholder="At least 8 characters"/>
-            <button type="button" class="pw-toggle" onclick="togglePw('signup-password',this)" tabindex="-1" aria-label="Show password">👁</button>
+            <button type="button" class="pw-toggle" id="toggle-signup-password" tabindex="-1" aria-label="Show password">👁</button>
           </div>
           <div class="hint">At least 8 characters — you'll use this to log in each time.</div>
         </div>
@@ -122,7 +122,7 @@ label.fl{display:block;font-size:10px;font-weight:700;text-transform:uppercase;l
           <label class="fl" for="signup-password2">Confirm password</label>
           <div class="pw-wrap">
             <input id="signup-password2" name="confirm-password" type="password" autocomplete="new-password" placeholder="Same password again"/>
-            <button type="button" class="pw-toggle" onclick="togglePw('signup-password2',this)" tabindex="-1" aria-label="Show password">👁</button>
+            <button type="button" class="pw-toggle" id="toggle-signup-password2" tabindex="-1" aria-label="Show password">👁</button>
           </div>
         </div>
         <button id="signup-btn" class="btn btn-teal" type="submit">Create account &amp; start trial</button>
@@ -154,16 +154,6 @@ label.fl{display:block;font-size:10px;font-weight:700;text-transform:uppercase;l
     </div>
 
   </div>
-  <script>
-  function togglePw(id, btn) {
-    const input = document.getElementById(id);
-    if (!input) return;
-    const show = input.type === 'password';
-    input.type = show ? 'text' : 'password';
-    btn.textContent = show ? '🙈' : '👁';
-    btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
-  }
-  </script>
   <script src="login-auth.js"></script>
 </body>
 </html>
