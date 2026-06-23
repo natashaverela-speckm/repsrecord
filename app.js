@@ -330,7 +330,7 @@ async function signOut(){
 
 // ── Paywall gate ──
 // Accounts that always have access (never locked out). Owner addresses go here.
-const PAYWALL_ADMINS=['admin@repsrecord.com','support@repsrecord.com','support@themoneynista.com'];
+const PAYWALL_ADMINS=['admin@repsrecord.com'];
 const PAY_MONTHLY='https://buy.stripe.com/bJedR19mL8bK7rY3nuebu00';// fallback
 const PAY_ANNUAL='https://buy.stripe.com/aFadR17eD9fOfYubU0ebu01';// fallback
 window.startCheckout=async function startCheckout(plan){
