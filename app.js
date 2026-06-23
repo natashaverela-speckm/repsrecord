@@ -297,7 +297,7 @@ function eblText(y){
   return `${f(s)} single / ${f(m)} married filing jointly for ${yy}`;
 }
 
-const SK='repsrecord_v1';
+let SK='repsrecord_v1'; // overwritten per-user in appInit
 const CUR_YEAR=new Date().getFullYear();
 const YEARS=[CUR_YEAR-3,CUR_YEAR-2,CUR_YEAR-1,CUR_YEAR];
 const MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -316,7 +316,7 @@ let _chartTab='monthly';// 'monthly' | 'property'
 // Remy AI assistant
 let remyOpen=false,remyLoading=false;
 let remyMessages=[];// {role:'user'|'assistant', content:string}
-const REMY_SK='repsrecord_remy_v1';
+let REMY_SK='repsrecord_remy_v1'; // overwritten per-user in appInit
 
 function uid(){return Math.random().toString(36).slice(2,9);}
 function fmtH(h){const a=Math.floor(h),b=Math.round((h-a)*60);return b===0?`${a}h`:`${a}h ${b}m`;}
@@ -3241,7 +3241,12 @@ async function appInit(){
     try{
       _sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
       const{data:{session}}=await _sb.auth.getSession();
-     if(session){_sbUser=session.user;}
+     if(session){
+       _sbUser=session.user;
+       // Per-user storage key — prevents data leaking between accounts on shared devices
+       SK='repsrecord_v1_'+session.user.id;
+       REMY_SK='repsrecord_remy_v1_'+session.user.id;
+     }
       const emailEl=document.getElementById('sb-email');if(emailEl&&session){emailEl.textContent='✉ '+(session.user.email||'');emailEl.title=session.user.email||'';}
     }catch(e){_sb=null;}
   }
