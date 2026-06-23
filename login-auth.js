@@ -4,6 +4,7 @@
 const SUPABASE_URL = 'https://ehuttijifubonhhgnvzx.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodXR0aWppZnVib25oaGdudnp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NjU2MTgsImV4cCI6MjA5NTA0MTYxOH0.-uYE8sxRDXdZXt00CH10d7tLYaJl03hFYfDH5tPjTKM';
 const APP_PAGE = 'app.html';
+let _pendingConfirmEmail = '';
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const $ = (id) => document.getElementById(id);
@@ -25,6 +26,7 @@ function goApp() {
 }
 
 function showConfirmScreen(email) {
+  _pendingConfirmEmail = email;
   $('signin-section').style.display = 'none';
   $('signup-section').style.display = 'none';
   $('mode-tabs').style.display = 'none';
@@ -53,12 +55,26 @@ function setMode(mode) {
 }
 
 // ── Already signed in? ──
-sb.auth.onAuthStateChange((_event, session) => { if (session) goApp(); });
+sb.auth.onAuthStateChange((_event, session) => {
+  if (!session) return;
+  // Only redirect if email is confirmed — unconfirmed users see the check-inbox screen
+  if (session.user.email_confirmed_at) {
+    goApp();
+  } else {
+    // Email not yet confirmed — show the confirmation screen
+    showConfirmScreen(session.user.email || '');
+  }
+});
 
 (async () => {
   try {
     const { data: { session } } = await sb.auth.getSession();
-    if (session) goApp();
+    if (!session) return;
+    if (session.user.email_confirmed_at) {
+      goApp();
+    } else {
+      showConfirmScreen(session.user.email || '');
+    }
   } catch (e) {}
 })();
 
@@ -111,7 +127,7 @@ async function signUpEmail() {
       if (btn) { btn.disabled = false; btn.textContent = 'Create account & start trial'; }
       return;
     }
-    // Show confirmation screen
+    // Always show confirmation screen — don't redirect until email is confirmed
     showConfirmScreen(email);
   } catch (e) {
     showMsg('Something went wrong. Please try again.');
@@ -177,6 +193,25 @@ document.addEventListener('DOMContentLoaded', () => {
   // Sign up form
   $('signup-form')?.addEventListener('submit', (e) => { e.preventDefault(); signUpEmail(); });
   $('google-btn-signup')?.addEventListener('click', signInGoogle);
+
+  // Resend confirmation email
+  $('resend-btn')?.addEventListener('click', async () => {
+    const btn = $('resend-btn');
+    if (!_pendingConfirmEmail) return;
+    if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+    try {
+      const { error } = await sb.auth.resend({ type: 'signup', email: _pendingConfirmEmail });
+      if (error) {
+        if (btn) { btn.disabled = false; btn.textContent = 'Resend confirmation email'; }
+        showMsg(error.message || 'Could not resend. Please contact support.');
+      } else {
+        if (btn) { btn.textContent = '✓ Email resent — check your inbox'; }
+        setTimeout(() => { if (btn) { btn.disabled = false; btn.textContent = 'Resend confirmation email'; } }, 5000);
+      }
+    } catch (e) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Resend confirmation email'; }
+    }
+  });
 
   // Show plan badge if arriving from pricing CTA
   const plan = new URLSearchParams(window.location.search).get('plan');

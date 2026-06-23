@@ -141,15 +141,20 @@ label.fl{display:block;font-size:10px;font-weight:700;text-transform:uppercase;l
     <!-- ── EMAIL CONFIRMATION SCREEN ── -->
     <div id="confirm-screen">
       <div class="confirm-icon">📬</div>
-      <div class="confirm-title">Check your inbox</div>
+      <div class="confirm-title">One more step — confirm your email</div>
       <div class="confirm-body">
         We sent a confirmation link to:
         <div class="confirm-email-shown" id="confirm-email-shown"></div>
-        Click the link in that email to activate your account and start your 7-day trial.
+        Click the link in that email to activate your account. <strong>You must confirm your email before you can sign in.</strong>
       </div>
+      <div style="background:#FEF3C7;border:1px solid #FCD34D;border-radius:8px;padding:10px 14px;font-size:12px;color:#92400E;margin-bottom:12px;line-height:1.6;">
+        ⚠ <strong>Typo in your email?</strong> Sign up again with the correct address — no harm done. Only confirmed accounts can access the app.
+      </div>
+      <button id="resend-btn" class="btn btn-teal" type="button" style="margin-bottom:12px;">Resend confirmation email</button>
       <div class="confirm-note">
         Can't find it? Check your spam folder.<br>
-        Still nothing? <a href="mailto:support@repsrecord.com">support@repsrecord.com</a>
+        Wrong email? <a href="/login.html" id="start-over-link">Start over with the correct address →</a><br>
+        Still need help? <a href="mailto:support@repsrecord.com">support@repsrecord.com</a>
       </div>
     </div>
 
