@@ -231,6 +231,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Show plan badge if arriving from pricing CTA
   const plan = new URLSearchParams(window.location.search).get('plan');
+  const mode = new URLSearchParams(window.location.search).get('mode');
+  if (mode === 'signup') setMode('signup');
   if (plan) {
     const badge = $('plan-badge');
     if (badge) {
