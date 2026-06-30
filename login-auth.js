@@ -57,8 +57,8 @@ function setMode(mode) {
 // ── Already signed in? ──
 sb.auth.onAuthStateChange((_event, session) => {
   if (!session) return;
-  const mode = new URLSearchParams(window.location.search).get('mode');
-  if (mode === 'signup') return;
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('mode') === 'signup' || params.get('plan')) return;
   if (session.user.email_confirmed_at) {
     goApp();
   } else {
@@ -68,8 +68,8 @@ sb.auth.onAuthStateChange((_event, session) => {
 
 (async () => {
   try {
-    const mode = new URLSearchParams(window.location.search).get('mode');
-    if (mode === 'signup') return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('mode') === 'signup' || params.get('plan')) return;
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
     if (session.user.email_confirmed_at) {
