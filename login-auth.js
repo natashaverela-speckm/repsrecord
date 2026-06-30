@@ -21,8 +21,8 @@ function showMsg(text, ok) {
 }
 
 function goApp() {
-  const plan = new URLSearchParams(window.location.search).get('plan');
-  window.location.replace(plan ? `${APP_PAGE}?checkout=${plan}` : APP_PAGE);
+  const plan = new URLSearchParams(window.location.search).get('plan') || 'monthly';
+  window.location.replace(`${APP_PAGE}?checkout=${plan}`);
 }
 
 function showConfirmScreen(email) {
