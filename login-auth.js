@@ -57,17 +57,19 @@ function setMode(mode) {
 // ── Already signed in? ──
 sb.auth.onAuthStateChange((_event, session) => {
   if (!session) return;
-  // Only redirect if email is confirmed — unconfirmed users see the check-inbox screen
+  const mode = new URLSearchParams(window.location.search).get('mode');
+  if (mode === 'signup') return;
   if (session.user.email_confirmed_at) {
     goApp();
   } else {
-    // Email not yet confirmed — show the confirmation screen
     showConfirmScreen(session.user.email || '');
   }
 });
 
 (async () => {
   try {
+    const mode = new URLSearchParams(window.location.search).get('mode');
+    if (mode === 'signup') return;
     const { data: { session } } = await sb.auth.getSession();
     if (!session) return;
     if (session.user.email_confirmed_at) {
