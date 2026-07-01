@@ -305,7 +305,7 @@ const REPS_CATS=['— Select activity type —','Acquisition & Due Diligence','P
 const STR_CATS=['— Select activity type —','Guest Communication','Booking & Reservation Management','Check-in / Check-out','Cleaning Coordination','Maintenance & Repairs','Marketing & Listing Management','Financial & Accounting','Furnishing & Setup','Travel (STR property)','Guest Services & Concierge','Other STR Activity'];
 const NAV=[{id:'dashboard',ic:'📊',label:'Dashboard'},{id:'properties',ic:'🏠',label:'Properties'},{id:'log',ic:'⏱',label:'Log Time'},{id:'mp',ic:'✅',label:'Do You Qualify?'},{id:'reports',ic:'📋',label:'Audit Report'},{id:'divider'},{id:'ltr',ic:'🏡',label:'REPS Rules'},{id:'str',ic:'🏖',label:'STR Rules'},{id:'settings',ic:'⚙️',label:'Settings'}];
 
-let state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:false,personalUseDays:0,filingStatus:'MFJ',spouseHoursPolicy:'majority'},properties:[],entries:[],manualMP:{},priorYearMP:{}};
+let state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:false,personalUseDays:0,filingStatus:'MFJ',spouseHoursPolicy:'majority',repsSelfCert:false},properties:[],entries:[],manualMP:{},priorYearMP:{}};
 let activeYear=CUR_YEAR;
 let view='dashboard',chartInst=null,showPropForm=false,trackType='REPS';
 // Feature state
@@ -496,6 +496,7 @@ async function load(){
           if(state.settings.personalUseDays==null)state.settings.personalUseDays=0;
           if(!state.settings.filingStatus)state.settings.filingStatus='MFJ';
           if(!state.settings.spouseHoursPolicy)state.settings.spouseHoursPolicy='majority';
+          if(state.settings.repsSelfCert==null)state.settings.repsSelfCert=false;
         }
         localStorage.setItem(SK,JSON.stringify(state));// mirror to localStorage as offline cache
         _syncStatus='synced';updateSyncIndicator();
@@ -516,6 +517,7 @@ async function load(){
         if(state.settings.personalUseDays==null)state.settings.personalUseDays=0;
         if(!state.settings.filingStatus)state.settings.filingStatus='MFJ';
         if(!state.settings.spouseHoursPolicy)state.settings.spouseHoursPolicy='majority';
+        if(state.settings.repsSelfCert==null)state.settings.repsSelfCert=false;
       }
     }
   }catch(e){}
@@ -2192,9 +2194,9 @@ function vMP(){
     </div>`;
   }
 
-  function renderPropertyCard(p,tests,ph,badge,gateMsg){
-    const any=tests.some(t=>t.met);
-    const best=tests.find(t=>t.met);
+  function renderPropertyCard(p,tests,ph,badge,gateMsg,ltrInfo){
+    const any=ltrInfo?ltrInfo.qualifies:tests.some(t=>t.met);
+    const best=ltrInfo?(tests.find(t=>t.id===1)||tests.find(t=>t.met)):tests.find(t=>t.met);
     return`<div class="card card-mb">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;flex-wrap:wrap;gap:10px;">
         <div>
@@ -2205,7 +2207,8 @@ function vMP(){
         </div>
         ${badge}
       </div>
-      ${any?`<div style="background:#ECFDF5;border-radius:8px;padding:10px 14px;font-size:13px;color:#065F46;margin-bottom:14px;font-weight:600;">🏆 You pass via <strong>Test ${best.id} — ${best.label}</strong>. Your losses on this property can be non-passive.</div>`:`<div style="background:#FFF7ED;border-radius:8px;padding:10px 14px;font-size:13px;color:#92400E;margin-bottom:14px;">⏳ You haven't passed any test yet for this property. Keep logging hours — Test 3 is usually the easiest to hit.</div>`}
+      ${ltrInfo?((ltrInfo.qualifies)?`<div style="background:#ECFDF5;border-radius:8px;padding:10px 14px;font-size:13px;color:#065F46;margin-bottom:14px;font-weight:600;">🏆 You qualify — you self-certified the more-than-half test, exceeded 750 total REPS hours, and materially participate in this property (more than 500 hours). Your losses on this property can be non-passive.</div>`:`<div style="background:#FFF7ED;border-radius:8px;padding:10px 14px;font-size:13px;color:#92400E;margin-bottom:14px;">⏳ Not qualifying yet. A long-term rental is non-passive only if ALL of these are met: (1) you self-certify the more-than-half test above, (2) your total REPS hours exceed 750, and (3) you materially participate in this property with more than 500 hours (Test 1). Passing another test alone is not enough for a long-term rental.</div>`):(any?`<div style="background:#ECFDF5;border-radius:8px;padding:10px 14px;font-size:13px;color:#065F46;margin-bottom:14px;font-weight:600;">🏆 You pass via <strong>Test ${best.id} — ${best.label}</strong>. Your losses on this property can be non-passive.</div>`:`<div style="background:#FFF7ED;border-radius:8px;padding:10px 14px;font-size:13px;color:#92400E;margin-bottom:14px;">⏳ You haven't passed any test yet for this property. Keep logging hours — Test 3 is usually the easiest to hit.</div>`)}
+      ${ltrInfo?`<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px 14px;margin-bottom:14px;"><div style="font-size:12px;font-weight:700;color:#0D1F3C;margin-bottom:8px;">Long-term rental requires all three:</div><div style="display:flex;flex-direction:column;gap:7px;"><div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#334155;"><span style="font-size:13px;">${ltrInfo.cert?'✅':'⬜'}</span><span><strong>Self-certification</strong> — more than half your personal-service time is in real estate ${ltrInfo.cert?'(certified above)':'(check the box at the top of this page)'}</span></div><div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#334155;"><span style="font-size:13px;">${ltrInfo.over750?'✅':'⏳'}</span><span><strong>More than 750 total REPS hours</strong> — you have <strong>${Math.round(ltrInfo.repsHrs)}</strong> ${ltrInfo.over750?'✓':'(need more than 750)'}</span></div><div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#334155;"><span style="font-size:13px;">${ltrInfo.over500?'✅':'⏳'}</span><span><strong>More than 500 material-participation hours on this property</strong> — you have <strong>${Math.round(ph.owner+(ph.spouse||0))}</strong> ${ltrInfo.over500?'✓':'(need more than 500)'}</span></div></div><div style="font-size:11px;color:#64748B;line-height:1.6;margin-top:9px;padding-top:9px;border-top:.5px solid #E2E8F0;">The 500 material hours are part of the 750 total — they count toward it. The remaining hours can be general real estate work. <strong>Meeting 500 material hours alone does not qualify you</strong> — you also need more than 750 total hours and the certification above.</div></div>`:''}
       ${gateMsg?`<div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:8px;padding:10px 12px;font-size:12px;color:#92400E;line-height:1.6;margin-bottom:14px;">${gateMsg}</div>`:''}
       ${tests.map(t=>renderTestRow(t,p.id,ph,p,p.id||'__ltrgroup')).join('')}
     </div>`;
@@ -2227,6 +2230,7 @@ function vMP(){
   </div>
 </div>
 
+${ltrs.length>0?`<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-left:4px solid #38BDF8;border-radius:12px;padding:16px 18px;margin-bottom:20px;"><div style="font-size:13px;font-weight:800;color:#0D1F3C;margin-bottom:8px;">🏡 Real Estate Professional Status — required for long-term rentals</div><label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;"><input type="checkbox" ${state.settings.repsSelfCert===true?'checked':''} data-chg="setBoolRender" data-key="repsSelfCert" style="accent-color:#14B8A6;width:17px;height:17px;flex-shrink:0;margin-top:2px;"/><span style="font-size:13px;color:#0D1F3C;line-height:1.6;"><strong>I spend more than half of my total personal service time in real property trades or businesses.</strong></span></label><div style="font-size:11.5px;color:#64748B;line-height:1.6;margin-top:9px;padding-top:9px;border-top:.5px solid #DBEAFE;">Required for Real Estate Professional Status (IRC §469(c)(7)). <strong>Full-time W-2 wage earners are typically disqualified</strong> from this test — if you work a full-time job outside real estate, you usually cannot meet the more-than-half requirement. This is your self-certification: RepsRecord cannot verify it, and you are responsible for its accuracy. Your long-term rentals will not show as qualifying until this is checked.</div></div>`:''}
 ${sps.length===0&&ltrs.length===0?`
 <div class="empty">
   <div class="empty-ic">✅</div>
@@ -2263,22 +2267,22 @@ ${ltrs.length>0?`
 <div style="background:#EFF6FF;border-radius:8px;padding:10px 14px;font-size:12px;color:#1E40AF;margin-bottom:14px;line-height:1.6;">For long-term rentals, REPS qualification (750 hrs + 50% test) removes the automatic passive rule — but each property still needs to pass one of these tests to make its losses non-passive. ${grouped?'Your grouping election combines all LTR hours into one pool below.':'Without a grouping election, each property is tested separately.'}</div>
 ${grouped?(function(){
   const g=mpGroupedLTR();
-  const any=g.tests.some(t=>t.met);
+  const _R=calcREPS();const _t1=g.tests.find(t=>t.id===1);const cert=state.settings.repsSelfCert===true;const over750=_R.rh>750;const over500=!!(_t1&&_t1.met);const qualifies=cert&&over750&&over500;const any=qualifies;const ltrInfo={qualifies:qualifies,cert:cert,over750:over750,over500:over500,repsHrs:_R.rh};
   const best=g.tests.find(t=>t.met);
   const badge=any
     ?`<span style="background:#D1FAE5;color:#065F46;font-size:12px;font-weight:800;padding:5px 14px;border-radius:99px;">✅ Combined activity qualifies</span>`
-    :`<span style="background:#FEE2E2;color:#991B1B;font-size:12px;font-weight:700;padding:5px 14px;border-radius:99px;">Not qualifying yet</span>`;
+    :`<span style="background:#FEE2E2;color:#991B1B;font-size:12px;font-weight:700;padding:5px 14px;border-radius:99px;">Does not qualify</span>`;
   const fakeProp={id:LTR_GROUP_ID,name:'All LTR Properties (Grouped)',otherHours:g.other,otherHoursCompensated:g.paidManager};
   const fakePH={owner:g.owner,spouse:g.spouse||0};
-  return renderPropertyCard(fakeProp,g.tests,fakePH,badge,'');
+  return renderPropertyCard(fakeProp,g.tests,fakePH,badge,'',ltrInfo);
 })():ltrs.map(p=>{
   const ph=pH(p.id);
   const ts=mpT(p.id);
-  const any=ts.some(t=>t.met);
+  const _R=calcREPS();const _t1=ts.find(t=>t.id===1);const cert=state.settings.repsSelfCert===true;const over750=_R.rh>750;const over500=!!(_t1&&_t1.met);const qualifies=cert&&over750&&over500;const any=qualifies;const ltrInfo={qualifies:qualifies,cert:cert,over750:over750,over500:over500,repsHrs:_R.rh};
   const badge=any
     ?`<span style="background:#D1FAE5;color:#065F46;font-size:12px;font-weight:800;padding:5px 14px;border-radius:99px;">✅ Qualifies</span>`
-    :`<span style="background:#FEE2E2;color:#991B1B;font-size:12px;font-weight:700;padding:5px 14px;border-radius:99px;">Not qualifying yet</span>`;
-  return renderPropertyCard(p,ts,ph,badge,'');
+    :`<span style="background:#FEE2E2;color:#991B1B;font-size:12px;font-weight:700;padding:5px 14px;border-radius:99px;">Does not qualify</span>`;
+  return renderPropertyCard(p,ts,ph,badge,'',ltrInfo);
 }).join('')}`:''}`;
 }
 
@@ -2558,7 +2562,7 @@ async function resetAll(){
   if(!ok)return;
   const code=await dlgPrompt({title:'Confirm reset',body:'Type RESET to permanently erase all data.',placeholder:'RESET',confirmLabel:'Reset everything',danger:true,expectedText:'RESET'});
   if(code===null)return;
-  state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:false,personalUseDays:0,filingStatus:'MFJ',spouseHoursPolicy:'majority'},properties:[],entries:[],manualMP:{},priorYearMP:{}};
+  state={settings:{nonREPSHours:0,spouseEnabled:false,spouseName:'',groupingElection:false,includeSTRinREPS:false,personalUseDays:0,filingStatus:'MFJ',spouseHoursPolicy:'majority',repsSelfCert:false},properties:[],entries:[],manualMP:{},priorYearMP:{}};
   save();renderView();
   toast('All data reset.','success');
 }
