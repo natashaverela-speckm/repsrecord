@@ -21,8 +21,17 @@ function showMsg(text, ok) {
 }
 
 function goApp() {
-  const plan = new URLSearchParams(window.location.search).get('plan') || 'monthly';
-  window.location.replace(`${APP_PAGE}?checkout=${plan}`);
+  // Only auto-start checkout when the user actually arrived from a pricing CTA that
+  // specified a plan (?plan=monthly|annual). A plain sign-in must NOT force a plan —
+  // otherwise an unsubscribed user is shoved straight into monthly checkout and never
+  // sees the paywall where they choose monthly vs annual. No plan → go to the app and
+  // let the paywall present both options.
+  const plan = new URLSearchParams(window.location.search).get('plan');
+  if (plan === 'monthly' || plan === 'annual') {
+    window.location.replace(`${APP_PAGE}?checkout=${plan}`);
+  } else {
+    window.location.replace(APP_PAGE);
+  }
 }
 
 function showConfirmScreen(email) {
