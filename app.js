@@ -410,13 +410,17 @@ function showPaywallOverlay(userId,email){
     <div style="font-size:40px;margin-bottom:8px;">🔒</div>
     <h2 style="margin:0 0 8px;font-size:22px;">Your access is paused</h2>
     <p style="margin:0 0 20px;color:#B6C6E0;font-size:15px;line-height:1.5;">Your free trial or subscription isn't active right now. Choose a plan to pick up right where you left off — your data is safe and waiting.</p>
-    <button onclick="startCheckout('monthly')" style="display:block;width:100%;background:#14B8A6;color:#fff;border:none;font-weight:600;padding:13px;border-radius:10px;margin-bottom:10px;cursor:pointer;font-size:15px;">Continue — Monthly</button>
-    <button onclick="startCheckout('annual')" style="display:block;width:100%;background:#0EA5E9;color:#fff;border:none;font-weight:600;padding:13px;border-radius:10px;cursor:pointer;font-size:15px;">Continue — Annual</button>
+    <button id="paywall-monthly" type="button" style="display:block;width:100%;background:#14B8A6;color:#fff;border:none;font-weight:600;padding:13px;border-radius:10px;margin-bottom:10px;cursor:pointer;font-size:15px;">Continue — Monthly</button>
+    <button id="paywall-annual" type="button" style="display:block;width:100%;background:#0EA5E9;color:#fff;border:none;font-weight:600;padding:13px;border-radius:10px;cursor:pointer;font-size:15px;">Continue — Annual</button>
     <button id="paywall-signout" type="button" style="margin-top:18px;background:none;border:none;color:#7C93B8;font-size:13px;cursor:pointer;text-decoration:underline;">Sign out</button>
   </div>`;
   document.body.appendChild(o);
   const so=document.getElementById('paywall-signout');
   if(so) so.addEventListener('click',signOut);
+  const bm=document.getElementById('paywall-monthly');
+  if(bm) bm.addEventListener('click',function(){startCheckout('monthly');});
+  const ba=document.getElementById('paywall-annual');
+  if(ba) ba.addEventListener('click',function(){startCheckout('annual');});
 }
 
 // ── CRITICAL FIX 1: Cloud sync ──
