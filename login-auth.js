@@ -169,7 +169,14 @@ async function signInGoogle() {
     const plan = new URLSearchParams(window.location.search).get('plan') || '';
     const { error } = await sb.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: window.location.origin + '/login.html' + (plan ? `?plan=${plan}` : '') }
+      options: {
+        redirectTo: window.location.origin + '/login.html' + (plan ? `?plan=${plan}` : ''),
+        // Always show Google's account picker instead of silently reusing whichever
+        // Google account the browser is already signed into. Without this, a user (or
+        // tester) with one Google session gets logged straight into that account with no
+        // chance to choose a different one.
+        queryParams: { prompt: 'select_account' }
+      }
     });
     if (error) showMsg(error.message || 'Could not start Google sign-in.');
   } catch (e) {
