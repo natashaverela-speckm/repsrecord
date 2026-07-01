@@ -665,7 +665,7 @@ function mpT(pid){
     {id:4,name:'Test 4',label:'SPA Aggregate',cite:'§1.469-5T(a)(4)',desc:'Activity is a Significant Participation Activity (>100 hrs in a trade or business in which you do not otherwise materially participate) and all your SPAs aggregate to more than 500 hours for the year. SPAs are non-rental trade-or-business activities only; LTR rental activities cannot generate SPAs.',auto:false,met:!!mn[4]},
     {id:5,name:'Test 5',label:'5 of Last 10 Yrs',cite:'§1.469-5T(a)(5)',desc:'Materially participated in this activity in any 5 of the 10 immediately preceding taxable years.',auto:true,met:(()=>{const py=(state.priorYearMP||{})[pid]||{};const last10=Array.from({length:10},(_,i)=>activeYear-1-i);return last10.filter(y=>py[y]).length>=5;})()},
     {id:6,name:'Test 6',label:'3 Prior Yrs (Personal Service Activity)',cite:'§1.469-5T(a)(6)',desc:'Materially participated 3 prior years when the activity was a personal service activity. Does not apply to most STRs — STR properties are almost never personal service activities (medical, law, engineering, etc.).',auto:false,met:!!mn[6]},
-    {id:7,name:'Test 7',label:'Facts & Circumstances',cite:'§1.469-5T(a)(7)',desc:'Participate on a regular, continuous, and substantial basis. Requires more than 100 hours of participation (§1.469-5T(b)(2)(iii)). Does NOT apply if any other person is compensated for managing the activity, or if any other individual performs more management hours than you (§1.469-5T(b)(2)(ii)). Document frequency, duration, and nature of involvement.',auto:true,met:ownerEff>TAX.MP_TEST7_MIN&&ownerEff>=mo&&!paidManager},
+    {id:7,name:'Test 7',label:'Facts & Circumstances',cite:'§1.469-5T(a)(7)',desc:'Participate on a regular, continuous, and substantial basis. Does NOT apply if any other person is compensated for managing the activity (§1.469-5T(b)(2)(ii)). Document frequency, duration, and nature of involvement.',auto:false,met:!paidManager&&!!mn[7],unavailable:paidManager},
   ];
 }
 
@@ -695,7 +695,7 @@ function mpGroupedLTR(){
       {id:2,name:'Test 2',label:'Substantially All',cite:'§1.469-5T(a)(2)',desc:'Substantially all participation in the combined rental activity was yours.',auto:false,met:!!mn[2]},
       {id:3,name:'Test 3',label:'100 Hrs + Most',cite:'§1.469-5T(a)(3)',desc:'More than 100 hours across the combined activity AND not less than any other individual\u2019s participation.',auto:true,met:ownerEff>TAX.MP_TEST3_HOURS&&ownerEff>=mo},
       {id:5,name:'Test 5',label:'5 of Last 10 Yrs',cite:'§1.469-5T(a)(5)',desc:'Materially participated in this combined rental activity in any 5 of the last 10 taxable years.',auto:true,met:(()=>{const py=(state.priorYearMP||{})[LTR_GROUP_ID]||{};const last10=Array.from({length:10},(_,i)=>activeYear-1-i);return last10.filter(y=>py[y]).length>=5;})()},
-      {id:7,name:'Test 7',label:'Facts & Circumstances',cite:'§1.469-5T(a)(7)',desc:'Regular, continuous, and substantial participation in the combined activity. Requires more than 100 hours (§1.469-5T(b)(2)(iii)); unavailable if any grouped property is managed by a compensated person (§1.469-5T(b)(2)(ii)).',auto:true,met:ownerEff>TAX.MP_TEST7_MIN&&ownerEff>=mo&&!paidManager},
+      {id:7,name:'Test 7',label:'Facts & Circumstances',cite:'§1.469-5T(a)(7)',desc:'Regular, continuous, and substantial participation in the combined activity. Unavailable if any grouped property is managed by a compensated person (§1.469-5T(b)(2)(ii)).',auto:false,met:!paidManager&&!!mn[7],unavailable:paidManager},
     ]
   };
 }
@@ -2172,13 +2172,13 @@ function vMP(){
     {id:4,q:'Do you have multiple activities each taking 100–499 hours, totaling over 500 hours combined?',hint:'This is an advanced test for people juggling multiple investment activities. Rarely applies to typical STR owners. Marked manually.',auto:false},
     {id:5,q:'Did you materially participate in this property in at least 5 of the last 10 years?',hint:'Check off each prior year below. Once you confirm 5 or more years, this test is automatically met — no matter how many hours you logged this year.',auto:true},
     {id:6,q:'Was this a professional service business in any 3 prior years?',hint:'This almost never applies to rental properties. It\'s designed for medical practices, law firms, etc. You can ignore this for most STRs.',auto:false},
-    {id:7,q:'Did you participate regularly and substantially — and more than any paid manager?',hint:'This catches active owners who don\'t hit 500 hours but are clearly running the show. Requires 100+ hours minimum. If you pay a co-host or PM to manage, this test is NOT available to you.',auto:true},
+    {id:7,q:'Did you participate regularly and substantially — and more than any paid manager?',hint:'This is the catch-all test for hands-on owners who are clearly the ones running the property, even without hitting the bigger hour targets. Your involvement must be regular and ongoing — not occasional. Important: if you pay a co-host or property manager to run it, this test is NOT available to you.',auto:false},
   ];
 
   function renderTestRow(t,pid,ph,p,manualId,isSTR){
     const plain=TEST_PLAIN.find(x=>x.id===t.id)||{q:t.label,hint:t.desc};
-    // Tests 2 and 3 carry a "(Short Term Rental)" note on every property (STR and LTR).
-    const qLabel=((t.id===2||t.id===3))?(plain.q+' <span style="font-weight:800;color:#0E7490;">(Short Term Rental)</span>'):plain.q;
+    // For STR properties, Tests 2 and 3 carry a "(Short Term Rental)" note.
+    const qLabel=(isSTR&&(t.id===2||t.id===3))?(plain.q+' <span style="font-weight:800;color:#0E7490;">(Short Term Rental)</span>'):plain.q;
     const policy=(state.settings&&state.settings.spouseHoursPolicy)||'majority';
     const ownerEff=ph.owner+(ph.spouse||0);
     const mo=policy==='conservative'?Math.max(ph.spouse||0,p.otherHours||0):(p.otherHours||0);
@@ -2203,11 +2203,8 @@ function vMP(){
       const behind=mo>0&&ownerEff<mo;
       statusNote=`<div style="font-size:12px;color:#0E7490;margin-top:6px;">You have <strong>${Math.round(ownerEff)} hrs</strong>.${need>0?` Need <strong>${need} more hours</strong> to hit the 100-hour floor.`:''}${behind?` Also need to outwork the highest other participant (<strong>${Math.round(mo)} hrs</strong>).`:' You already outwork everyone else ✓'}</div>`;
     }
-    if(t.auto&&!t.met&&t.id===7&&paid){
+    if(t.id===7&&paid){
       statusNote=`<div style="font-size:12px;color:#991B1B;margin-top:6px;background:#FEF2F2;border-radius:6px;padding:6px 10px;">⛔ Not available — you have a paid co-host or property manager. This test is only for owners who run it themselves.</div>`;
-    }
-    if(t.auto&&t.met&&t.id===7){
-      statusNote=`<div style="font-size:12px;color:#B45309;margin-top:6px;background:#FFF7ED;border-radius:6px;padding:6px 10px;">⚠ Likely yes — but confirm you participate regularly and no paid manager handles more than you do.</div>`;
     }
 
     return`<div style="display:flex;gap:14px;padding:14px 0;border-bottom:.5px solid #F0FDFA;align-items:flex-start;">
@@ -2234,7 +2231,7 @@ function vMP(){
             </div>
             ${metCount>=5?'<div style="margin-top:8px;font-size:11px;color:#065F46;font-weight:700;">✓ 5+ years confirmed — Test 5 met automatically.</div>':'<div style="margin-top:8px;font-size:11px;color:#64748B;">Keep records (tax returns, prior logs) to substantiate each checked year in case of audit.</div>'}
           </div>`;
-        })():t.id===6?`<div style="margin-top:10px;padding:8px 10px;background:#FFFBEB;border-radius:6px;border:.5px solid #FDE68A;font-size:11px;color:#92400E;line-height:1.6;">⚠ This test almost never applies to rental properties. It's for personal service activities (law, medicine, engineering). If you're unsure, ask your CPA — but for most STR/LTR investors you can skip this.<br><label style="display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer;font-weight:600;color:#0D1F3C;"><input type="checkbox" ${t.met?'checked':''} data-chg="togMP" data-id="${manualId}" data-tid="${t.id}" style="accent-color:#14B8A6;width:14px;height:14px;"/>Yes — this was a personal service activity and I materially participated for 3 prior years</label></div>`:!t.auto?`<label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer;font-size:12px;font-weight:600;color:#0D1F3C;"><input type="checkbox" ${t.met?'checked':''} data-chg="togMP" data-id="${manualId}" data-tid="${t.id}" style="accent-color:#14B8A6;width:15px;height:15px;"/>Yes — I qualify for this test (I'll keep documentation)</label>`:''}
+        })():t.id===6?`<div style="margin-top:10px;padding:8px 10px;background:#FFFBEB;border-radius:6px;border:.5px solid #FDE68A;font-size:11px;color:#92400E;line-height:1.6;">⚠ This test almost never applies to rental properties. It's for personal service activities (law, medicine, engineering). If you're unsure, ask your CPA — but for most STR/LTR investors you can skip this.<br><label style="display:flex;align-items:center;gap:8px;margin-top:8px;cursor:pointer;font-weight:600;color:#0D1F3C;"><input type="checkbox" ${t.met?'checked':''} data-chg="togMP" data-id="${manualId}" data-tid="${t.id}" style="accent-color:#14B8A6;width:14px;height:14px;"/>Yes — this was a personal service activity and I materially participated for 3 prior years</label></div>`:t.id===7?(paid?'':`<label style="display:flex;align-items:flex-start;gap:8px;margin-top:10px;cursor:pointer;font-size:12px;font-weight:600;color:#0D1F3C;"><input type="checkbox" ${t.met?'checked':''} data-chg="togMP" data-id="${manualId}" data-tid="${t.id}" style="accent-color:#14B8A6;width:15px;height:15px;flex-shrink:0;margin-top:2px;"/>Yes — I self-certify that I ran this property on a regular, continuous, and substantial basis (I'll keep documentation)</label>`):!t.auto?`<label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer;font-size:12px;font-weight:600;color:#0D1F3C;"><input type="checkbox" ${t.met?'checked':''} data-chg="togMP" data-id="${manualId}" data-tid="${t.id}" style="accent-color:#14B8A6;width:15px;height:15px;"/>Yes — I qualify for this test (I'll keep documentation)</label>`:''}
       </div>
     </div>`;
   }
