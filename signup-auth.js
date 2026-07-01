@@ -15,19 +15,14 @@
 // confirmed it as paid (that needs a server-side Stripe call / webhook). It stops
 // direct sign-ups and email mismatches, not a determined actor with a real id.
 // ─────────────────────────────────────────────────────────────────────────────
-
 const SUPABASE_URL = 'https://ehuttijifubonhhgnvzx.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVodXR0aWppZnVib25oaGdudnp4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0NjU2MTgsImV4cCI6MjA5NTA0MTYxOH0.-uYE8sxRDXdZXt00CH10d7tLYaJl03hFYfDH5tPjTKM';
-
 // Where authenticated users land — the app shell page (loads app.js).
 const APP_PAGE = 'app.html';
 // Where to send someone who reached signup without a Stripe session (no payment).
 const TRIAL_PAGE = 'index.html#pricing';
-
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 const $ = (id) => document.getElementById(id);
-
 // Pull Stripe context from the URL once.
 function getCtx() {
   try {
@@ -41,7 +36,6 @@ function getCtx() {
 const CTX = getCtx();
 // A real Stripe Checkout Session id starts with "cs_". Accept that prefix.
 const HAS_VALID_SESSION = /^cs_[A-Za-z0-9_]+$/.test(CTX.sessionId);
-
 function showMsg(text, ok) {
   const m = $('msg');
   if (!m) return;
@@ -53,25 +47,20 @@ function showMsg(text, ok) {
     m.style.background = '#FEF2F2'; m.style.borderColor = '#FECACA'; m.style.color = '#991B1B';
   }
 }
-
 function setBusy(b) {
   const btn = $('signup-btn');
   if (btn) { btn.disabled = b; btn.textContent = b ? 'Creating account…' : 'Create account'; }
 }
-
 // Endpoint that verifies the Stripe payment and links the subscription to the new user.
 const CLAIM_ENDPOINT = SUPABASE_URL + '/functions/v1/claim-subscription';
 // Read-only endpoint that returns the email for a paid Stripe session (autofill).
 const SESSION_EMAIL_ENDPOINT = SUPABASE_URL + '/functions/v1/session-email';
 // Set true while we're creating+claiming so the auth-state listener doesn't redirect early.
 let CLAIMING = false;
-
 function goApp() { window.location.replace(APP_PAGE); }
-
 // If a session already exists (e.g. revisit), send to the app — but NOT while we're
 // in the middle of the signup+claim flow (we redirect ourselves after claiming).
 sb.auth.onAuthStateChange((_event, session) => { if (session && !CLAIMING) goApp(); });
-
 (async () => {
   try {
     const { data: { session } } = await sb.auth.getSession();
@@ -79,12 +68,10 @@ sb.auth.onAuthStateChange((_event, session) => { if (session && !CLAIMING) goApp
   } catch (e) { /* no session — continue */ }
   await applyGates();
 })();
-
 // Set up the form based on the Stripe context (Gates 1 & 2).
 async function applyGates() {
   const emailEl = $('email');
   const banner = document.querySelector('.welcome');
-
   if (!HAS_VALID_SESSION) {
     // Gate 1: no payment session — block account creation, point them to pricing.
     if (banner) {
@@ -100,7 +87,6 @@ async function applyGates() {
     const pw = $('password'); if (pw) pw.disabled = true;
     return;
   }
-
   // Gate 2: lock the email to the address that paid (if Stripe passed it).
   if (CTX.email && emailEl) {
     emailEl.value = CTX.email;
@@ -135,7 +121,6 @@ async function applyGates() {
     }
   }
 }
-
 // After the account exists and we have a session, verify the payment and write the
 // subscription row. Returns true on success.
 async function claimSubscription() {
@@ -157,7 +142,6 @@ async function claimSubscription() {
     return false;
   }
 }
-
 // Poll until (a) a session token exists and (b) the subscriptions row is readable
 // for this user. Prevents the post-signup paywall from firing before data is ready.
 async function waitForReady() {
@@ -178,10 +162,8 @@ async function waitForReady() {
   }
   return false; // fall through; app's own paywall will re-check
 }
-
 async function signUpEmail() {
   if (!HAS_VALID_SESSION) { window.location.href = TRIAL_PAGE; return; }
-
   // If the email is locked, always use the paid email; otherwise read the field.
   const email = (CTX.email || ($('email')?.value || '')).trim();
   const password = $('password')?.value || '';
@@ -198,9 +180,7 @@ async function signUpEmail() {
       password,
       options: { data: { stripe_session_id: CTX.sessionId, signup_source: 'stripe_checkout' } }
     });
-
     let signedIn = !!(data && data.session);
-
     if (error) {
       const msg = (error.message || '').toLowerCase();
       if (msg.includes('already') || msg.includes('registered') || msg.includes('exists')) {
@@ -220,12 +200,10 @@ async function signUpEmail() {
         return;
       }
     }
-
     if (!signedIn) {
       const { error: siErr } = await sb.auth.signInWithPassword({ email, password });
       if (siErr) { CLAIMING = false; showMsg('Account created, but we could not sign you in. Please sign in to continue.'); setBusy(false); return; }
     }
-
     // Link the payment to this account (verifies the Stripe session is really paid).
     const claimed = await claimSubscription();
     if (!claimed) {
@@ -234,7 +212,6 @@ async function signUpEmail() {
       setBusy(false);
       return;
     }
-
     // Confirm session + subscription are readable, then enter the app.
     await waitForReady();
     goApp();
@@ -243,7 +220,6 @@ async function signUpEmail() {
     setBusy(false);
   }
 }
-
 async function signUpGoogle() {
   if (!HAS_VALID_SESSION) { window.location.href = TRIAL_PAGE; return; }
   showMsg('');
@@ -258,10 +234,19 @@ async function signUpGoogle() {
     showMsg('Could not start Google sign-up. Please try again.');
   }
 }
-
 document.addEventListener('DOMContentLoaded', () => {
   $('signup-btn')?.addEventListener('click', signUpEmail);
   $('google-btn')?.addEventListener('click', signUpGoogle);
   $('email')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); $('password')?.focus(); } });
   $('password')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); signUpEmail(); } });
+  $('pw-toggle')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    const p = $('password'); const t = $('pw-toggle');
+    if (!p || !t) return;
+    const show = p.type === 'password';
+    p.type = show ? 'text' : 'password';
+    t.textContent = show ? '🙈' : '👁';
+    t.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+    p.focus();
+  });
 });
