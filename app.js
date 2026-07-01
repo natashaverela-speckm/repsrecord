@@ -333,7 +333,25 @@ async function signOut(){
 const PAYWALL_ADMINS=['admin@repsrecord.com'];
 const PAY_MONTHLY='https://buy.stripe.com/bJedR19mL8bK7rY3nuebu00';// fallback
 const PAY_ANNUAL='https://buy.stripe.com/aFadR17eD9fOfYubU0ebu01';// fallback
+// Full-screen overlay shown the instant a plan is clicked, so the user sees immediate
+// feedback ("Opening secure checkout…") instead of the app's own loading state flashing
+// behind the paywall while we fetch the Stripe session URL. Returns a dismiss() fn; on a
+// successful checkout the page navigates away to Stripe, so the overlay stays up through
+// the redirect and is only dismissed if checkout fails.
+function showCheckoutLoading(plan){
+  if(document.getElementById('checkout-loading')) return function(){};
+  const o=document.createElement('div');
+  o.id='checkout-loading';
+  o.setAttribute('style','position:fixed;inset:0;z-index:100000;background:#0D1F3C;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;font-family:inherit;');
+  o.innerHTML='<div style="width:44px;height:44px;border:4px solid rgba(255,255,255,.2);border-top-color:#14B8A6;border-radius:50%;animation:ckspin .8s linear infinite;"></div>'
+    +'<div style="font-size:16px;font-weight:600;">Opening secure checkout…</div>'
+    +'<div style="font-size:13px;color:#B6C6E0;">Taking you to Stripe to '+(plan==='annual'?'start your annual plan':'start your monthly plan')+'.</div>'
+    +'<style>@keyframes ckspin{to{transform:rotate(360deg);}}</style>';
+  document.body.appendChild(o);
+  return function(){ const el=document.getElementById('checkout-loading'); if(el) el.remove(); };
+}
 window.startCheckout=async function startCheckout(plan){
+  const _hideLoading=showCheckoutLoading(plan);
   try{
     const{data:{session}}=await _sb.auth.getSession();
     if(!session){window.location.href='login.html';return;}
@@ -344,8 +362,8 @@ window.startCheckout=async function startCheckout(plan){
     });
     const{url,error}=await r.json();
     if(url){window.location.href=url;}
-    else{toast('Could not start checkout. '+(error||''),'error');}
-  }catch(e){toast('Could not start checkout.','error');console.error('[startCheckout]',e);}
+    else{_hideLoading();toast('Could not start checkout. '+(error||''),'error');}
+  }catch(e){_hideLoading();toast('Could not start checkout.','error');console.error('[startCheckout]',e);}
 }
 window.manageBilling=async function manageBilling(){
   try{
