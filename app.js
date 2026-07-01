@@ -2177,8 +2177,8 @@ function vMP(){
 
   function renderTestRow(t,pid,ph,p,manualId,isSTR){
     const plain=TEST_PLAIN.find(x=>x.id===t.id)||{q:t.label,hint:t.desc};
-    // For STR properties, Tests 2 and 3 carry a "(Short Term Rental)" note.
-    const qLabel=(isSTR&&(t.id===2||t.id===3))?(plain.q+' <span style="font-weight:800;color:#0E7490;">(Short Term Rental)</span>'):plain.q;
+    // Tests 2 and 3 carry a "(Short Term Rental)" note on every property (STR and LTR).
+    const qLabel=((t.id===2||t.id===3))?(plain.q+' <span style="font-weight:800;color:#0E7490;">(Short Term Rental)</span>'):plain.q;
     const policy=(state.settings&&state.settings.spouseHoursPolicy)||'majority';
     const ownerEff=ph.owner+(ph.spouse||0);
     const mo=policy==='conservative'?Math.max(ph.spouse||0,p.otherHours||0):(p.otherHours||0);
