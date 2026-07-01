@@ -835,11 +835,33 @@ document.addEventListener('click',function(e){
 });
 </script>
 <script>
+// ── OAuth handoff — a Google sign-in can land back on the home page with the
+// session token in the URL hash (e.g. '#access_token=...'). The home page has no
+// auth handling, so forward the whole hash to app.html, where the Supabase client
+// reads it, establishes the session, and runs the normal access checks. Without this
+// the token sits on the marketing page and the user is stuck on a loading screen.
+(function(){
+  try{
+    var h=window.location.hash||'';
+    if(/[#&]access_token=/.test(h) || /[#&]error=/.test(h)){
+      window.location.replace('app.html'+h);
+      return;
+    }
+  }catch(e){}
+})();
 // ── Hash anchor routing — scroll to section on direct URL load ──
 (function(){
   function scrollToHash(hash){
     if(!hash||hash==='#')return;
-    var el=document.querySelector(hash);
+    // Ignore auth/OAuth redirect hashes (e.g. Google sign-in returns
+    // '#access_token=...&refresh_token=...'). These are NOT anchor targets and are
+    // not valid CSS selectors — passing them to querySelector throws and crashes the
+    // page script, which previously left OAuth logins stuck on a blank/loading screen.
+    if(/access_token|refresh_token|error=|provider_token|[=&]/.test(hash))return;
+    // Only treat simple '#id' anchors as scroll targets; guard querySelector so any
+    // malformed/invalid selector can never throw.
+    var el=null;
+    try{ el=document.querySelector(hash); }catch(e){ return; }
     if(!el)return;
     el.scrollIntoView({behavior:'smooth',block:'start'});
   }
