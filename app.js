@@ -2799,6 +2799,7 @@ function renderView(){
   if(view==='dashboard'){
     const cv=document.getElementById('mc');
     if(cv){
+     try{
       const ye=state.entries.filter(e=>e.date&&e.date.startsWith(String(activeYear)));
       if(_chartTab==='monthly'){
         const monthly=Array.from({length:12},()=>({r:0,s:0}));
@@ -2823,6 +2824,12 @@ function renderView(){
           {label:'STR',data:propHrs.map(p=>Math.round(p.str*10)/10),backgroundColor:'#38BDF8',borderRadius:3,barPercentage:.6}
         ]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.parsed.x}h`}}},scales:{x:{grid:{color:'#F0FDFA'},ticks:{font:{size:11},color:'#64748B'},border:{display:false},beginAtZero:true},y:{grid:{display:false},ticks:{font:{size:11},color:'#64748B'},border:{display:false}}}}});
       }
+     }catch(chartErr){
+       // Chart rendering can throw inside the browser's own canvas/font engine on some
+       // Safari builds (e.g. "fontFamilyNameForLanguageTag"). That must never blank the
+       // app — swallow it so the rest of the dashboard renders fine, just without the chart.
+       console.warn('[chart] render skipped:',chartErr);
+     }
     }
   }
 }
@@ -3380,6 +3387,25 @@ async function appInit(){
     toast('Something went wrong while starting up. Your data is safe on this device — try reloading the page.','error',{duration:0});
   }
 }
+// ── Global safety net ──
+// A single stray unhandled error/rejection — including ones thrown from inside the browser's
+// own rendering engine or from a misbehaving browser extension injected into the page — must
+// never leave the user staring at a blank screen. We log it and, if the main content area
+// never rendered, fall back to rendering the current view so the app is always usable.
+window.addEventListener('unhandledrejection',function(ev){
+  console.warn('[unhandledrejection]',ev&&ev.reason);
+  try{
+    const c=document.getElementById('content');
+    if(c && c.innerHTML.trim()===''){ renderView(); }
+  }catch(_){}
+});
+window.addEventListener('error',function(ev){
+  console.warn('[window error]',ev&&(ev.message||ev.error));
+  try{
+    const c=document.getElementById('content');
+    if(c && c.innerHTML.trim()===''){ renderView(); }
+  }catch(_){}
+});
 initDelegation();
 appInit();
 
