@@ -76,5 +76,17 @@ label.fl{display:block;font-size:10px;font-weight:700;text-transform:uppercase;l
   </div>
 
   <script src="signup-auth.js"></script>
+  <script>
+    (function(){
+      var t=document.getElementById('pw-toggle'), p=document.getElementById('password');
+      if(t&&p){ t.addEventListener('click',function(){
+        var show=p.type==='password';
+        p.type=show?'text':'password';
+        t.textContent=show?'🙈':'👁';
+        t.setAttribute('aria-label',show?'Hide password':'Show password');
+        p.focus();
+      }); }
+    })();
+  </script>
 </body>
 </html>
