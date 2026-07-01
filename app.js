@@ -2178,18 +2178,7 @@ function vMP(){
   function renderTestRow(t,pid,ph,p,manualId,isSTR){
     const plain=TEST_PLAIN.find(x=>x.id===t.id)||{q:t.label,hint:t.desc};
     // For STR properties, Tests 1 and 3 carry a "(Short Term Rental Only)" note.
-    // For LONG-TERM rentals, only Test 1 (500 hrs) counts toward qualification — it is part of the
-    // REPS "all three" requirement shown at the top of the card. The other tests do NOT make an LTR's
-    // losses non-passive on their own, so we de-emphasize them and add a clarifying note so an
-    // LTR-only user understands why they aren't the path to qualifying.
-    const isLTR=!isSTR;
-    const ltrIrrelevant=isLTR&&t.id!==1;   // Test 1 stays relevant for LTRs; all others are informational only
-    let qLabel=plain.q;
-    if(isSTR&&(t.id===1||t.id===3)){
-      qLabel=plain.q+' <span style="font-weight:800;color:#0E7490;">(Short Term Rental Only)</span>';
-    } else if(ltrIrrelevant){
-      qLabel=plain.q+' <span style="font-weight:800;color:#94A3B8;">(doesn\'t qualify a long-term rental on its own)</span>';
-    }
+    const qLabel=(isSTR&&(t.id===1||t.id===3))?(plain.q+' <span style="font-weight:800;color:#0E7490;">(Short Term Rental Only)</span>'):plain.q;
     const policy=(state.settings&&state.settings.spouseHoursPolicy)||'majority';
     const ownerEff=ph.owner+(ph.spouse||0);
     const mo=policy==='conservative'?Math.max(ph.spouse||0,p.otherHours||0):(p.otherHours||0);
@@ -2221,7 +2210,7 @@ function vMP(){
       statusNote=`<div style="font-size:12px;color:#B45309;margin-top:6px;background:#FFF7ED;border-radius:6px;padding:6px 10px;">⚠ Likely yes — but confirm you participate regularly and no paid manager handles more than you do.</div>`;
     }
 
-    return`<div style="display:flex;gap:14px;padding:14px 0;border-bottom:.5px solid #F0FDFA;align-items:flex-start;${ltrIrrelevant?'opacity:.55;':''}">
+    return`<div style="display:flex;gap:14px;padding:14px 0;border-bottom:.5px solid #F0FDFA;align-items:flex-start;">
       <div style="width:32px;height:32px;border-radius:8px;background:${t.met?'#D1FAE5':'#F0FDFA'};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:${t.met?'#065F46':'#94A3B8'};flex-shrink:0;border:.5px solid ${t.met?'#6EE7B7':'#CCFBF1'};">${t.met?'✓':t.id}</div>
       <div style="flex:1;">
         <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:4px;">${qLabel}</div>
