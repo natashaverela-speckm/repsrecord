@@ -2175,8 +2175,10 @@ function vMP(){
     {id:7,q:'Did you participate regularly and substantially — and more than any paid manager?',hint:'This catches active owners who don\'t hit 500 hours but are clearly running the show. Requires 100+ hours minimum. If you pay a co-host or PM to manage, this test is NOT available to you.',auto:true},
   ];
 
-  function renderTestRow(t,pid,ph,p,manualId){
+  function renderTestRow(t,pid,ph,p,manualId,isSTR){
     const plain=TEST_PLAIN.find(x=>x.id===t.id)||{q:t.label,hint:t.desc};
+    // For STR properties, Tests 1 and 3 carry a "(Short Term Rental Only)" note.
+    const qLabel=(isSTR&&(t.id===1||t.id===3))?(plain.q+' <span style="font-weight:800;color:#0E7490;">(Short Term Rental Only)</span>'):plain.q;
     const policy=(state.settings&&state.settings.spouseHoursPolicy)||'majority';
     const ownerEff=ph.owner+(ph.spouse||0);
     const mo=policy==='conservative'?Math.max(ph.spouse||0,p.otherHours||0):(p.otherHours||0);
@@ -2211,7 +2213,7 @@ function vMP(){
     return`<div style="display:flex;gap:14px;padding:14px 0;border-bottom:.5px solid #F0FDFA;align-items:flex-start;">
       <div style="width:32px;height:32px;border-radius:8px;background:${t.met?'#D1FAE5':'#F0FDFA'};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:${t.met?'#065F46':'#94A3B8'};flex-shrink:0;border:.5px solid ${t.met?'#6EE7B7':'#CCFBF1'};">${t.met?'✓':t.id}</div>
       <div style="flex:1;">
-        <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:4px;">${plain.q}</div>
+        <div style="font-size:13px;font-weight:700;color:#0D1F3C;margin-bottom:4px;">${qLabel}</div>
         <div style="font-size:12px;color:#64748B;line-height:1.5;margin-bottom:6px;">${plain.hint}</div>
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           ${statusBadge}
@@ -2253,7 +2255,7 @@ function vMP(){
       ${ltrInfo?((ltrInfo.qualifies)?`<div style="background:#ECFDF5;border-radius:8px;padding:10px 14px;font-size:13px;color:#065F46;margin-bottom:14px;font-weight:600;">🏆 You qualify — you self-certified the more-than-half test, exceeded 750 total REPS hours, and materially participate in this property (more than 500 hours). Your losses on this property can be non-passive.</div>`:`<div style="background:#FFF7ED;border-radius:8px;padding:10px 14px;font-size:13px;color:#92400E;margin-bottom:14px;">⏳ Not qualifying yet. A long-term rental is non-passive only if ALL of these are met: (1) you self-certify the more-than-half test above, (2) your total REPS hours exceed 750, and (3) you materially participate in this property with more than 500 hours (Test 1). Passing another test alone is not enough for a long-term rental.</div>`):(any?`<div style="background:#ECFDF5;border-radius:8px;padding:10px 14px;font-size:13px;color:#065F46;margin-bottom:14px;font-weight:600;">🏆 You pass via <strong>Test ${best.id} — ${best.label}</strong>. Your losses on this property can be non-passive.</div>`:`<div style="background:#FFF7ED;border-radius:8px;padding:10px 14px;font-size:13px;color:#92400E;margin-bottom:14px;">⏳ You haven't passed any test yet for this property. Keep logging hours — Test 3 is usually the easiest to hit.</div>`)}
       ${ltrInfo?`<div style="background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px;padding:12px 14px;margin-bottom:14px;"><div style="font-size:12px;font-weight:700;color:#0D1F3C;margin-bottom:8px;">Long-term rental requires all three:</div><div style="display:flex;flex-direction:column;gap:7px;"><div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#334155;"><span style="font-size:13px;">${ltrInfo.cert?'✅':'⬜'}</span><span><strong>Self-certification</strong> — more than half your personal-service time is in real estate ${ltrInfo.cert?'(certified above)':'(check the box at the top of this page)'}</span></div><div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#334155;"><span style="font-size:13px;">${ltrInfo.over750?'✅':'⏳'}</span><span><strong>More than 750 total REPS hours</strong> — you have <strong>${Math.round(ltrInfo.repsHrs)}</strong> ${ltrInfo.over750?'✓':'(need more than 750)'}</span></div><div style="display:flex;align-items:center;gap:8px;font-size:12px;color:#334155;"><span style="font-size:13px;">${ltrInfo.over500?'✅':'⏳'}</span><span><strong>More than 500 material-participation hours on this property</strong> — you have <strong>${Math.round(ph.owner+(ph.spouse||0))}</strong> ${ltrInfo.over500?'✓':'(need more than 500)'}</span></div></div><div style="font-size:11px;color:#64748B;line-height:1.6;margin-top:9px;padding-top:9px;border-top:.5px solid #E2E8F0;">The 500 material hours are part of the 750 total — they count toward it. The remaining hours can be general real estate work. <strong>Meeting 500 material hours alone does not qualify you</strong> — you also need more than 750 total hours and the certification above.</div></div>`:''}
       ${gateMsg?`<div style="background:#FFF7ED;border:1px solid #FDE68A;border-radius:8px;padding:10px 12px;font-size:12px;color:#92400E;line-height:1.6;margin-bottom:14px;">${gateMsg}</div>`:''}
-      ${tests.map(t=>renderTestRow(t,p.id,ph,p,p.id||'__ltrgroup')).join('')}
+      ${tests.map(t=>renderTestRow(t,p.id,ph,p,p.id||'__ltrgroup',!ltrInfo)).join('')}
     </div>`;
   }
 
