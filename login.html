@@ -6,6 +6,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ehuttijifubonhhgnvzx.supabase.co; connect-src 'self' https://ehuttijifubonhhgnvzx.supabase.co wss://ehuttijifubonhhgnvzx.supabase.co; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <title>Sign in — RepsRecord</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.106.2/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
+<script src="login-boot.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;}
@@ -60,6 +61,8 @@ label.fl{display:block;font-size:10px;font-weight:700;text-transform:uppercase;l
 </style>
 </head>
 <body>
+  <div id="login-boot" style="display:none;position:fixed;inset:0;z-index:100001;background:#0D1F3C;align-items:center;justify-content:center;"><div style="width:24px;height:24px;border:3px solid #1E3A63;border-top-color:#14B8A6;border-radius:50%;animation:lspin .7s linear infinite;"></div></div>
+  <style>@keyframes lspin{to{transform:rotate(360deg);}}</style>
   <div class="card" role="main">
     <div class="logo">REPS<span>Record</span></div>
 
