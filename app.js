@@ -378,6 +378,27 @@ async function enforceSubscription(){
     }
     const email=(session.user.email||'').toLowerCase();
     if(PAYWALL_ADMINS.includes(email)) return 'ok';
+    // Deleted-account guard: a local session token can persist after the underlying
+    // auth user has been deleted (e.g. re-login via Google after account deletion).
+    // Validate the session against the auth server. A DEFINITIVE auth error (the user
+    // no longer exists / session invalid) means this account is gone — route to a clean
+    // "account deleted" state instead of a paywall whose checkout can never succeed.
+    // A NETWORK/unknown failure must NOT lock anyone out, so we only act on a clear
+    // auth rejection and otherwise fall through to the normal flow (fails open).
+    try{
+      const gu=await _sb.auth.getUser();
+      const authErr=gu&&gu.error;
+      const noUser=!(gu&&gu.data&&gu.data.user);
+      const st=authErr&&(authErr.status||authErr.code);
+      const looksDeleted = noUser && authErr && (st===400||st===401||st===403||/session|missing|invalid|not.*found|user/i.test(String(authErr.message||authErr)));
+      if(looksDeleted){
+        try{ await _sb.auth.signOut(); }catch(_){}
+        if(!/(^|\/)login\.html$/.test(location.pathname)){
+          window.location.replace('login.html?deleted=1');
+        }
+        return 'redirect';
+      }
+    }catch(e){ /* network/unknown → do not lock out; continue normal flow */ }
     let status=null;
     try{
       const res=await fetch(`${SUPABASE_URL}/rest/v1/subscriptions?user_id=eq.${session.user.id}&select=status`,{
