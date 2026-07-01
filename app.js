@@ -431,7 +431,11 @@ async function enforceSubscription(){
     return 'blocked';
   }catch(e){ return 'open'; }
 }
+// Removes the initial boot overlay (the neutral full-screen loader shown from first paint
+// so the app chrome never flashes before we know whether to show the app or the paywall).
+function _hideBoot(){ const b=document.getElementById('boot-overlay'); if(b) b.remove(); }
 function showPaywallOverlay(userId,email){
+  _hideBoot();
   // If the user just signed up from a pricing CTA, auto-trigger checkout instead of showing the wall
   const autoCheckout=new URLSearchParams(window.location.search).get('checkout');
   if(autoCheckout==='monthly'||autoCheckout==='annual'){
@@ -3377,11 +3381,13 @@ async function appInit(){
         yrSel.appendChild(o);
       });
     }
+    _hideBoot();
     renderView();
     setTimeout(showWalkthrough,800);
   }catch(e){
     // Never strand the user on the loading spinner — surface the failure and render what we can.
     console.error('[appInit]',e);
+    _hideBoot();
     try{ renderView(); }catch(_){}
     toast('Something went wrong while starting up. Your data is safe on this device — try reloading the page.','error',{duration:0});
   }
